@@ -1,0 +1,37 @@
+function [data, info] = hand_pos
+%hand_pos gives an empty data for sam_custom_messages/hand_pos
+% Copyright 2019-2020 The MathWorks, Inc.
+data = struct();
+[data.header, info.header] = ros.internal.ros.messages.std_msgs.header;
+info.header.MLdataType = 'struct';
+[data.user_id, info.user_id] = ros.internal.ros.messages.ros.default_type('int8',1);
+[data.user_name, info.user_name] = ros.internal.ros.messages.ros.char('string',0);
+[data.hand, info.hand] = ros.internal.ros.messages.ros.default_type('int8',1);
+[data.pose, info.pose] = ros.internal.ros.messages.geometry_msgs.pose;
+info.pose.MLdataType = 'struct';
+info.MessageType = 'sam_custom_messages/hand_pos';
+info.constant = 0;
+info.default = 0;
+info.maxstrlen = NaN;
+info.MaxLen = 1;
+info.MinLen = 1;
+info.MatPath = cell(1,19);
+info.MatPath{1} = 'header';
+info.MatPath{2} = 'header.seq';
+info.MatPath{3} = 'header.stamp';
+info.MatPath{4} = 'header.stamp.sec';
+info.MatPath{5} = 'header.stamp.nsec';
+info.MatPath{6} = 'header.frame_id';
+info.MatPath{7} = 'user_id';
+info.MatPath{8} = 'user_name';
+info.MatPath{9} = 'hand';
+info.MatPath{10} = 'pose';
+info.MatPath{11} = 'pose.position';
+info.MatPath{12} = 'pose.position.x';
+info.MatPath{13} = 'pose.position.y';
+info.MatPath{14} = 'pose.position.z';
+info.MatPath{15} = 'pose.orientation';
+info.MatPath{16} = 'pose.orientation.x';
+info.MatPath{17} = 'pose.orientation.y';
+info.MatPath{18} = 'pose.orientation.z';
+info.MatPath{19} = 'pose.orientation.w';

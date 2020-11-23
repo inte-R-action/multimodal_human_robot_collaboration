@@ -1,0 +1,155 @@
+**********************************************************************
+** Visual Studio 2017 Developer Command Prompt v15.9.29
+** Copyright (c) 2017 Microsoft Corporation
+**********************************************************************
+[vcvarsall.bat] Environment initialized for: 'x86_x64'
+[0/1] Re-running CMake...
+CMake Warning (dev) in CMakeLists.txt:
+  No project() command is present.  The top-level CMakeLists.txt file must
+  contain a literal, direct call to the project() command.  Add a line of
+  code such as
+
+    project(ProjectName)
+
+  near the top of the file, but after cmake_minimum_required().
+
+  CMake is pretending there is a "project(Project)" command on the first
+  line.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Using CATKIN_DEVEL_PREFIX: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/devel
+-- Using CMAKE_PREFIX_PATH: C:\Program Files\MATLAB\R2020b\sys\ros1\win64\ros1;C:/Program Files/MATLAB/R2020b/toolbox/ros/mlroscpp/custom_messages
+-- This workspace overlays: C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1;C:/Program Files/MATLAB/R2020b/toolbox/ros/mlroscpp/custom_messages
+-- Using PYTHON_EXECUTABLE: C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe
+-- Using default Python package layout
+-- Using empy: C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/lib/site-packages/em.pyc
+-- Using CATKIN_ENABLE_TESTING: off
+-- catkin 0.7.17
+-- BUILD_SHARED_LIBS is on
+-- BUILD_SHARED_LIBS is on
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 1 packages in topological order:
+-- ~~  - sam_custom_messages
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin package: 'sam_custom_messages'
+-- ==> add_subdirectory(sam_custom_messages)
+-- Disabling the following message generators: geneus;genlisp;gennodejs
+-- Using these message generators: gencpp;genpy
+-- sam_custom_messages: 8 messages, 0 services
+-- Configuring done
+-- Generating done
+-- Build files have been written to: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/build
+ninja: no work to do.
+[1/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/object_state.msg geometry_msgs/Quaternion:sam_custom_messages/Object:geometry_msgs/Point:std_msgs/Header:geometry_msgs/Pose"
+[2/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/current_action.msg std_msgs/Header"
+[3/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/robot_state.msg geometry_msgs/Quaternion:geometry_msgs/Pose:std_msgs/Header:geometry_msgs/Point:sensor_msgs/JointState"
+[4/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/diagnostics.msg diagnostic_msgs/KeyValue:std_msgs/Header:diagnostic_msgs/DiagnosticStatus"
+[5/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/capability.msg geometry_msgs/Quaternion:sam_custom_messages/Object:geometry_msgs/Point:std_msgs/Header:geometry_msgs/Pose"
+[6/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/Object.msg "
+[7/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/hand_pos.msg geometry_msgs/Quaternion:geometry_msgs/Pose:std_msgs/Header:geometry_msgs/Point"
+[8/16] cmd.exe /C "cd /D C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\sam_custom_messages && C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build\catkin_generated\env_cached.bat C:/Users/inter/AppData/Roaming/MathWorks/MATLAB/R2020b/ros1/win64/venv/Scripts/python2.exe "C:/Program Files/MATLAB/R2020b/sys/ros1/win64/ros1/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py" sam_custom_messages C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/src/sam_custom_messages/msg/user_prediction.msg std_msgs/Header"
+[9/16] Generating Python from MSG sam_custom_messages/hand_pos
+[10/16] Generating C++ code from sam_custom_messages/hand_pos.msg
+[11/16] Generating Python msg __init__.py for sam_custom_messages
+[12/16] Building CXX object sam_custom_messages\CMakeFiles\sam_custom_messages_matlab.dir\src\sam_custom_messages_hand_pos_common.cpp.obj
+[13/16] Building CXX object sam_custom_messages\CMakeFiles\sam_custom_messages_matlab.dir\src\sam_custom_messages_msg_hand_pos_publisher.cpp.obj
+[14/16] Building CXX object sam_custom_messages\CMakeFiles\sam_custom_messages_matlab.dir\src\sam_custom_messages_msg_hand_pos_subscriber.cpp.obj
+[15/16] Linking CXX shared library C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\devel\bin\sam_custom_messages_matlab.dll
+   Creating library C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\devel\lib\sam_custom_messages_matlab.lib and object C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\devel\lib\sam_custom_messages_matlab.exp
+[15/16] Install the project...
+-- Install configuration: "Release"
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/_setup_util.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/_setup_util.py.exe
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/env.bat
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/setup.bat
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/local_setup.bat
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/.rosinstall
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/Object.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/capability.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/current_action.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/diagnostics.msg
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/hand_pos.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/object_state.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/robot_state.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/msg/user_prediction.msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/cmake/sam_custom_messages-msg-paths.cmake
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/capability.h
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/current_action.h
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/diagnostics.h
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/hand_pos.h
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/Object.h
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/object_state.h
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/robot_state.h
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/user_prediction.h
+Listing C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/devel/lib/site-packages/sam_custom_messages ...
+Listing C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/devel/lib/site-packages/sam_custom_messages\msg ...
+Compiling C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/devel/lib/site-packages/sam_custom_messages\msg\__init__.py ...
+Compiling C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/devel/lib/site-packages/sam_custom_messages\msg\_hand_pos.py ...
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_capability.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_capability.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_current_action.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_current_action.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_diagnostics.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_diagnostics.pyc
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_hand_pos.py
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_hand_pos.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_Object.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_Object.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_object_state.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_object_state.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_robot_state.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_robot_state.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_user_prediction.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/_user_prediction.pyc
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/__init__.py
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/msg/__init__.pyc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/__init__.py
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/site-packages/sam_custom_messages/__init__.pyc
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/pkgconfig/sam_custom_messages.pc
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/cmake/sam_custom_messages-msg-extras.cmake
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/cmake/sam_custom_messagesConfig.cmake
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/cmake/sam_custom_messagesConfig-version.cmake
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/share/sam_custom_messages/package.xml
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/include/sam_custom_messages/visibility_control.h
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/lib/sam_custom_messages_matlab.lib
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/bin/sam_custom_messages_matlab.dll
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m/
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/capability.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/current_action.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/diagnostics.m
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/hand_pos.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/object.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/object_state.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/robot_state.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+internal/+ros/+custommessages/+sam_custom_messages/user_prediction.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/capability.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/current_action.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/diagnostics.m
+-- Installing: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/hand_pos.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/Object.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/object_state.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/robot_state.m
+-- Up-to-date: C:/Users/inter/Documents/NatNet_SDK_3.1/NatNetSDK/Industrial_SAM/matlab_msg_gen_ros1/win64/install/m//+ros/+msggen/+sam_custom_messages/user_prediction.m
+Base path: C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64
+Source space: C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\src
+Build space: C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build
+Devel space: C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\devel
+Install space: C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\install
+####
+#### Running command: "ninja build.ninja" in "C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build"
+####
+####
+#### Running command: "ninja install install -j12 -l12" in "C:\Users\inter\Documents\NatNet_SDK_3.1\NatNetSDK\Industrial_SAM\matlab_msg_gen_ros1\win64\build"
+####
