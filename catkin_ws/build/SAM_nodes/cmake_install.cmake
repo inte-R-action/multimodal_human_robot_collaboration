@@ -1,4 +1,4 @@
-# Install script for directory: /home/james/multimodal_human_robot_collaboration/catkin_ws/src/SAM_nodes
+# Install script for directory: /home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_nodes
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -38,17 +38,17 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/james/multimodal_human_robot_collaboration/catkin_ws/build/SAM_nodes/catkin_generated/installspace/SAM_nodes.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/james/multimodal_human_robot_collaboration/catkin_ws/build/sam_nodes/catkin_generated/installspace/sam_nodes.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/SAM_nodes/cmake" TYPE FILE FILES
-    "/home/james/multimodal_human_robot_collaboration/catkin_ws/build/SAM_nodes/catkin_generated/installspace/SAM_nodesConfig.cmake"
-    "/home/james/multimodal_human_robot_collaboration/catkin_ws/build/SAM_nodes/catkin_generated/installspace/SAM_nodesConfig-version.cmake"
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/sam_nodes/cmake" TYPE FILE FILES
+    "/home/james/multimodal_human_robot_collaboration/catkin_ws/build/sam_nodes/catkin_generated/installspace/sam_nodesConfig.cmake"
+    "/home/james/multimodal_human_robot_collaboration/catkin_ws/build/sam_nodes/catkin_generated/installspace/sam_nodesConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/SAM_nodes" TYPE FILE FILES "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/SAM_nodes/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/sam_nodes" TYPE FILE FILES "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_nodes/package.xml")
 endif()
 

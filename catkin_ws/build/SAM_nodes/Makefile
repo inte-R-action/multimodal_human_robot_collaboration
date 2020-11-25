@@ -137,14 +137,14 @@ install/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/james/multimodal_human_robot_collaboration/catkin_ws/build/CMakeFiles /home/james/multimodal_human_robot_collaboration/catkin_ws/build/SAM_nodes/CMakeFiles/progress.marks
-	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 SAM_nodes/all
+	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/james/multimodal_human_robot_collaboration/catkin_ws/build/CMakeFiles /home/james/multimodal_human_robot_collaboration/catkin_ws/build/sam_nodes/CMakeFiles/progress.marks
+	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 sam_nodes/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/james/multimodal_human_robot_collaboration/catkin_ws/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 SAM_nodes/clean
+	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 sam_nodes/clean
 .PHONY : clean
 
 # The main clean target
@@ -154,12 +154,12 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 SAM_nodes/preinstall
+	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 sam_nodes/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 SAM_nodes/preinstall
+	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build && $(MAKE) -f CMakeFiles/Makefile2 sam_nodes/preinstall
 .PHONY : preinstall/fast
 
 # clear depends

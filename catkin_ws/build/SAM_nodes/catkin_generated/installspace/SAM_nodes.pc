@@ -1,7 +1,7 @@
 prefix=/home/james/multimodal_human_robot_collaboration/catkin_ws/install
 
-Name: SAM_nodes
-Description: Description of SAM_nodes
+Name: sam_nodes
+Description: Description of sam_nodes
 Version: 0.0.0
 Cflags: 
 Libs: -L${prefix}/lib 
