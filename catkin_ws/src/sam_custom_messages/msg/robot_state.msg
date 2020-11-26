@@ -10,10 +10,10 @@
 # time stamp
 # Frame this data is associated with
 # string frame_id
-Header header
+Header Header
 #
 ## ID of user (robot or human)
-int8 user_id
+int8 UserId
 #
 # sensor_msgs/JointState.msg
 # This is a message that holds data to describe the state of a set of torque controlled joints. 
@@ -35,10 +35,10 @@ int8 user_id
 # float64[] position
 # float64[] velocity
 # float64[] effort
-sensor_msgs/JointState jointstate
+sensor_msgs/JointState JointState
 #
 # geometry_msgs/Pose.msg
 # A representation of end effector pose in free space, composed of position and orientation. 
 # Point position
 # Quaternion orientation
-geometry_msgs/Pose pose
+geometry_msgs/Pose Pose

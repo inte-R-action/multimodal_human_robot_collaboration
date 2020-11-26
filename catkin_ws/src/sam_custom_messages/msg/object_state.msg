@@ -10,17 +10,17 @@
 # time stamp
 # Frame this data is associated with
 # string frame_id
-Header header
+Header Header
 #
 ## object.msg
 # Information on object type and further details
 # int8 id
 # int8 type 
 # string[] info
-Object object
+Object Object
 #
 # geometry_msgs/Pose.msg
 # A representation of pose in free space, composed of position and orientation. 
 # Point position
 # Quaternion orientation
-geometry_msgs/Pose pose
+geometry_msgs/Pose Pose

@@ -10,10 +10,10 @@
 # time stamp
 # Frame this data is associated with
 # string frame_id
-Header header
+Header Header
 #
 ## ID of user (robot or human)
-int8 user_id
+int8 UserId
 #
 ## diagnostic_msgs/DiagnosticStatus.msg
 # Possible levels of operations
@@ -26,4 +26,4 @@ int8 user_id
 # string message # a description of the status
 # string hardware_id # a hardware unique string
 # KeyValue[] values # an array of values associated with the status
-diagnostic_msgs/DiagnosticStatus diagnosticstatus
+diagnostic_msgs/DiagnosticStatus DiagnosticStatus

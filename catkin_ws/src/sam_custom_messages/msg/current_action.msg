@@ -10,10 +10,13 @@
 # time stamp
 # Frame this data is associated with
 # string frame_id
-Header header
+Header Header
 #
 ## ID of user (robot or human)
-int8 user_id
+int8 UserId
+#
+## Name of user (robot or human)
+string UserName
 #
 ## Probabilities of curent actions
-float64[] action_probs
+float64[] ActionProbs

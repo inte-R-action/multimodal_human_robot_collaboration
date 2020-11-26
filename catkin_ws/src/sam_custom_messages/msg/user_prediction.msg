@@ -10,10 +10,10 @@
 # time stamp
 # Frame this data is associated with
 # string frame_id
-Header header
+Header Header
 #
 ## ID of user (robot or human)
-int8 user_id
+int8 UserId
 #
 ## Probabilities of future capabilities being next
-float64[] predictions
+float64[] Predictions

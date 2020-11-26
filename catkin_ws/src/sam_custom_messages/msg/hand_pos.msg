@@ -10,19 +10,19 @@
 # time stamp
 # Frame this data is associated with
 # string frame_id
-Header header
+Header Header
 #
 ## ID of user (robot or human)
-int8 user_id
+int8 UserId
 #
 ## Name of user (robot or human)
-string user_name
+string UserName
 #
 ## Which hand location is for, 0:left, 1:right
-int8 hand
+int8 Hand
 #
 # geometry_msgs/Pose.msg
 # A representation of pose in free space, composed of position and orientation. 
 # Point position
 # Quaternion orientation
-geometry_msgs/Pose pose
+geometry_msgs/Pose Pose

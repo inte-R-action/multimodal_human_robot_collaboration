@@ -1,10 +1,10 @@
 # Message containg information on objects within environment
 #
 # Unique ID of object
-int8 id
+int8 Id
 #
 # Type of object ID
-int8 type
+int8 Type
 #
 # Additional information on object
-string[] info
+string[] Info
