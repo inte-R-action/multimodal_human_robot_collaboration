@@ -54,7 +54,7 @@ CMAKE_BINARY_DIR = /home/james/multimodal_human_robot_collaboration/catkin_ws/bu
 include sam_custom_messages/CMakeFiles/_sam_custom_messages_generate_messages_check_deps_diagnostics.dir/progress.make
 
 sam_custom_messages/CMakeFiles/_sam_custom_messages_generate_messages_check_deps_diagnostics:
-	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build/sam_custom_messages && ../catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/melodic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py sam_custom_messages /home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg diagnostic_msgs/DiagnosticStatus:std_msgs/Header:diagnostic_msgs/KeyValue
+	cd /home/james/multimodal_human_robot_collaboration/catkin_ws/build/sam_custom_messages && ../catkin_generated/env_cached.sh /usr/bin/python3 /opt/ros/melodic/share/genmsg/cmake/../../../lib/genmsg/genmsg_check_deps.py sam_custom_messages /home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg std_msgs/Header:diagnostic_msgs/DiagnosticStatus:diagnostic_msgs/KeyValue
 
 _sam_custom_messages_generate_messages_check_deps_diagnostics: sam_custom_messages/CMakeFiles/_sam_custom_messages_generate_messages_check_deps_diagnostics
 _sam_custom_messages_generate_messages_check_deps_diagnostics: sam_custom_messages/CMakeFiles/_sam_custom_messages_generate_messages_check_deps_diagnostics.dir/build.make

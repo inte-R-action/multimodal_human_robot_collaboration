@@ -6,10 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
 plt.ion()
 CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
 pos = np.arange(len(CATEGORIES))
-model = load_model('IMUmodel.h5')
+model = load_model(f'{dir_path}/IMUmodel.h5')
 model.summary()
 
 

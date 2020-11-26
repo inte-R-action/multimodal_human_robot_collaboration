@@ -19,7 +19,7 @@ add_custom_target(sam_custom_messages_generate_messages ALL)
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg" NAME_WE)
 add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
-  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg" "std_msgs/Header:geometry_msgs/Pose:geometry_msgs/Point:geometry_msgs/Quaternion:sam_custom_messages/Object"
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg" "geometry_msgs/Pose:std_msgs/Header:sam_custom_messages/Object:geometry_msgs/Point:geometry_msgs/Quaternion"
 )
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/current_action.msg" NAME_WE)
@@ -29,12 +29,12 @@ add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg" NAME_WE)
 add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
-  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg" "diagnostic_msgs/DiagnosticStatus:std_msgs/Header:diagnostic_msgs/KeyValue"
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg" "std_msgs/Header:diagnostic_msgs/DiagnosticStatus:diagnostic_msgs/KeyValue"
 )
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg" NAME_WE)
 add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
-  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg" "geometry_msgs/Quaternion:geometry_msgs/Point:std_msgs/Header:geometry_msgs/Pose"
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg" "std_msgs/Header:geometry_msgs/Point:geometry_msgs/Pose:geometry_msgs/Quaternion"
 )
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg" NAME_WE)
@@ -44,12 +44,12 @@ add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg" NAME_WE)
 add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
-  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg" "std_msgs/Header:geometry_msgs/Pose:geometry_msgs/Point:geometry_msgs/Quaternion:sam_custom_messages/Object"
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg" "geometry_msgs/Pose:std_msgs/Header:sam_custom_messages/Object:geometry_msgs/Point:geometry_msgs/Quaternion"
 )
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg" NAME_WE)
 add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
-  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg" "std_msgs/Header:geometry_msgs/Pose:geometry_msgs/Point:geometry_msgs/Quaternion:sensor_msgs/JointState"
+  COMMAND ${CATKIN_ENV} ${PYTHON_EXECUTABLE} ${GENMSG_CHECK_DEPS_SCRIPT} "sam_custom_messages" "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg" "sensor_msgs/JointState:geometry_msgs/Pose:std_msgs/Header:geometry_msgs/Point:geometry_msgs/Quaternion"
 )
 
 get_filename_component(_filename "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/user_prediction.msg" NAME_WE)
@@ -66,7 +66,7 @@ add_custom_target(_sam_custom_messages_generate_messages_check_deps_${_filename}
 _generate_msg_cpp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_cpp(sam_custom_messages
@@ -78,13 +78,13 @@ _generate_msg_cpp(sam_custom_messages
 _generate_msg_cpp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_cpp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_cpp(sam_custom_messages
@@ -96,13 +96,13 @@ _generate_msg_cpp(sam_custom_messages
 _generate_msg_cpp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_cpp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg"
+  "/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gencpp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_cpp(sam_custom_messages
@@ -155,7 +155,7 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS sam_custom_messages_generate_messag
 _generate_msg_eus(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_eus(sam_custom_messages
@@ -167,13 +167,13 @@ _generate_msg_eus(sam_custom_messages
 _generate_msg_eus(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_eus(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_eus(sam_custom_messages
@@ -185,13 +185,13 @@ _generate_msg_eus(sam_custom_messages
 _generate_msg_eus(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_eus(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg"
+  "/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${geneus_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_eus(sam_custom_messages
@@ -244,7 +244,7 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS sam_custom_messages_generate_messag
 _generate_msg_lisp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_lisp(sam_custom_messages
@@ -256,13 +256,13 @@ _generate_msg_lisp(sam_custom_messages
 _generate_msg_lisp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_lisp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_lisp(sam_custom_messages
@@ -274,13 +274,13 @@ _generate_msg_lisp(sam_custom_messages
 _generate_msg_lisp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_lisp(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg"
+  "/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genlisp_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_lisp(sam_custom_messages
@@ -333,7 +333,7 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS sam_custom_messages_generate_messag
 _generate_msg_nodejs(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_nodejs(sam_custom_messages
@@ -345,13 +345,13 @@ _generate_msg_nodejs(sam_custom_messages
 _generate_msg_nodejs(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_nodejs(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_nodejs(sam_custom_messages
@@ -363,13 +363,13 @@ _generate_msg_nodejs(sam_custom_messages
 _generate_msg_nodejs(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_nodejs(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg"
+  "/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${gennodejs_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_nodejs(sam_custom_messages
@@ -422,7 +422,7 @@ list(APPEND ${PROJECT_NAME}_EXPORTED_TARGETS sam_custom_messages_generate_messag
 _generate_msg_py(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/capability.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_py(sam_custom_messages
@@ -434,13 +434,13 @@ _generate_msg_py(sam_custom_messages
 _generate_msg_py(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/diagnostics.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/DiagnosticStatus.msg;/opt/ros/melodic/share/diagnostic_msgs/cmake/../msg/KeyValue.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_py(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/hand_pos.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg"
+  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_py(sam_custom_messages
@@ -452,13 +452,13 @@ _generate_msg_py(sam_custom_messages
 _generate_msg_py(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/object_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg"
+  "/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/Object.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_py(sam_custom_messages
   "/home/james/multimodal_human_robot_collaboration/catkin_ws/src/sam_custom_messages/msg/robot_state.msg"
   "${MSG_I_FLAGS}"
-  "/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg;/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg"
+  "/opt/ros/melodic/share/sensor_msgs/cmake/../msg/JointState.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Pose.msg;/opt/ros/melodic/share/std_msgs/cmake/../msg/Header.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Point.msg;/opt/ros/melodic/share/geometry_msgs/cmake/../msg/Quaternion.msg"
   ${CATKIN_DEVEL_PREFIX}/${genpy_INSTALL_DIR}/sam_custom_messages
 )
 _generate_msg_py(sam_custom_messages

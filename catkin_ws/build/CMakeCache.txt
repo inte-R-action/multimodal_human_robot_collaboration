@@ -243,7 +243,7 @@ LSB_FOUND:BOOL=TRUE
 LSB_RELEASE_EXECUTABLE:FILEPATH=/usr/bin/lsb_release
 
 //Path to a program.
-NOSETESTS:FILEPATH=/usr/bin/nosetests-2.7
+NOSETESTS:FILEPATH=/usr/bin/nosetests
 
 //Path to a program.
 PYTHON_EXECUTABLE:FILEPATH=/usr/bin/python3
@@ -259,12 +259,6 @@ Project_SOURCE_DIR:STATIC=/home/james/multimodal_human_robot_collaboration/catki
 
 //Path to a library.
 RT_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/librt.so
-
-//Value Computed by CMake
-SAM_nodes_BINARY_DIR:STATIC=/home/james/multimodal_human_robot_collaboration/catkin_ws/build/SAM_nodes
-
-//Value Computed by CMake
-SAM_nodes_SOURCE_DIR:STATIC=/home/james/multimodal_human_robot_collaboration/catkin_ws/src/SAM_nodes
 
 //Enable debian style python package layout
 SETUPTOOLS_DEB_LAYOUT:BOOL=ON

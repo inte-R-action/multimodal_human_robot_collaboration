@@ -7,19 +7,20 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import time
 from sklearn import preprocessing
-#import bluetooth
-#from serial.tools import list_ports
+import bluetooth
+from serial.tools import list_ports
 import threading
 import glob
 import signal
 import subprocess
-#import rospy
-#from std_msgs.msg import Int8, Float64
+import rospy
+from std_msgs.msg import Int8, Float64
 import socket
 import io
 import shlex
-#from imu_classifier import classify_data
-from sam_custom_messages import current_action, diagnostics
+from imu_classifier import classify_data
+from sam_custom_messages.msg import current_action, diagnostics
+from diagnostic_msgs.msg import KeyValue
 
 IMU_MSGS = ['ERROR', 'Ready', 'Unknown', 'Shutdown', 'Starting', 'Connecting', 'Initialising']
 IMU_SYS_MSGS = ['ERROR', 'Ready', 'Setting Up']
@@ -50,7 +51,7 @@ parser.add_argument('--user_name', '-N',
 
 parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',
-                    default=None,
+                    default=0,
                     action="store_true")
 
 args = parser.parse_args()
@@ -64,17 +65,18 @@ SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
 
 # Diagnostic message definitions
-diag_msg = diagnostics
-diag_msg.Header.Stamp = rospy.get_rostime()
-diag_msg.Header.Seq = 0
-diag_msg.Header.FrameId = frame_id
+diag_msg = diagnostics()
+#print(i for i in diag_msg.Header)
+diag_msg.Header.stamp = None#rospy.get_rostime()
+diag_msg.Header.seq = 0
+diag_msg.Header.frame_id = frame_id
 diag_msg.UserId = args.user_id
 diag_msg.UserName = args.user_name
-diag_msg.Diagnosticstatus.Level = 1 # warning
-diag_msg.Diagnosticstatus.Name = frame_id
-diag_msg.Diagnosticstatus.Message = "Starting..."
-diag_msg.Diagnosticstatus.HardwareId = "N/A"
-diag_msg.Diagnosticstatus.values = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
+diag_msg.DiagnosticStatus.level = 1 # warning
+diag_msg.DiagnosticStatus.name = frame_id
+diag_msg.DiagnosticStatus.message = "Starting..."
+diag_msg.DiagnosticStatus.hardware_id = "N/A"
+diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
                                     KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
                                     KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
                                     KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2]),] # [unknown, unknown, unknown, setting up]
@@ -502,10 +504,10 @@ def IMUsensorsMain():
     print("-----Here we go-----")
     rospy.init_node(f'shimmerBase {args.user_name} {args.user_id}', anonymous=True)
     action_pub = rospy.Publisher('CurrentAction', current_action, queue_size=1)
-    action_msg = current_action
-    action_msg.Header.Stamp = rospy.rospy.get_rostime()
-    action_msg.Header.Seq = 0
-    action_msg.Header.FrameId = frame_id
+    action_msg = current_action()
+    action_msg.Header.stamp = rospy.get_rostime()
+    action_msg.Header.seq = 0
+    action_msg.Header.frame_id = frame_id
     action_msg.UserId = args.user_id
     action_msg.UserName = args.user_name
     action_msg.ActionProbs = [0, 0, 0, 0, 0]
@@ -569,8 +571,10 @@ def IMUsensorsMain():
             plot_func(plotdata)
 
         #rospy.loginfo(out_str)
+        action_msg.Header.stamp = rospy.get_rostime()
+        action_msg.Header.seq = action_msg.Header.seq + 1
         action_msg.ActionProbs = prediction.tolist()
-        msg.imu_stat = status
+        #msg.imu_stat = status
         action_pub.publish(action_msg)
 
         rate.sleep()
