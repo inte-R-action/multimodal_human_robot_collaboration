@@ -3,6 +3,7 @@ import numpy as np
 from std_msgs.msg import String
 from user import User
 from sam_custom_messages import hand_pos, capability, current_action, diagnostics, user_prediction
+from diagnostic_msgs.msg import KeyValue
 
 diag_msg = diagnostics
 diag_msg.Header.Stamp = rospy.get_rostime()
@@ -14,8 +15,8 @@ diag_msg.Diagnosticstatus.Level = 1
 diag_msg.Diagnosticstatus.Name = "users_node"
 diag_msg.Diagnosticstatus.Message = "Starting..."
 diag_msg.Diagnosticstatus.HardwareId = "N/A"
-diag_msg.Diagnosticstatus.values = [ KeyValue(key = 'Runstop hit', value = 'False'),
-                          KeyValue(key = 'Estop hit', value = 'False')]
+diag_msg.Diagnosticstatus.values = [KeyValue(key = 'Runstop hit', value = 'False'),
+                                    KeyValue(key = 'Estop hit', value = 'False')]
 
 def setup_user(name=None):
 
