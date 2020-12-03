@@ -1,8 +1,0 @@
-prefix=/home/james/multimodal_human_robot_collaboration/catkin_ws/devel
-
-Name: sam_custom_messages
-Description: Description of sam_custom_messages
-Version: 0.0.0
-Cflags: -I/home/james/multimodal_human_robot_collaboration/catkin_ws/devel/include
-Libs: -L${prefix}/lib 
-Requires: message_runtime
