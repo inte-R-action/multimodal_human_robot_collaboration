@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+## #!/usr/bin/env python3
 
 import sys, struct, serial, os
 import numpy as np
@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import time
 from sklearn import preprocessing
-import bluetooth
+#import bluetooth
 from serial.tools import list_ports
 import threading
 import glob
 import signal
 import subprocess
-import rospy
+#import rospy
 from std_msgs.msg import Int8, Float64
 import socket
 import io
@@ -64,26 +64,6 @@ POSITIONS = ['Hand', 'Wrist', 'ARM']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
 
-# Diagnostic message definitions
-diag_msg = diagnostics()
-#print(i for i in diag_msg.Header)
-diag_msg.Header.stamp = None#rospy.get_rostime()
-diag_msg.Header.seq = 0
-diag_msg.Header.frame_id = frame_id
-diag_msg.UserId = args.user_id
-diag_msg.UserName = args.user_name
-diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-diag_msg.DiagnosticStatus.name = frame_id
-diag_msg.DiagnosticStatus.message = "Starting..."
-diag_msg.DiagnosticStatus.hardware_id = "N/A"
-diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
-                                    KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
-                                    KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
-                                    KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
-
-diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
-diag_pub.publish(diag_msg)
-
 CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
 Fs = 51.2  # Sampling frequency, Hz
 WIN_TIME = 3  # Window length, s
@@ -105,6 +85,26 @@ pos = np.arange(len(CATEGORIES))
 if args.disp:
     plt.ion()
     fig, axs = plt.subplots(numsensors, 2)
+
+def define_diag():
+    # Diagnostic message definitions
+    diag_msg = diagnostics()
+    #print(i for i in diag_msg.Header)
+    diag_msg.Header.stamp = None#rospy.get_rostime()
+    diag_msg.Header.seq = 0
+    diag_msg.Header.frame_id = frame_id
+    diag_msg.UserId = args.user_id
+    diag_msg.UserName = args.user_name
+    diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+    diag_msg.DiagnosticStatus.name = frame_id
+    diag_msg.DiagnosticStatus.message = "Starting..."
+    diag_msg.DiagnosticStatus.hardware_id = "N/A"
+    diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
+                                        KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
+                                        KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
+                                        KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
+
+    return diag_msg
 
 
 def shutdown_imu():
@@ -507,6 +507,11 @@ def shimmer_thread(num):
 def IMUsensorsMain():
     print("-----Here we go-----")
     rospy.init_node(f'shimmerBase {args.user_name} {args.user_id}', anonymous=True)
+
+    diag_msg = define_diag()
+    diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
+    diag_pub.publish(diag_msg)
+
     action_pub = rospy.Publisher('CurrentAction', current_action, queue_size=1)
     action_msg = current_action()
     action_msg.Header.stamp = rospy.get_rostime()
