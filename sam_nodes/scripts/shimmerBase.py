@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import time
 from sklearn import preprocessing
-#import bluetooth
+import bluetooth
 from serial.tools import list_ports
 import threading
 import glob
 import signal
 import subprocess
-#import rospy
+import rospy
 from std_msgs.msg import Int8, Float64
 import socket
 import io
@@ -90,9 +90,9 @@ def define_diag():
     # Diagnostic message definitions
     diag_msg = diagnostics()
     #print(i for i in diag_msg.Header)
-    diag_msg.Header.stamp = None#rospy.get_rostime()
-    diag_msg.Header.seq = 0
-    diag_msg.Header.frame_id = frame_id
+    diag_msg.header.stamp = None#rospy.get_rostime()
+    diag_msg.header.seq = 0
+    diag_msg.header.frame_id = frame_id
     diag_msg.UserId = args.user_id
     diag_msg.UserName = args.user_name
     diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale

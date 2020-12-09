@@ -9,12 +9,13 @@ import sys
 import time
 import cv2
 import rospy
-from image_screw_detector import ImScrewDetector  # Image screw detector class
+#from image_screw_detector import ImScrewDetector  # Image screw detector class
 from sam_custom_messages.msg import object_state, diagnostics
 from diagnostic_msgs.msg import KeyValue
+from vision_recognition.detect import classifier
 
 class rs_cam:
-    def __init__():
+    def __init__(self):
         # Create a pipeline
         self.pipeline = rs.pipeline()
         #Create a config and configure the pipeline to stream
@@ -25,7 +26,7 @@ class rs_cam:
             config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
         
         # Start streaming
-        profile = pipeline.start(config)
+        profile = self.pipeline.start(config)
 
         if args.depth:
             # Getting the depth sensor's depth scale (see rs-align example for explanation)
@@ -46,7 +47,7 @@ class rs_cam:
         color_frame = frames.get_color_frame()
         # Validate that both frames are valid
         if not color_frame:
-            continue
+            return
         color_image = np.asanyarray(color_frame.get_data())
 
         return color_image
@@ -62,12 +63,12 @@ class rs_cam:
 
         # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:
-            continue
+            return
         depth_image = np.asanyarray(aligned_depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.1), cv2.COLORMAP_JET)
 
-        return color_image, depth_image, depth_colormap
+        return color_image, depth_colormap, depth_image
 
     def scale(image): # zooms on image
         height, width, channels = image.shape
@@ -83,7 +84,7 @@ def define_diag():
     frame_id = 'Realsense node'
     # Diagnostic message definitions
     diag_msg = diagnostics()
-    diag_msg.Header.stamp = None #rospy.get_rostime()
+    diag_msg.Header.stamp = rospy.get_rostime()
     diag_msg.Header.seq = 0
     diag_msg.Header.frame_id = frame_id
     diag_msg.UserId = args.user_id
@@ -95,34 +96,54 @@ def define_diag():
     diag_msg.DiagnosticStatus.values = []
     return diag_msg
 
-cam = rs_cam()
 
 def realsense_run():
     # ROS node setup
-    rospy.init_node(f'Realsense main', anonymous=True)
+    rospy.init_node(f'Realsense_main', anonymous=True)
     diag_msg = define_diag()
     diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
+    diag_msg.Header.stamp = rospy.get_rostime()
+    diag_msg.Header.seq = 0
     diag_pub.publish(diag_msg)
 
     rate = rospy.Rate(10)
-    try:
-        im_screw_detect = ImScrewDetector()
-    except Exceptionas as e:
-        print("**Screw Detect Error**")
-        traceback.print_exc(file=sys.stdout)
-        diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
-        diag_msg.DiagnosticStatus.message = f"load screwdetector error: {e}"
+    if args.classify:
+        try:
+            frames = cam.pipeline.wait_for_frames()
+            if args.depth:
+                images = cam.depth_frames(frames)
+            else:
+                images = cam.colour_frames(frames)
 
-    t = time.time()
+            im_classifier = classifier(args.comp_device, args.weights, args.img_size, images, args.conf_thres, args.iou_thres)
+
+            pass
+        except Exception as e:
+            print("**Classifier Load Error**")
+            traceback.print_exc(file=sys.stdout)
+            diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
+            diag_msg.DiagnosticStatus.message = f"load classifier error: {e}"
+
+    diag_timer = time.time()
     while not rospy.is_shutdown():
         try:
             # Get frameset of color and depth
-            frames = pipeline.wait_for_frames()
+            frames = cam.pipeline.wait_for_frames()
 
             if args.depth:
                 images = cam.depth_frames(frames)
             else:
                 images = cam.colour_frames(frames)
+
+            if args.classify:
+                try:
+                    im_classifier.detect(images)
+                    pass
+                except Exception as e:
+                    print("**Classifier Detection Error**")
+                    traceback.print_exc(file=sys.stdout)
+                    diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
+                    diag_msg.DiagnosticStatus.message = f"load classifier error: {e}"
 
             # Remove background - Set pixels further than clipping_distance to grey
             #grey_color = 153
@@ -146,16 +167,22 @@ def realsense_run():
         #im_screw_states, tally = im_screw_detect.detect_screws(image, args.disp)
         #im_screw_states = im_screw_states.tolist()
         if args.disp:
-            disp_image = np.hstack([i for i in images])
+            if args.depth:
+                images = np.hstack((images[0], images[1]))
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
-            cv2.imshow('Realsense viewer', disp_image)
+            cv2.imshow('Realsense viewer', images)
             key = cv2.waitKey(1)
             # Press esc or 'q' to close the image window
             if key & 0xFF == ord('q') or key == 27:
                 cv2.destroyAllWindows()
                 break
 
-        diag_pub.publish(diag_msg)
+        if  time.time() - diag_timer > 1:
+            diag_msg.Header.stamp = rospy.get_rostime()
+            diag_msg.Header.seq += 1
+            diag_pub.publish(diag_msg)
+            diag_timer = time.time()
+            
         rate.sleep()
 
 
@@ -165,14 +192,35 @@ if __name__ == "__main__":
         description='Run realsense vision recognition ROS node')
     parser.add_argument('--disp', '-V',
                         help='Enable displaying of camera image',
-                        default=None,
+                        default=False,
                         action="store_true")
     parser.add_argument('--depth', '-D',
                         help='Depth active',
                         default=False,
                         action="store_true")
+    parser.add_argument('--user_name', '-N',
+                    help='Set name of user, default: unknown',
+                    default='unknown',
+                    action="store_true")
 
+    parser.add_argument('--user_id', '-I',
+                    help='Set id of user, default: None',
+                    default=0,
+                    action="store_true")
+
+    parser.add_argument('--classify', '-C',
+                    help='Classify image',
+                    default=True,
+                    action="store_true")
+    parser.add_argument('--comp_device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--img_size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
+    parser.add_argument('--conf_thres', type=float, default=0.25, help='object confidence threshold')
+    parser.add_argument('--iou_thres', type=float, default=0.45, help='IOU threshold for NMS')
+    
     args = parser.parse_args()
+
+    cam = rs_cam()
 
     try:
         realsense_run()
