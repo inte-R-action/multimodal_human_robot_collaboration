@@ -17,3 +17,5 @@ Python libraries required:
   pybluez: pip3 install pybluez (this requires ^ to be installed first!)
 
   rospkg: pip3 install -U rospkg
+
+  psycopg2: pip3 install psycopg2
