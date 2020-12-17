@@ -4,6 +4,12 @@ Project for human-robot collaboration in an industrial manufacturing environment
 
 ROS implementation for use on a UR3 robot using Shimmer IMUs, Optitrack motion capture and RGBD cameras to recognise positions, actions and object states.
 
+ROS >= melodic
+
+postgresql: https://www.postgresql.org/download/
+
+pgadmin 4: https://www.pgadmin.org/download/
+
 Python libraries required:
 
   pyserial: python3 -m pip install pyserial

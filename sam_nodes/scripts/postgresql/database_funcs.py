@@ -11,6 +11,8 @@ class database():
         self.conn = None
         self.cur = None
         self.db_params = None
+        # read connection parameters
+        self.config()
 
     def config(self, filename=os.getcwd()+'/sam_nodes/scripts/postgresql/database.ini', section='postgresql'):
         # create a parser
@@ -30,8 +32,6 @@ class database():
         """ Connect to the PostgreSQL database server """
         self.conn = None
         try:
-            # read connection parameters
-            self.config()
             # connect to the PostgreSQL server
             print('Connecting to the PostgreSQL database...')
             self.conn = psycopg2.connect(**self.db_params)
@@ -80,10 +80,11 @@ class database():
         finally:
             self.disconnect()
     
-    def csv_export(self, table):
+    def csv_export(self, table, file_path = None):
         # https://kb.objectrocket.com/postgresql/from-postgres-to-csv-with-python-910
         """ Export table to csv file
-        table:str(table name)"""
+        table:str(table name), 
+        filepath:str(full filepath incl. filename.csv, default=../scripts/postgresql/{table}.csv)"""
 
         self.connect()
 
@@ -91,7 +92,8 @@ class database():
         sql = f"COPY (SELECT * FROM {table}) TO STDOUT WITH CSV HEADER"
 
         # Set up a variable to store our file path and name.
-        file_path = os.getcwd()+f'/sam_nodes/scripts/postgresql/{table}.csv'
+        if file_path is None:
+            file_path = os.getcwd()+f'/sam_nodes/scripts/postgresql/{table}.csv'
 
         # Trap errors for opening the file
         try:
@@ -99,12 +101,12 @@ class database():
                 self.cur.copy_expert(sql, f_output)
             print(f"Table {table} successfully exported to {file_path}")
         except psycopg2.Error as e:
-            print(f"Error: {e}/n query we ran: {s}/n file_path: {file_path}")
+            print(f"Error: {e}/n query we ran: {sql}/n file_path: {file_path}")
         finally:
             self.disconnect()
             
-    def create_tables(self, name, columns):
-        """Create tables in the PostgreSQL database
+    def create_table(self, name, columns):
+        """Create table in the PostgreSQL database
         name:str(table name), columns:[str(table command)]
         Table command examples:
         vendor_id SERIAL PRIMARY KEY,
@@ -161,11 +163,63 @@ class database():
         finally:
             self.disconnect()
 
+    def gen_cmd(self, command):
+        """Generic postgrsql commmand"""
+
+        self.connect()
+
+        try:
+            # create table one by one
+            self.cur.execute(command)
+            # commit the changes
+            self.conn.commit()
+            print(f"Successfully performed custom command")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            self.disconnect()
+
+    def table_list(self, t_schema = "public"):
+        # Retrieve the table list
+        sql = "SELECT table_name FROM information_schema.tables WHERE ( table_schema = '" + t_schema + "' ) ORDER BY table_name;"
+        list_tables = None
+        try:
+            self.connect()
+            # Retrieve all the rows from the cursor
+            self.cur.execute(sql)
+            list_tables = [i for t in self.cur.fetchall() for i in t]
+            
+            # Print the names of the tables
+            print(list_tables)
+        except psycopg2.Error as e:
+            print(f"Database error: {e} copy_expert")
+        finally:
+            self.disconnect()
+
+        return list_tables
+
+    def remove_table(self, name):
+        """Remove table from database
+        name=str(table name)"""
+
+        self.connect()
+        sql = f"DROP TABLE {name};"
+        try:
+            # create table one by one
+            self.cur.execute(sql)
+            # commit the changes
+            self.conn.commit()
+            print(f"Successfully removed table {name}")
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+        finally:
+            self.disconnect()
+
 
 if __name__ == '__main__':
     db = database()
     #db.connect()
-    #db.create_tables('test1', ["vendor_id SERIAL PRIMARY KEY", "vendor_name VARCHAR(255) NOT NULL"])
+    #db.create_table('test1', ["vendor_id SERIAL PRIMARY KEY", "vendor_name VARCHAR(255) NOT NULL"])
     # db.insert_data_list("parts", ["part_name"], [
     #     ('AKM Semiconductor Inc.',),
     #     ('Asahi Glass Co Ltd.',),
@@ -180,6 +234,8 @@ if __name__ == '__main__':
     #     ('.jpg','\\x1234',),
     #     ('.jpg','zdfb',)
     # ])
-    db.csv_import(os.getcwd()+'/sam_nodes/scripts/postgresql/users.csv', tab_name="vendors")
-    #db.csv_export("parts")
+    #db.csv_import(os.getcwd()+'/sam_nodes/scripts/postgresql/users.csv', tab_name="vendors")
+    db.csv_export("parts")
     #db.disconnect()
+    #db.table_list()
+    #db.remove_table('test1')
