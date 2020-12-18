@@ -28,38 +28,43 @@ class database():
         else:
             raise Exception('Section {0} not found in the {1} file'.format(section, filename))
 
-    def connect(self):
+    def connect(self, verbose=False):
         """ Connect to the PostgreSQL database server """
         self.conn = None
         try:
             # connect to the PostgreSQL server
-            print('Connecting to the PostgreSQL database...')
+            if verbose:
+                print('Connecting to the PostgreSQL database...')
             self.conn = psycopg2.connect(**self.db_params)
             # create a cursor
             self.cur = self.conn.cursor()
             
-        # execute a statement
-            print('Connected! PostgreSQL database version:')
+            # execute a statement
             self.cur.execute('SELECT version()')
             # display the PostgreSQL database server version
             db_version = self.cur.fetchone()
-            print(db_version)
+            if verbose:
+                print('Connected! PostgreSQL database version:')    
+                print(db_version)
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             if self.conn is not None:
                 self.conn.close()
                 print('Database connection closed.')
+            raise
         
-    def disconnect(self):
+    def disconnect(self, verbose=False):
         try:
         # close the communication with the PostgreSQL
             self.cur.close()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            raise
         finally:
             if self.conn is not None:
                 self.conn.close()
-                print('Database connection closed.')
+                if verbose:
+                    print('Database connection closed.')
 
     def insert_data_list(self, table, columns, data):
         """ insert multiple data rows into table  
@@ -77,6 +82,7 @@ class database():
             print(f"Data successfully inserted into {table} table")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            raise
         finally:
             self.disconnect()
     
@@ -102,6 +108,7 @@ class database():
             print(f"Table {table} successfully exported to {file_path}")
         except psycopg2.Error as e:
             print(f"Error: {e}/n query we ran: {sql}/n file_path: {file_path}")
+            raise
         finally:
             self.disconnect()
             
@@ -126,6 +133,7 @@ class database():
             print(f"Successfully created {name} table")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            raise
         finally:
             self.disconnect()
 
@@ -141,11 +149,13 @@ class database():
                 tab_name = re.search('(.*).csv', filename)
             except Exception as e:
                 print(f"Table name construction error: {e}")
+                raise
         
         try: 
             f_contents = open(filepath, 'r')
         except psycopg2.Error as e:
             print(f"Database error: {e} open() text file: {filepath}")
+            raise
 
         if header:
             sql = f"COPY {tab_name} FROM stdin WITH CSV HEADER DELIMITER as ','"
@@ -160,6 +170,7 @@ class database():
             print(f"Successfully inserted data from {filename} into {tab_name} table")
         except psycopg2.Error as e:
             print(f"Database error: {e} copy_expert")
+            raise
         finally:
             self.disconnect()
 
@@ -176,6 +187,7 @@ class database():
             print(f"Successfully performed custom command")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            raise
         finally:
             self.disconnect()
 
@@ -193,6 +205,7 @@ class database():
             print(list_tables)
         except psycopg2.Error as e:
             print(f"Database error: {e} copy_expert")
+            raise
         finally:
             self.disconnect()
 
@@ -212,6 +225,7 @@ class database():
             print(f"Successfully removed table {name}")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            raise
         finally:
             self.disconnect()
 
