@@ -1,10 +1,11 @@
 # Adapted from https://www.postgresqltutorial.com/postgresql-python/connect/
-
+#!/usr/bin/env python3
 import psycopg2
 import os
 from configparser import ConfigParser
 import re
 import ntpath
+import sys
 
 class database():
     def __init__(self):
@@ -14,7 +15,7 @@ class database():
         # read connection parameters
         self.config()
 
-    def config(self, filename=os.getcwd()+'/sam_nodes/scripts/postgresql/database.ini', section='postgresql'):
+    def config(self, filename=os.path.dirname(__file__)+'/database.ini', section='postgresql'):
         # create a parser
         parser = ConfigParser()
         # read config file
@@ -57,6 +58,8 @@ class database():
         try:
         # close the communication with the PostgreSQL
             self.cur.close()
+        except AttributeError as e:
+            print(f"Close database error: {e}") 
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             raise
@@ -86,7 +89,7 @@ class database():
         finally:
             self.disconnect()
     
-    def csv_export(self, table, file_path = None):
+    def csv_export(self, table, file_path=None, verbose=True):
         # https://kb.objectrocket.com/postgresql/from-postgres-to-csv-with-python-910
         """ Export table to csv file
         table:str(table name), 
@@ -99,7 +102,7 @@ class database():
 
         # Set up a variable to store our file path and name.
         if file_path is None:
-            file_path = os.getcwd()+f'/sam_nodes/scripts/postgresql/{table}.csv'
+            file_path = os.path.dirname(__file__)+f'/{table}.csv'
 
         # Trap errors for opening the file
         try:
@@ -108,6 +111,14 @@ class database():
             print(f"Table {table} successfully exported to {file_path}")
         except psycopg2.Error as e:
             print(f"Error: {e}/n query we ran: {sql}/n file_path: {file_path}")
+            raise
+        except FileNotFoundError as e:
+            if verbose:
+                print(f"Export csv error: {e}")
+            raise
+        except Exception as e:
+            if verbose:
+                print(f"Export csv error: {e}")
             raise
         finally:
             self.disconnect()
@@ -191,7 +202,7 @@ class database():
         finally:
             self.disconnect()
 
-    def table_list(self, t_schema = "public"):
+    def table_list(self, t_schema = "public", verbose=True):
         # Retrieve the table list
         sql = "SELECT table_name FROM information_schema.tables WHERE ( table_schema = '" + t_schema + "' ) ORDER BY table_name;"
         list_tables = None
@@ -202,7 +213,8 @@ class database():
             list_tables = [i for t in self.cur.fetchall() for i in t]
             
             # Print the names of the tables
-            print(list_tables)
+            if verbose:
+                print(f"Tables currently available: {list_tables}")
         except psycopg2.Error as e:
             print(f"Database error: {e} copy_expert")
             raise

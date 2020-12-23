@@ -1,5 +1,5 @@
 # Adapted from https://github.com/ultralytics/yolov3#pretrained-checkpoints
-
+#!/usr/bin/env python3
 import argparse
 import time
 from pathlib import Path

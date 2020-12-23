@@ -202,12 +202,10 @@ if __name__ == "__main__":
                     help='Set name of user, default: unknown',
                     default='unknown',
                     action="store_true")
-
     parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',
                     default=0,
                     action="store_true")
-
     parser.add_argument('--classify', '-C',
                     help='Classify image',
                     default=True,

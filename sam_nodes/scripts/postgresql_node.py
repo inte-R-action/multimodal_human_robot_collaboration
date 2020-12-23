@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+
 import sys, os
 import rospy
-from sam_custom_messages import diagnostics
+from sam_custom_messages.msg import diagnostics
 from diagnostic_msgs.msg import KeyValue
 import argparse
 import traceback
@@ -68,26 +70,27 @@ def load_tables(db):
             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
             print(f"Loaded data into '{name}'")
         except FileNotFoundError:
-            print(f"Load table file not found for '{name}' at {base_dir}{name}.csv")
+            print(f"WARNING: Load table file not found for '{name}' at {base_dir}{name}.csv")
         except Exception as e:
             print(f"Load Table Error: {e}")
             raise
 
-def save_tables(db, tables_to_save='all', file_path=None):
+def save_tables(db, tables_to_save='all', file_path=None, verbose=True):
     if tables_to_save == 'all':
-        tables_to_save = db.table_list()
+        tables_to_save = db.table_list(verbose=False)
     
     for table in tables_to_save:
         try:
-            db.csv_export(table, file_path=f"{file_path}/{table}.csv")
+            db.csv_export(table, file_path=f"{file_path}/{table}.csv", verbose=True)
         except Exception as e:
-            print(e)
+            if verbose:
+                print(e)
             raise
 
 def shutdown(db):
     #always save tables to dump on exit
     try:
-        save_tables(db, tables_to_save='all', file_path=os.getcwd()+'/sam_nodes/scripts/postgresql/dump')
+        save_tables(db, tables_to_save='all', file_path=os.path.dirname(__file__)+'/postgresql/dump', verbose=False)
     except Exception as e:
         print(f"Dump tables error: {e}")
         raise
@@ -152,7 +155,7 @@ if __name__ == '__main__':
                         action="store_true")
 
     args = parser.parse_args()
-
+    db = None
     try:
         db = database()
         database_run(db)
@@ -162,5 +165,6 @@ if __name__ == '__main__':
         print("**Database Error**")
         traceback.print_exc(file=sys.stdout)
     finally:
-        shutdown(db)
+        if db is not None:
+            shutdown(db)
         pass
