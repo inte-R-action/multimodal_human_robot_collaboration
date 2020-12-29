@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+# Must be run from scripts folder
 # Import Statements
 import pyrealsense2 as rs
 import numpy as np
@@ -14,6 +14,8 @@ from sam_custom_messages.msg import object_state, diagnostics
 from diagnostic_msgs.msg import KeyValue
 from vision_recognition.detect import classifier
 
+sys.path.insert(0, './vision_recognition')
+print(sys.path)
 class rs_cam:
     def __init__(self):
         # Create a pipeline
@@ -80,31 +82,88 @@ class rs_cam:
         image = cv2.resize(image[minX:maxX, minY:maxY], (width, height), interpolation=cv2.INTER_LINEAR)
         return image
 
-def define_diag():
-    frame_id = 'Realsense node'
-    # Diagnostic message definitions
-    diag_msg = diagnostics()
-    diag_msg.Header.stamp = rospy.get_rostime()
-    diag_msg.Header.seq = 0
-    diag_msg.Header.frame_id = frame_id
-    diag_msg.UserId = args.user_id
-    diag_msg.UserName = args.user_name
-    diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-    diag_msg.DiagnosticStatus.name = frame_id
-    diag_msg.DiagnosticStatus.message = "Starting..."
-    diag_msg.DiagnosticStatus.hardware_id = "N/A"
-    diag_msg.DiagnosticStatus.values = []
-    return diag_msg
+class diag_class:
+    def __init__(self):
+        frame_id = 'Realsense node'
+        # Diagnostic message definitions
+        self.diag_msg = diagnostics()
+        self.diag_msg.Header.stamp = rospy.get_rostime()
+        self.diag_msg.Header.seq = None
+        self.diag_msg.Header.frame_id = frame_id
+        self.diag_msg.UserId = args.user_id
+        self.diag_msg.UserName = args.user_name
+        self.diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+        self.diag_msg.DiagnosticStatus.name = frame_id
+        self.diag_msg.DiagnosticStatus.message = "Starting..."
+        self.diag_msg.DiagnosticStatus.hardware_id = "N/A"
+        self.diag_msg.DiagnosticStatus.values = []
 
+        self.diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
+        self.publish(1, "Starting...")
+
+    def publish(self, level, message):
+        self.diag_msg.DiagnosticStatus.level = level # 0:ok, 1:warning, 2:error, 3:stale
+        self.diag_msg.DiagnosticStatus.message = message
+        self.diag_msg.Header.stamp = rospy.get_rostime()
+        if self.diag_msg.Header.seq is None:
+            self.diag_msg.Header.seq = 0
+        else:
+            self.diag_msg.Header.seq += 1
+
+        self.diag_pub.publish(self.diag_msg)
+    
+class obj_class:
+    def __init__(self, names):
+        frame_id = 'Realsense node'
+        # Object message definitions
+        self.obj_msg = object_state()
+        self.obj_msg.Header.stamp = rospy.get_rostime()
+        self.obj_msg.Header.seq = None
+        self.obj_msg.Header.frame_id = frame_id
+        self.obj_msg.Object.Id = None
+        self.obj_msg.Object.Type = None
+        self.obj_msg.Object.Info = None
+        self.obj_msg.Pose.orientation.x = None
+        self.obj_msg.Pose.orientation.y = None
+        self.obj_msg.Pose.orientation.z = None
+        self.obj_msg.Pose.orientation.w = None
+        self.obj_msg.Pose.position.x = None
+        self.obj_msg.Pose.position.y = None
+        self.obj_msg.Pose.position.z = None
+        self.names = names
+
+        self.obj_pub = rospy.Publisher('ObjectStates', object_state, queue_size=1)
+
+    def obj_publish(self, det):
+        if self.obj_msg.Header.seq is None:
+            self.obj_msg.Header.seq = 0
+        else:
+            self.obj_msg.Header.seq += 1
+        
+        for *xyxy, conf, cls in det:
+            print(cls)
+            print(conf)
+            print(xyxy)
+            self.obj_msg.Object.Id = 0
+            self.obj_msg.Object.Type = int(cls)
+            print(self.names[int(cls)])
+            self.obj_msg.Object.Info = [self.names[int(cls)]]
+            self.obj_msg.Pose.orientation.x = xyxy[0]
+            self.obj_msg.Pose.orientation.y = xyxy[1]
+            self.obj_msg.Pose.orientation.z = xyxy[2]
+            self.obj_msg.Pose.orientation.w = xyxy[3]
+            self.obj_msg.Pose.position.x = 0
+            self.obj_msg.Pose.position.y = 0
+            self.obj_msg.Pose.position.z = 0
+            self.obj_msg.Header.stamp = rospy.get_rostime()
+
+            self.obj_pub.publish(self.obj_msg)
+            
 
 def realsense_run():
     # ROS node setup
     rospy.init_node(f'Realsense_main', anonymous=True)
-    diag_msg = define_diag()
-    diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
-    diag_msg.Header.stamp = rospy.get_rostime()
-    diag_msg.Header.seq = 0
-    diag_pub.publish(diag_msg)
+    diag_obj = diag_class()
 
     rate = rospy.Rate(10)
     if args.classify:
@@ -116,13 +175,13 @@ def realsense_run():
                 images = cam.colour_frames(frames)
 
             im_classifier = classifier(args.comp_device, args.weights, args.img_size, images, args.conf_thres, args.iou_thres)
-
-            pass
+            obj_obj = obj_class(im_classifier.names)
+        
         except Exception as e:
             print("**Classifier Load Error**")
             traceback.print_exc(file=sys.stdout)
-            diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
-            diag_msg.DiagnosticStatus.message = f"load classifier error: {e}"
+            diag_obj.publish(2, f"load classifier error: {e}")
+            raise
 
     diag_timer = time.time()
     while not rospy.is_shutdown():
@@ -137,13 +196,12 @@ def realsense_run():
 
             if args.classify:
                 try:
-                    im_classifier.detect(images)
-                    pass
+                    images, det = im_classifier.detect(images)
+                    obj_obj.obj_publish(det)
                 except Exception as e:
                     print("**Classifier Detection Error**")
                     traceback.print_exc(file=sys.stdout)
-                    diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
-                    diag_msg.DiagnosticStatus.message = f"load classifier error: {e}"
+                    diag_obj.publish(2, f"load classifier error: {e}")
 
             # Remove background - Set pixels further than clipping_distance to grey
             #grey_color = 153
@@ -151,16 +209,17 @@ def realsense_run():
             #bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
             #image = scale(bg_removed)
 
-            diag_msg.DiagnosticStatus.level = 0 # 0:ok, 1:warning, 2:error, 3:stale
-            diag_msg.DiagnosticStatus.message = f"Running"
+            if  (time.time()-diag_timer) > 1:
+                print(time.time())
+                diag_obj.publish(0, f"Running")
+                diag_timer = time.time()
+
         except TypeError as e:
             time.sleep(1)
-            diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
-            diag_msg.DiagnosticStatus.message = f"TypeError"
+            diag_obj.publish(2, f"TypeError")
         except Exception as e:
             print("**Get Image Error**")
-            diag_msg.DiagnosticStatus.level = 2 # 0:ok, 1:warning, 2:error, 3:stale
-            diag_msg.DiagnosticStatus.message = f"Realsense image error: {e}"
+            diag_obj.publish(2, f"Realsense image error: {e}")
             traceback.print_exc(file=sys.stdout)
             break
 
@@ -176,12 +235,6 @@ def realsense_run():
             if key & 0xFF == ord('q') or key == 27:
                 cv2.destroyAllWindows()
                 break
-
-        if  time.time() - diag_timer > 1:
-            diag_msg.Header.stamp = rospy.get_rostime()
-            diag_msg.Header.seq += 1
-            diag_pub.publish(diag_msg)
-            diag_timer = time.time()
             
         rate.sleep()
 

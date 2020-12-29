@@ -42,6 +42,7 @@ class classifier():
         #    if weights in files:
         #        result.append(os.path.join(root, name))
         dir = os.path.dirname(__file__)
+        print(dir+'/'+weights)
         self.model = attempt_load(dir+'/'+weights, map_location=self.device)  # load FP32 model
         imgsz = check_img_size(imgsz, s=self.model.stride.max())  # check img_size
         if self.half:
@@ -49,7 +50,7 @@ class classifier():
 
         # Set Dataloader
         vid_path, vid_writer = None, None
-        self.view_img = True
+        self.view_img = False
         cudnn.benchmark = True  # set True to speed up constant image size inference
         #dataset = LoadStreams(source, img_size=imgsz)
 
@@ -108,6 +109,7 @@ class classifier():
         # Process detections
         save_txt = False
         save_img = False
+
         for i, det in enumerate(pred):  # detections per image
             s, im0 = '%g: ' % i, im0s[i].copy()
 
@@ -115,6 +117,7 @@ class classifier():
             #txt_path = str(save_dir / 'labels' / p.stem) + ('_%g' % dataset.frame if dataset.mode == 'video' else '')
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
+            
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
@@ -132,9 +135,9 @@ class classifier():
                         with open(txt_path + '.txt', 'a') as f:
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
-                    if save_img or self.view_img:  # Add bbox to image
-                        label = '%s %.2f' % (self.names[int(cls)], conf)
-                        plot_one_box(xyxy, im0, label=label, color=self.colors[int(cls)], line_thickness=3)
+                    #if save_img or self.view_img:  # Add bbox to image
+                    label = '%s %.2f' % (self.names[int(cls)], conf)
+                    plot_one_box(xyxy, im0, label=label, color=self.colors[int(cls)], line_thickness=3)
 
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
@@ -168,6 +171,8 @@ class classifier():
             print(f"Results saved to {save_dir}{s}")
 
         print('Done. (%.3fs)' % (time.time() - self.t0))
+
+        return im0, reversed(det)
 
     def letterbox(self, img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True):
         # Resize image to a 32-pixel-multiple rectangle https://github.com/ultralytics/yolov3/issues/232
