@@ -10,9 +10,10 @@ import time
 import cv2
 import rospy
 #from image_screw_detector import ImScrewDetector  # Image screw detector class
-from sam_custom_messages.msg import object_state, diagnostics
-from diagnostic_msgs.msg import KeyValue
+#from sam_custom_messages.msg import object_state, diagnostics
+#from diagnostic_msgs.msg import KeyValue
 from vision_recognition.detect import classifier
+from pub_classes import diag_class, obj_class
 
 sys.path.insert(0, './vision_recognition')
 print(sys.path)
@@ -82,88 +83,89 @@ class rs_cam:
         image = cv2.resize(image[minX:maxX, minY:maxY], (width, height), interpolation=cv2.INTER_LINEAR)
         return image
 
-class diag_class:
-    def __init__(self):
-        frame_id = 'Realsense node'
-        # Diagnostic message definitions
-        self.diag_msg = diagnostics()
-        self.diag_msg.Header.stamp = rospy.get_rostime()
-        self.diag_msg.Header.seq = None
-        self.diag_msg.Header.frame_id = frame_id
-        self.diag_msg.UserId = args.user_id
-        self.diag_msg.UserName = args.user_name
-        self.diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-        self.diag_msg.DiagnosticStatus.name = frame_id
-        self.diag_msg.DiagnosticStatus.message = "Starting..."
-        self.diag_msg.DiagnosticStatus.hardware_id = "N/A"
-        self.diag_msg.DiagnosticStatus.values = []
+# class diag_class:
+#     def __init__(self):
+#         frame_id = 'Realsense node'
+#         # Diagnostic message definitions
+#         self.diag_msg = diagnostics()
+#         self.diag_msg.Header.stamp = rospy.get_rostime()
+#         self.diag_msg.Header.seq = None
+#         self.diag_msg.Header.frame_id = frame_id
+#         self.diag_msg.UserId = args.user_id
+#         self.diag_msg.UserName = args.user_name
+#         self.diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+#         self.diag_msg.DiagnosticStatus.name = frame_id
+#         self.diag_msg.DiagnosticStatus.message = "Starting..."
+#         self.diag_msg.DiagnosticStatus.hardware_id = "N/A"
+#         self.diag_msg.DiagnosticStatus.values = []
 
-        self.diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
-        self.publish(1, "Starting...")
+#         self.diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
+#         self.publish(1, "Starting...")
 
-    def publish(self, level, message):
-        self.diag_msg.DiagnosticStatus.level = level # 0:ok, 1:warning, 2:error, 3:stale
-        self.diag_msg.DiagnosticStatus.message = message
-        self.diag_msg.Header.stamp = rospy.get_rostime()
-        if self.diag_msg.Header.seq is None:
-            self.diag_msg.Header.seq = 0
-        else:
-            self.diag_msg.Header.seq += 1
+#     def publish(self, level, message):
+#         self.diag_msg.DiagnosticStatus.level = level # 0:ok, 1:warning, 2:error, 3:stale
+#         self.diag_msg.DiagnosticStatus.message = message
+#         self.diag_msg.Header.stamp = rospy.get_rostime()
+#         if self.diag_msg.Header.seq is None:
+#             self.diag_msg.Header.seq = 0
+#         else:
+#             self.diag_msg.Header.seq += 1
 
-        self.diag_pub.publish(self.diag_msg)
+#         self.diag_pub.publish(self.diag_msg)
     
-class obj_class:
-    def __init__(self, names):
-        frame_id = 'Realsense node'
-        # Object message definitions
-        self.obj_msg = object_state()
-        self.obj_msg.Header.stamp = rospy.get_rostime()
-        self.obj_msg.Header.seq = None
-        self.obj_msg.Header.frame_id = frame_id
-        self.obj_msg.Object.Id = None
-        self.obj_msg.Object.Type = None
-        self.obj_msg.Object.Info = None
-        self.obj_msg.Pose.orientation.x = None
-        self.obj_msg.Pose.orientation.y = None
-        self.obj_msg.Pose.orientation.z = None
-        self.obj_msg.Pose.orientation.w = None
-        self.obj_msg.Pose.position.x = None
-        self.obj_msg.Pose.position.y = None
-        self.obj_msg.Pose.position.z = None
-        self.names = names
+# class obj_class:
+#     def __init__(self, names):
+#         frame_id = 'Realsense node'
+#         # Object message definitions
+#         self.obj_msg = object_state()
+#         self.obj_msg.Header.stamp = rospy.get_rostime()
+#         self.obj_msg.Header.seq = None
+#         self.obj_msg.Header.frame_id = frame_id
+#         self.obj_msg.Object.Id = None
+#         self.obj_msg.Object.Type = None
+#         self.obj_msg.Object.Info = None
+#         self.obj_msg.Pose.orientation.x = None
+#         self.obj_msg.Pose.orientation.y = None
+#         self.obj_msg.Pose.orientation.z = None
+#         self.obj_msg.Pose.orientation.w = None
+#         self.obj_msg.Pose.position.x = None
+#         self.obj_msg.Pose.position.y = None
+#         self.obj_msg.Pose.position.z = None
+#         self.names = names
 
-        self.obj_pub = rospy.Publisher('ObjectStates', object_state, queue_size=1)
+#         self.obj_pub = rospy.Publisher('ObjectStates', object_state, queue_size=1)
 
-    def obj_publish(self, det):
-        if self.obj_msg.Header.seq is None:
-            self.obj_msg.Header.seq = 0
-        else:
-            self.obj_msg.Header.seq += 1
+#     def obj_publish(self, det):
+#         if self.obj_msg.Header.seq is None:
+#             self.obj_msg.Header.seq = 0
+#         else:
+#             self.obj_msg.Header.seq += 1
         
-        for *xyxy, conf, cls in det:
-            print(cls)
-            print(conf)
-            print(xyxy)
-            self.obj_msg.Object.Id = 0
-            self.obj_msg.Object.Type = int(cls)
-            print(self.names[int(cls)])
-            self.obj_msg.Object.Info = [self.names[int(cls)]]
-            self.obj_msg.Pose.orientation.x = xyxy[0]
-            self.obj_msg.Pose.orientation.y = xyxy[1]
-            self.obj_msg.Pose.orientation.z = xyxy[2]
-            self.obj_msg.Pose.orientation.w = xyxy[3]
-            self.obj_msg.Pose.position.x = 0
-            self.obj_msg.Pose.position.y = 0
-            self.obj_msg.Pose.position.z = 0
-            self.obj_msg.Header.stamp = rospy.get_rostime()
+#         for *xyxy, conf, cls in det:
+#             print(cls)
+#             print(conf)
+#             print(xyxy)
+#             self.obj_msg.Object.Id = 0
+#             self.obj_msg.Object.Type = int(cls)
+#             print(self.names[int(cls)])
+#             self.obj_msg.Object.Info = [self.names[int(cls)]]
+#             self.obj_msg.Pose.orientation.x = xyxy[0]
+#             self.obj_msg.Pose.orientation.y = xyxy[1]
+#             self.obj_msg.Pose.orientation.z = xyxy[2]
+#             self.obj_msg.Pose.orientation.w = xyxy[3]
+#             self.obj_msg.Pose.position.x = 0
+#             self.obj_msg.Pose.position.y = 0
+#             self.obj_msg.Pose.position.z = 0
+#             self.obj_msg.Header.stamp = rospy.get_rostime()
 
-            self.obj_pub.publish(self.obj_msg)
+#             self.obj_pub.publish(self.obj_msg)
             
 
 def realsense_run():
     # ROS node setup
+    frame_id = 'Realsense node'
     rospy.init_node(f'Realsense_main', anonymous=True)
-    diag_obj = diag_class()
+    diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
 
     rate = rospy.Rate(10)
     if args.classify:
@@ -175,7 +177,7 @@ def realsense_run():
                 images = cam.colour_frames(frames)
 
             im_classifier = classifier(args.comp_device, args.weights, args.img_size, images, args.conf_thres, args.iou_thres)
-            obj_obj = obj_class(im_classifier.names)
+            obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
         
         except Exception as e:
             print("**Classifier Load Error**")
@@ -197,7 +199,7 @@ def realsense_run():
             if args.classify:
                 try:
                     images, det = im_classifier.detect(images)
-                    obj_obj.obj_publish(det)
+                    obj_obj.publish(det)
                 except Exception as e:
                     print("**Classifier Detection Error**")
                     traceback.print_exc(file=sys.stdout)

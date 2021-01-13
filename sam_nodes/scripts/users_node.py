@@ -4,21 +4,22 @@ import rospy
 import numpy as np
 from std_msgs.msg import String
 from user import User
-from sam_custom_messages import hand_pos, capability, current_action, diagnostics, user_prediction
+from sam_custom_messages import hand_pos, capability, current_action, user_prediction#, diagnostics
 from diagnostic_msgs.msg import KeyValue
+from pub_classes import diag_class
 
-diag_msg = diagnostics
-diag_msg.Header.Stamp = rospy.get_rostime()
-diag_msg.Header.Seq = 0
-diag_msg.Header.FrameId = "users_node"
-diag_msg.UserId = None
-diag_msg.UserName = None
-diag_msg.Diagnosticstatus.Level = 1
-diag_msg.Diagnosticstatus.Name = "users_node"
-diag_msg.Diagnosticstatus.Message = "Starting..."
-diag_msg.Diagnosticstatus.HardwareId = "N/A"
-diag_msg.Diagnosticstatus.values = [KeyValue(key = 'Runstop hit', value = 'False'),
-                                    KeyValue(key = 'Estop hit', value = 'False')]
+# diag_msg = diagnostics
+# diag_msg.Header.Stamp = rospy.get_rostime()
+# diag_msg.Header.Seq = 0
+# diag_msg.Header.FrameId = "users_node"
+# diag_msg.UserId = None
+# diag_msg.UserName = None
+# diag_msg.Diagnosticstatus.Level = 1
+# diag_msg.Diagnosticstatus.Name = "users_node"
+# diag_msg.Diagnosticstatus.Message = "Starting..."
+# diag_msg.Diagnosticstatus.HardwareId = "N/A"
+# diag_msg.Diagnosticstatus.values = [KeyValue(key = 'Runstop hit', value = 'False'),
+#                                     KeyValue(key = 'Estop hit', value = 'False')]
 
 def setup_user(name=None):
 
@@ -54,10 +55,12 @@ def current_action_callback(data):
 
 def users_node():
 
+    frame_id = "users_node"
     rospy.init_node('users_node', anonymous=True)
 
-    status_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=10)
-    status_pub.publish(diag_msg)
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
+    #status_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=10)
+    #status_pub.publish(diag_msg)
     future_pub = rospy.Publisher('FutureState', user_prediction, queue_size=10)
     
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback)
@@ -69,10 +72,11 @@ def users_node():
         hello_str = "hello world %s" % rospy.get_time()
         rospy.loginfo(hello_str)
 
-        diag_msg.Header.Stamp = rospy.get_rostime()
-        diag_msg.Diagnosticstatus.Level = 0
-        diag_msg.Diagnosticstatus.Message = "Running"
-        status_pub.publish(diag_msg)
+        # diag_msg.Header.Stamp = rospy.get_rostime()
+        # diag_msg.Diagnosticstatus.Level = 0
+        # diag_msg.Diagnosticstatus.Message = "Running"
+        # status_pub.publish(diag_msg)
+        diag_obj.publish(0, "Running")
         rate.sleep()
 
 if __name__ == '__main__':

@@ -2,11 +2,12 @@
 
 import sys, os
 import rospy
-from sam_custom_messages.msg import diagnostics
-from diagnostic_msgs.msg import KeyValue
+#from sam_custom_messages.msg import diagnostics
+#from diagnostic_msgs.msg import KeyValue
 import argparse
 import traceback
 from postgresql.database_funcs import database
+from pub_classes import diag_class
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
 tables_to_make = ['tasks', 'actions', 'users']
@@ -19,21 +20,21 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) NOT NULL",
                     "last_active TIMESTAMPTZ"]]]
 
-def define_diag():
-    frame_id = 'Database node'
-    # Diagnostic message definitions
-    diag_msg = diagnostics()
-    diag_msg.Header.stamp = rospy.get_rostime()
-    diag_msg.Header.seq = 0
-    diag_msg.Header.frame_id = frame_id
-    diag_msg.UserId = 0
-    diag_msg.UserName = "N/A"
-    diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-    diag_msg.DiagnosticStatus.name = frame_id
-    diag_msg.DiagnosticStatus.message = "Starting..."
-    diag_msg.DiagnosticStatus.hardware_id = "N/A"
-    diag_msg.DiagnosticStatus.values = []
-    return diag_msg
+# def define_diag():
+#     frame_id = 'Database node'
+#     # Diagnostic message definitions
+#     diag_msg = diagnostics()
+#     diag_msg.Header.stamp = rospy.get_rostime()
+#     diag_msg.Header.seq = 0
+#     diag_msg.Header.frame_id = frame_id
+#     diag_msg.UserId = 0
+#     diag_msg.UserName = "N/A"
+#     diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+#     diag_msg.DiagnosticStatus.name = frame_id
+#     diag_msg.DiagnosticStatus.message = "Starting..."
+#     diag_msg.DiagnosticStatus.hardware_id = "N/A"
+#     diag_msg.DiagnosticStatus.values = []
+#     return diag_msg
 
 def make_tables(db, del_tab = False):
 
@@ -101,11 +102,8 @@ def shutdown(db):
 def database_run(db):
     # ROS node setup
     rospy.init_node(f'Database_main', anonymous=True)
-    diag_msg = define_diag()
-    diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
-    diag_msg.Header.stamp = rospy.get_rostime()
-    diag_msg.Header.seq = 0
-    diag_pub.publish(diag_msg)
+    frame_id = 'Database node'
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
 
     rate = rospy.Rate(1) # 1hz
     try:
@@ -115,17 +113,17 @@ def database_run(db):
         # Make and load predefined tables
         make_tables(db)
         load_tables(db)
-        diag_msg.DiagnosticStatus.level = 1 # ok
-        diag_msg.DiagnosticStatus.message = "Tables loaded"
+        #diag_obj.diag_msg.DiagnosticStatus.level = 1 # ok
+        #diag_obj.diag_msg.DiagnosticStatus.message = "Tables loaded"
+        diag_obj.publish(1, "Tables loaded")
     except Exception as e:
         print(f"Database node create database error: {e}")
-        diag_msg.DiagnosticStatus.level = 2 # error
-        diag_msg.DiagnosticStatus.message = f"Error: {e}"
+        #diag_obj.diag_msg.DiagnosticStatus.level = 2 # error
+        #diag_obj.diag_msg.DiagnosticStatus.message = f"Error: {e}"
+        diag_obj.publish(2, f"Error: {e}")
         raise
 
-    diag_msg.Header.stamp = rospy.get_rostime()
-    diag_msg.Header.seq += 1
-    diag_pub.publish(diag_msg)
+    #diag_obj.diag_pub.publish(diag_msg)
 
     
     while not rospy.is_shutdown():
@@ -133,16 +131,16 @@ def database_run(db):
             # Test database connection to ensure running smoothly
             db.connect()
             db.disconnect()
-            diag_msg.DiagnosticStatus.level = 0 # ok
-            diag_msg.DiagnosticStatus.message = "Running"
+            #diag_obj.diag_msg.DiagnosticStatus.level = 0 # ok
+            #diag_obj.diag_msg.DiagnosticStatus.message = "Running"
+            diag_obj.publish(0, "Running")
         except Exception as e:
             print(f"Database connection error: {e}")
-            diag_msg.DiagnosticStatus.level = 2 # error
-            diag_msg.DiagnosticStatus.message = f"Error: {e}"
+            #diag_obj.diag_msg.DiagnosticStatus.level = 2 # error
+            #diag_obj.diag_msg.DiagnosticStatus.message = f"Error: {e}"
+            diag_obj.publish(2, f"Error: {e}")
 
-        diag_msg.Header.stamp = rospy.get_rostime()
-        diag_msg.Header.seq += 1
-        diag_pub.publish(diag_msg)
+        #diag_obj.diag_pub.publish(diag_msg)
 
         rate.sleep()
 

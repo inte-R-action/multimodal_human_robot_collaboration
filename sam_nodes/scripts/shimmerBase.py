@@ -19,8 +19,9 @@ import socket
 import io
 import shlex
 from imu_classifier import classify_data
-from sam_custom_messages.msg import current_action, diagnostics
+#from sam_custom_messages.msg import current_action, diagnostics
 from diagnostic_msgs.msg import KeyValue
+from pub_classes import diag_class, act_class
 
 IMU_MSGS = ['ERROR', 'Ready', 'Unknown', 'Shutdown', 'Starting', 'Connecting', 'Initialising']
 IMU_SYS_MSGS = ['ERROR', 'Ready', 'Setting Up']
@@ -86,32 +87,30 @@ if args.disp:
     plt.ion()
     fig, axs = plt.subplots(numsensors, 2)
 
-def define_diag():
-    # Diagnostic message definitions
-    diag_msg = diagnostics()
-    #print(i for i in diag_msg.Header)
-    diag_msg.header.stamp = None#rospy.get_rostime()
-    diag_msg.header.seq = 0
-    diag_msg.header.frame_id = frame_id
-    diag_msg.UserId = args.user_id
-    diag_msg.UserName = args.user_name
-    diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-    diag_msg.DiagnosticStatus.name = frame_id
-    diag_msg.DiagnosticStatus.message = "Starting..."
-    diag_msg.DiagnosticStatus.hardware_id = "N/A"
-    diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
-                                        KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
-                                        KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
-                                        KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
+# def define_diag():
+#     # Diagnostic message definitions
+#     diag_msg = diagnostics()
+#     #print(i for i in diag_msg.Header)
+#     diag_msg.header.stamp = None#rospy.get_rostime()
+#     diag_msg.header.seq = 0
+#     diag_msg.header.frame_id = frame_id
+#     diag_msg.UserId = args.user_id
+#     diag_msg.UserName = args.user_name
+#     diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+#     diag_msg.DiagnosticStatus.name = frame_id
+#     diag_msg.DiagnosticStatus.message = "Starting..."
+#     diag_msg.DiagnosticStatus.hardware_id = "N/A"
+#     diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
+#                                         KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
+#                                         KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
+#                                         KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
 
-    return diag_msg
+#     return diag_msg
 
 
 def shutdown_imu():
     global quit_IMU
     quit_IMU = True
-    diag_msg.DiagnosticStatus.level = 3 #error
-    diag_msg.DiagnosticStatus.message = "SHutting Down IMU"
 
 
 def plot_func(plotdata):
@@ -508,19 +507,26 @@ def IMUsensorsMain():
     print("-----Here we go-----")
     rospy.init_node(f'shimmerBase {args.user_name} {args.user_id}', anonymous=True)
 
-    diag_msg = define_diag()
-    diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
-    diag_pub.publish(diag_msg)
+    #diag_msg = define_diag()
+    #diag_pub = rospy.Publisher('SystemStatus', diagnostics, queue_size=1)
+    #diag_pub.publish(diag_msg)
+    frame_id = "ShimmerBase Node"
+    keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
+                KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
+                KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
+                KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
+    diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1, keyvalues=keyvalues)
 
-    action_pub = rospy.Publisher('CurrentAction', current_action, queue_size=1)
-    action_msg = current_action()
-    action_msg.Header.stamp = rospy.get_rostime()
-    action_msg.Header.seq = 0
-    action_msg.Header.frame_id = frame_id
-    action_msg.UserId = args.user_id
-    action_msg.UserName = args.user_name
-    action_msg.ActionProbs = [0, 0, 0, 0, 0]
-    action_pub.publish(action_msg)
+    act_obj = act_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1, )
+    # action_pub = rospy.Publisher('CurrentAction', current_action, queue_size=1)
+    # action_msg = current_action()
+    # action_msg.Header.stamp = rospy.get_rostime()
+    # action_msg.Header.seq = 0
+    # action_msg.Header.frame_id = frame_id
+    # action_msg.UserId = args.user_id
+    # action_msg.UserName = args.user_name
+    # action_msg.ActionProbs = [0, 0, 0, 0, 0]
+    # action_pub.publish(action_msg)
     
     rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
     prediction = np.zeros(5)
@@ -541,7 +547,7 @@ def IMUsensorsMain():
     
     class_pred = CATEGORIES[-1]
     status = [2, 2, 2, 2] # [unknown, unknown, unknown, setting up]
-
+    diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
     while not quit_IMU:
         status[3] = 2 # setting up
         for s in shimmers:
@@ -550,7 +556,7 @@ def IMUsensorsMain():
             conn[s] = shimmers[s]._connected
             s_down[s] = shimmers[s]._shutdown
             status[s] = shimmers[s]._status
-            diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Shimmer {POSITIONS[s]} {SHIM_IDs[s]}', value = IMU_MSGS[status[s]])]
+            keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[s]} {SHIM_IDs[s]}', value = IMU_MSGS[status[s]])]
 
         out_str = f"Sensors Ready:{ready} Threads:{alive} Connections:{conn} Shutdowns:{s_down} " \
                   f"Total Threads:{threading.active_count()} Quit:{quit_IMU} Prediction:{class_pred}"
@@ -568,14 +574,14 @@ def IMUsensorsMain():
             #     X[i, :, :] = scaler.fit_transform(X[i, :, :])
             new_data[:, :] = scaler.fit_transform(new_data[:, :])
             status[3] = 1 # Ready
-            diag_msg.DiagnosticStatus.level = 0 # ok
+            diag_level = 0 # ok
 
             if args.classify:
                 prediction = classify_data(new_data, args.bar)
                 prediction = np.reshape(prediction, (-1))
                 class_pred = CATEGORIES[np.argmax(prediction)]
         else:
-            diag_msg.DiagnosticStatus.level = 1 # warning
+            diag_level = 1 # warning
 
         if all(ready) & all(conn) & all(alive) & (not quit_IMU) & args.disp:
             plotdata = np.empty((WIN_LEN, 0), dtype=np.float64)
@@ -585,15 +591,17 @@ def IMUsensorsMain():
             plot_func(plotdata)
 
         #rospy.loginfo(out_str)
-        action_msg.Header.stamp = rospy.get_rostime()
-        action_msg.Header.seq = action_msg.Header.seq + 1
-        action_msg.ActionProbs = prediction.tolist()
+        # action_msg.Header.stamp = rospy.get_rostime()
+        # action_msg.Header.seq = action_msg.Header.seq + 1
+        # action_msg.ActionProbs = prediction.tolist()
+        
 
-        diag_msg.DiagnosticStatus.message = "Some helpful message"
-        diag_msg.DiagnosticStatus.values = [KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
+        diag_msg = "Some helpful message"
+        keyvalues = [KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
 
-        action_pub.publish(action_msg)
-        diag_pub.publish(diag_msg)
+        #action_pub.publish(action_msg)
+        act_obj.publish(prediction.tolist())
+        diag_obj.publish(diag_level, diag_msg)
 
         rate.sleep()
 
