@@ -3,7 +3,7 @@ from sam_custom_messages.msg import object_state, diagnostics, current_action
 from diagnostic_msgs.msg import KeyValue
 
 class diag_class:
-    def __init__(self, frame_id, user_id=0, user_name="N/A", queue, keyvalues=[]):
+    def __init__(self, frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=[]):
         # frame_id=str, user_id=int, user_name=str, queue=int, keyvalues=list of KeyValue items
         # Diagnostic message definitions
         self.diag_msg = diagnostics()
@@ -61,13 +61,9 @@ class obj_class:
         else:
             self.obj_msg.Header.seq += 1
         
-        for *xyxy, conf, cls in det:
-            print(cls)
-            print(conf)
-            print(xyxy)
+        for *xyxy, conf, cls, dist in det:
             self.obj_msg.Object.Id = 0
             self.obj_msg.Object.Type = int(cls)
-            print(self.names[int(cls)])
             self.obj_msg.Object.Info = [self.names[int(cls)]]
             self.obj_msg.Pose.orientation.x = xyxy[0]
             self.obj_msg.Pose.orientation.y = xyxy[1]
@@ -75,7 +71,7 @@ class obj_class:
             self.obj_msg.Pose.orientation.w = xyxy[3]
             self.obj_msg.Pose.position.x = 0
             self.obj_msg.Pose.position.y = 0
-            self.obj_msg.Pose.position.z = 0
+            self.obj_msg.Pose.position.z = dist
             self.obj_msg.Header.stamp = rospy.get_rostime()
 
             self.publisher.publish(self.obj_msg)

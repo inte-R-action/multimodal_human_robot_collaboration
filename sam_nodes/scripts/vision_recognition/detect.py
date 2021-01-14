@@ -72,7 +72,7 @@ class classifier():
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
-    def detect(self, img):
+    def detect(self, img, depth_image=None):
         im0s = [img.copy()]
         #if cv2.waitKey(1) == ord('q'):  # q to quit
         #    cv2.destroyAllWindows()
@@ -120,15 +120,24 @@ class classifier():
             
             if len(det):
                 # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()                    
+                    
                 # Print results
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += '%g %ss, ' % (n, self.names[int(c)])  # add to string
-
+                
+                dist = []
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
+                    # Get average distance to object bounding box
+                    if depth_image is not None:
+                        dist.append(np.mean(depth_image[xyxy[0].int():xyxy[2].int(), xyxy[1].int():xyxy[3].int()]).item())    
+                    else:
+                        dist.append(0)
+
+                    label = '%s %.2f %i mm' % (self.names[int(cls)], conf, dist[-1])
+
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                         line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
@@ -136,9 +145,10 @@ class classifier():
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     #if save_img or self.view_img:  # Add bbox to image
-                    label = '%s %.2f' % (self.names[int(cls)], conf)
                     plot_one_box(xyxy, im0, label=label, color=self.colors[int(cls)], line_thickness=3)
-
+                
+                dist = torch.reshape(torch.Tensor(dist), (-1, 1))
+                det = torch.cat((det, dist), 1)
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))
 

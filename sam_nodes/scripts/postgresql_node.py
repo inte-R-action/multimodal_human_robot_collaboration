@@ -2,8 +2,6 @@
 
 import sys, os
 import rospy
-#from sam_custom_messages.msg import diagnostics
-#from diagnostic_msgs.msg import KeyValue
 import argparse
 import traceback
 from postgresql.database_funcs import database
@@ -19,22 +17,6 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
           ['users', ["user_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) NOT NULL",
                     "last_active TIMESTAMPTZ"]]]
-
-# def define_diag():
-#     frame_id = 'Database node'
-#     # Diagnostic message definitions
-#     diag_msg = diagnostics()
-#     diag_msg.Header.stamp = rospy.get_rostime()
-#     diag_msg.Header.seq = 0
-#     diag_msg.Header.frame_id = frame_id
-#     diag_msg.UserId = 0
-#     diag_msg.UserName = "N/A"
-#     diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-#     diag_msg.DiagnosticStatus.name = frame_id
-#     diag_msg.DiagnosticStatus.message = "Starting..."
-#     diag_msg.DiagnosticStatus.hardware_id = "N/A"
-#     diag_msg.DiagnosticStatus.values = []
-#     return diag_msg
 
 def make_tables(db, del_tab = False):
 
@@ -113,35 +95,22 @@ def database_run(db):
         # Make and load predefined tables
         make_tables(db)
         load_tables(db)
-        #diag_obj.diag_msg.DiagnosticStatus.level = 1 # ok
-        #diag_obj.diag_msg.DiagnosticStatus.message = "Tables loaded"
         diag_obj.publish(1, "Tables loaded")
     except Exception as e:
         print(f"Database node create database error: {e}")
-        #diag_obj.diag_msg.DiagnosticStatus.level = 2 # error
-        #diag_obj.diag_msg.DiagnosticStatus.message = f"Error: {e}"
         diag_obj.publish(2, f"Error: {e}")
         raise
-
-    #diag_obj.diag_pub.publish(diag_msg)
-
     
     while not rospy.is_shutdown():
         try:
             # Test database connection to ensure running smoothly
             db.connect()
             db.disconnect()
-            #diag_obj.diag_msg.DiagnosticStatus.level = 0 # ok
-            #diag_obj.diag_msg.DiagnosticStatus.message = "Running"
             diag_obj.publish(0, "Running")
         except Exception as e:
             print(f"Database connection error: {e}")
-            #diag_obj.diag_msg.DiagnosticStatus.level = 2 # error
-            #diag_obj.diag_msg.DiagnosticStatus.message = f"Error: {e}"
             diag_obj.publish(2, f"Error: {e}")
-
-        #diag_obj.diag_pub.publish(diag_msg)
-
+        
         rate.sleep()
 
 if __name__ == '__main__':
