@@ -8,15 +8,24 @@ from postgresql.database_funcs import database
 from pub_classes import diag_class
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL"]], 
           ['actions', ["action_id SERIAL PRIMARY KEY",
                     "action_name VARCHAR(255) NOT NULL",
-                    "std_dur_s REAL"]],
+                    "std_dur_s INTERVAL"]],
           ['users', ["user_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) NOT NULL",
-                    "last_active TIMESTAMPTZ"]]]
+                    "last_active TIMESTAMPTZ"]],
+        ['episodes', ["episode_id SERIAL PRIMARY KEY",
+                    "date DATE",
+                    "start_t TIME",
+                    "end_t TIME",
+                    "duration INTERVAL",
+                    "user_id SMALLINT",
+                    "hand CHAR(1)",
+                    "capability TEXT",
+                    "task_id SMALLINT"]]]
 
 def make_tables(db, del_tab = False):
 
@@ -29,7 +38,7 @@ def make_tables(db, del_tab = False):
         for name in tables_to_make:
             
             if (name in curr_tables) and not del_tab:
-                print(f"Table '{name}' alredy exists, leaving as is")
+                print(f"Table '{name}' already exists, leaving as is")
             else:
                 if del_tab:
                     print(f"Table '{name}' alredy exists, deleting")

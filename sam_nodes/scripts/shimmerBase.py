@@ -1,4 +1,4 @@
-## #!/usr/bin/env python3
+#!/usr/bin/env python3
 
 import sys, struct, serial, os
 import numpy as np
@@ -31,17 +31,17 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--disp', '-V',
                     help='Enable displaying of live graphs',
-                    default=False,
+                    default=True,
                     action="store_true")
 
 parser.add_argument('--classify', '-C',
                     help='Classify data',
-                    default=None,
+                    default=True,
                     action="store_true")
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
-                    default=False,
+                    default=True,
                     action="store_true")
 
 parser.add_argument('--user_name', '-N',
@@ -481,10 +481,9 @@ def shimmer_thread(num):
 
 def IMUsensorsMain():
     print("-----Here we go-----")
-    rospy.init_node(f'shimmerBase {args.user_name} {args.user_id}', anonymous=True)
+    rospy.init_node(f'shimmerBase_{args.user_name}_{args.user_id}', anonymous=True)
     rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
     
-    frame_id = "ShimmerBase Node"
     keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
                 KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
                 KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),

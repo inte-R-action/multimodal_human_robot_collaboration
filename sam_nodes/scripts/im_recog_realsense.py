@@ -173,11 +173,11 @@ if __name__ == "__main__":
         description='Run realsense vision recognition ROS node')
     parser.add_argument('--disp', '-V',
                         help='Enable displaying of camera image',
-                        default=False,
+                        default=True,
                         action="store_true")
     parser.add_argument('--depth', '-D',
                         help='Depth active',
-                        default=False,
+                        default=True,
                         action="store_true")
     parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',

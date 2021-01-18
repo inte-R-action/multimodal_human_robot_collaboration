@@ -16,6 +16,7 @@ from vision_recognition.utils.general import check_img_size, non_max_suppression
 from vision_recognition.utils.plots import plot_one_box
 from vision_recognition.utils.torch_utils import select_device, load_classifier, time_synchronized
 import numpy as np
+import math
 
 class classifier():
     def __init__(self, comp_device, weights, imgsz, img, conf_thres, iou_thres):
@@ -132,11 +133,14 @@ class classifier():
                 for *xyxy, conf, cls in reversed(det):
                     # Get average distance to object bounding box
                     if depth_image is not None:
-                        dist.append(np.mean(depth_image[xyxy[0].int():xyxy[2].int(), xyxy[1].int():xyxy[3].int()]).item())    
+                        dist.append(np.nanmean(depth_image[xyxy[0].int():xyxy[2].int(), xyxy[1].int():xyxy[3].int()]).item())    
                     else:
                         dist.append(0)
 
-                    label = '%s %.2f %i mm' % (self.names[int(cls)], conf, dist[-1])
+                    print(self.names[int(cls)], conf, dist[-1])
+                    if math.isnan(dist[-1]) == False:
+                        dist[-1] = round(dist[-1])
+                    label = '%s %.2f %s mm' % (self.names[int(cls)], conf, dist[-1])
 
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh

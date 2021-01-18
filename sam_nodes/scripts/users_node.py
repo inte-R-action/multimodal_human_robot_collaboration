@@ -7,17 +7,33 @@ from user import User
 from sam_custom_messages.msg import hand_pos, capability, current_action, user_prediction
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class
+from IMU_collator import collate_imu_seq
+import argparse
+import datetime
+
+# Argument parsing
+parser = argparse.ArgumentParser(
+    description='Base structure for connecting and streaming data from Shimmer 3 IMU sensor')
+
+parser.add_argument('--user_names', '-N',
+                    nargs='*',
+                    help='Set name of user, default: unknown',
+                    default='unknown',
+                    type=lambda s: [str(item) for item in s.split(',')])
+
+args = parser.parse_args()
 
 
-def setup_user(name=None):
+def setup_user(users, name=None):
 
     id = len(users)
     if name is None:
         name = f"unknown_user_{id}"
     
-    users.append[User(name, id)]
+    users.append(User(name, id))
+    return users
 
-def hand_pos_callback(data):
+def hand_pos_callback(data, users):
     if users[data.UserId].name != data.UserName:
         print(f"ERROR: users list name {users[data.UserId].name} does not match hand_pos msg name {data.UserName}")
     else:
@@ -33,15 +49,23 @@ def hand_pos_callback(data):
     return
     
 
-def current_action_callback(data):
+def current_action_callback(data, users):
     if users[data.UserId].name != data.UserName:
         print(f"ERROR: users list name {users[data.UserId].name} does not match current_action msg name {data.UserName}")
     else:
-        users[data.UserId].current_action = data.action_probs
+        #users[data.UserId].actions.extend([data.action_probs, data.Header.stamp])
+        users[data.UserId]._imu_pred_hist = np.vstack((users[data.UserId]._imu_pred_hist, (np.hstack((data.ActionProbs, data.Header.stamp)))))
+        users[data.UserId]._imu_state_hist = np.vstack((users[data.UserId]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, data.Header.stamp, data.Header.stamp]))
+
+        users[data.UserId]._imu_state_hist, users[data.UserId]._imu_pred_hist = collate_imu_seq(users[data.UserId]._imu_state_hist, users[data.UserId]._imu_pred_hist)
 
     return
 
 def users_node():
+    
+    users = []
+    for name in args.user_names:
+        users = setup_user(users, name)
 
     frame_id = "users_node"
     rospy.init_node('users_node', anonymous=True)
@@ -49,8 +73,8 @@ def users_node():
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
     future_pub = rospy.Publisher('FutureState', user_prediction, queue_size=10)
     
-    rospy.Subscriber("HandStates", hand_pos, hand_pos_callback)
-    rospy.Subscriber("CurrentAction", current_action, current_action_callback)
+    rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
+    rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
 
     rate = rospy.Rate(1) # 1hz
 
