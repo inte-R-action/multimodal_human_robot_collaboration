@@ -21,6 +21,7 @@ import shlex
 from imu_classifier import classify_data
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, act_class
+import csv
 
 IMU_MSGS = ['ERROR', 'Ready', 'Unknown', 'Shutdown', 'Starting', 'Connecting', 'Initialising']
 IMU_SYS_MSGS = ['ERROR', 'Ready', 'Setting Up']
@@ -60,7 +61,7 @@ frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
 
 # Shimmer sensor connection params
 serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm2']
-POSITIONS = ['Hand', 'Wrist', 'ARM']
+POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
 
@@ -81,6 +82,13 @@ connect_threads = {}
 quit_IMU = False
 passkey = "1234"  # passkey of shimmers
 pos = np.arange(len(CATEGORIES))
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(f'{dir_path}/scale_params.csv', newline='') as f:
+    reader = csv.reader(f)
+    data = np.array(list(reader))
+    means = data[1:, 1].astype(np.float)
+    scales = data[1:, -1].astype(np.float)
 
 if args.disp:
     plt.ion()
@@ -126,6 +134,10 @@ def plot_func(plotdata):
 
         plt.pause(0.0001)
 
+def scale_data(new_data):
+    new_data = (new_data-means)/scales
+    return new_data
+    
 
 class shimmer():
     def __init__(self, q):
@@ -285,7 +297,7 @@ class shimmer():
 
                 try:
                     self._connection = subprocess.Popen(f"sudo rfcomm connect {self._port} {target_address} 1", shell=True)
-                    time.sleep(1)
+                    time.sleep(2)
                     self._connect_error = False
                     return True
 
@@ -367,13 +379,17 @@ class shimmer():
         # Start thread for shimmer connection
         # connect_threads[num] = threading.Thread(target=shimmers[num].bt_connection, args=(num,))
         # connect_threads[num].start()
+        
         if self.bt_connection():
-            if self.initiate():  # Send set up commands, etc to shimmer
-                print(f'---Initiated {self._location} Sensor---')
-                return True
-            else:
-                print(f"Failed to initialise {self._location} sensor")
-                return False
+            count = 0
+            while count <= 3: 
+                if self.initiate():  # Send set up commands, etc to shimmer
+                    print(f'---Initiated {self._location} Sensor---')
+                    return True
+                else:
+                    count += 1
+                    print(f"Failed to initialise {self._location} sensor, attempt {count}/3")
+                    return False
         else:
             print(f"Failed to connect {self._location} sensor")
             return False
@@ -417,29 +433,38 @@ class shimmer():
     def shutdown(self):
         # Reset all flags/parameters
         self._connected = False
-        self._connection = None
+        #self._connection = None
         self._ready = False
         self._connect_error = True
 
         # Shut sensor down and kill serial connection
         try:
-            # send stop streaming command
-            self._serial.write(struct.pack('B', 0x20))
-            print(f"{self._location} stop command sent, waiting for ACK_COMMAND")
-            if self.wait_for_ack():
-                print(f"---{self._location} stop ACK_COMMAND received.")
-                # close serial port
-                self._serial.close()
-            else:
-                print(f"---{self._location} stop ACK_COMMAND *NOT* received.")
-        except Exception:
+            count = 0
+            sd = False
+            while (not sd) and (count <= 3):
+                # send stop streaming command
+                self._serial.write(struct.pack('B', 0x20))
+                print(f"{self._location} stop command sent, waiting for ACK_COMMAND")
+                if self.wait_for_ack():
+                    print(f"---{self._location} stop ACK_COMMAND received.")
+                    # close serial port
+                    self._serial.close()
+                    sd = True
+                else:
+                    count += 1
+                    #self._serial.close()
+                    print(f"---{self._location} stop ACK_COMMAND *NOT* received. Attempt {count}/3")
+        except Exception as e:
+            print(f"{self._location} close down sensor error: {e}")
             pass
 
         #Kill bluetooth connection
         try:
-            self._connection.release()
-            self._connection.kill()
-        except Exception:
+            #self._connection.release()
+            #self._connection.kill()
+            os.kill(self._connection.pid, 1)
+        except Exception as e:
+            print(f"{self._location} connection not killed: {e}")
             pass
 
         return True
@@ -530,11 +555,12 @@ def IMUsensorsMain():
             for p in shimmers:
                 new_data = np.hstack((new_data, shimmers[p]._accel, shimmers[p]._gyro))
             new_data = np.nan_to_num(new_data)
-            scaler = preprocessing.StandardScaler()
+            #scaler = preprocessing.StandardScaler()
             # for i in range(0, X.shape[0]):
             #     scaler = preprocessing.StandardScaler()
             #     X[i, :, :] = scaler.fit_transform(X[i, :, :])
-            new_data[:, :] = scaler.fit_transform(new_data[:, :])
+            #new_data[:, :] = scaler.fit_transform(new_data[:, :])
+            new_data = scale_data(new_data)
             status[3] = 1 # Ready
             diag_level = 0 # ok
 
@@ -557,13 +583,18 @@ def IMUsensorsMain():
         diag_msg = "Some helpful message"
         keyvalues = [KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
 
-        act_obj.publish(prediction.tolist())
+        try:
+            act_obj.publish(prediction.tolist())
+        except Exception as e:
+            print(e)
+            print(prediction)
         diag_obj.publish(diag_level, diag_msg)
 
         rate.sleep()
 
 
 if __name__ == "__main__":
+    #subprocess.call("sudo service bluetooth restart")
     subprocess.call("sudo rfcomm release all", shell=True)
     # kill any rfcomm connections currently active
     subprocess.call("sudo killall rfcomm", shell=True)

@@ -54,8 +54,9 @@ def current_action_callback(data, users):
         print(f"ERROR: users list name {users[data.UserId].name} does not match current_action msg name {data.UserName}")
     else:
         #users[data.UserId].actions.extend([data.action_probs, data.Header.stamp])
-        users[data.UserId]._imu_pred_hist = np.vstack((users[data.UserId]._imu_pred_hist, (np.hstack((data.ActionProbs, data.Header.stamp)))))
-        users[data.UserId]._imu_state_hist = np.vstack((users[data.UserId]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, data.Header.stamp, data.Header.stamp]))
+        time = datetime.datetime.utcfromtimestamp(data.Header.stamp.to_sec())
+        users[data.UserId]._imu_pred_hist = np.vstack((users[data.UserId]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
+        users[data.UserId]._imu_state_hist = np.vstack((users[data.UserId]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
 
         users[data.UserId]._imu_state_hist, users[data.UserId]._imu_pred_hist = collate_imu_seq(users[data.UserId]._imu_state_hist, users[data.UserId]._imu_pred_hist)
 
@@ -79,7 +80,7 @@ def users_node():
     rate = rospy.Rate(1) # 1hz
 
     while not rospy.is_shutdown():
-        hello_str = "hello world %s" % rospy.get_time()
+        hello_str = f"{frame_id} active"
         rospy.loginfo(hello_str)
 
         diag_obj.publish(0, "Running")

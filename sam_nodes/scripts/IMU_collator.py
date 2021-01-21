@@ -73,17 +73,15 @@ pos = np.arange(len(CATEGORIES))
 
 def collate_imu_seq(imu_state_hist, imu_pred_hist):
     # 'Dilation' filter to remove single erroneous predictions
-    if np.shape(imu_state_hist)[0] >= 3:
+    if np.shape(imu_state_hist)[0] >= 4:
         if (imu_state_hist[-1, 0] == imu_state_hist[-3, 0]):# & (imu_state_hist[-2, 1] <= 0.00000000001): # WHAT IS THIS DOING???
             imu_state_hist[-2, 0] = imu_state_hist[-1, 0] #NEED TO CHECK CONFIDENCES HERE
 
         # Group predictions of same type together
         if imu_state_hist[-2, 0] == imu_state_hist[-3, 0]:
             i = np.where(imu_pred_hist[:, -1]==imu_state_hist[-3, 2])[0][0] #Get index where action starts
-            #i = i[0,0]
             imu_state_hist[-2, 1] = np.mean(imu_pred_hist[i:-1, int(imu_state_hist[-2, 0])].astype(float)) #Not convinced about this mean
-            imu_state_hist[-2, 2] = imu_state_hist[-3, 2]
-            imu_state_hist[-2, 3] = imu_pred_hist[i, -1]
+            imu_state_hist[-2, 2] = imu_state_hist[-3, 2] # set start time
             imu_state_hist = np.delete(imu_state_hist, -3, 0)
         else:
             # Can publish new episode to sql
@@ -91,11 +89,11 @@ def collate_imu_seq(imu_state_hist, imu_pred_hist):
             date = datetime.date.today()
             start_t = imu_state_hist[-3, 2]
             end_t = imu_state_hist[-3, 3]
-            dur = datetime.datetime.combine(datetime.date.today(), end_t) - datetime.datetime.combine(datetime.date.today(), start_t)
+            dur = end_t - start_t #datetime.datetime.combine(datetime.date.min, end_t) - datetime.datetime.combine(datetime.date.min, start_t)
             #table:str(table name), columns:[str(column name),], data:[('data1', data2, ),]
             db.insert_data_list("Episodes", 
             ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
-            [(date, start_t, end_t, dur, 0, "R", CATEGORIES[imu_state_hist[-3, 0]], 0)])
+            [(date, start_t, end_t, dur, 0, "R", CATEGORIES[int(imu_state_hist[-3, 0])], 0)])
 
         #     imu_pred_hist = np.array(imu_pred_hist[-1, :])
         #     imu_pred_hist = np.reshape(imu_pred_hist, (1, 5))
