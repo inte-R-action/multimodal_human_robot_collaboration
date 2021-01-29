@@ -8,13 +8,23 @@ import argparse
 import sys, os
 import time
 import cv2
-import rospy
 from vision_recognition.detect import classifier
-from pub_classes import diag_class, obj_class
 import torch
+try:
+    from pub_classes import diag_class, obj_class
+    import rospy
+    test=False
+except ModuleNotFoundError:
+    print(f"rospy module not found, proceeding in test mode")
+    test = True
+    # Hacky way of avoiding errors
+    class ROS():
+        def is_shutdown(self):
+            return False
+    rospy = ROS()
 
 sys.path.insert(0, "./sam_nodes/scripts/vision_recognition") # Need to add path to "models" parent dir for pickler
-print(sys.path)
+
 class rs_cam:
     def __init__(self):
         # Create a pipeline
@@ -84,10 +94,12 @@ class rs_cam:
 def realsense_run():
     # ROS node setup
     frame_id = 'Realsense node'
-    rospy.init_node(f'Realsense_main', anonymous=True)
-    diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
 
-    rate = rospy.Rate(10)
+    if not test:
+        rospy.init_node(f'Realsense_main', anonymous=True)
+        diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
+        rate = rospy.Rate(10)
+    
     if args.classify:
         try:
             frames = cam.pipeline.wait_for_frames()
@@ -97,16 +109,18 @@ def realsense_run():
                 color_image = cam.colour_frames(frames)
 
             im_classifier = classifier(args.comp_device, args.weights, args.img_size, color_image, args.conf_thres, args.iou_thres)
-            obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
+            if not test:
+                obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
         
         except Exception as e:
             print("**Classifier Load Error**")
             traceback.print_exc(file=sys.stdout)
-            diag_obj.publish(2, f"load classifier error: {e}")
+            if not test:
+                diag_obj.publish(2, f"load classifier error: {e}")
             raise
 
     diag_timer = time.time()
-    while not rospy.is_shutdown():
+    while (not rospy.is_shutdown()) or test:
         try:
             # Get frameset of color and depth
             frames = cam.pipeline.wait_for_frames()
@@ -123,11 +137,13 @@ def realsense_run():
                     else:
                         color_image, det = im_classifier.detect(color_image, None)
 
-                    obj_obj.publish(det)
+                    if not test:
+                        obj_obj.publish(det)
                 except Exception as e:
                     print("**Classifier Detection Error**")
                     traceback.print_exc(file=sys.stdout)
-                    diag_obj.publish(2, f"load classifier error: {e}")
+                    if not test:
+                        diag_obj.publish(2, f"load classifier error: {e}")
 
             # Remove background - Set pixels further than clipping_distance to grey
             #grey_color = 153
@@ -137,15 +153,18 @@ def realsense_run():
 
             if  (time.time()-diag_timer) > 1:
                 print(time.time())
-                diag_obj.publish(0, f"Running")
+                if not test:
+                    diag_obj.publish(0, f"Running")
                 diag_timer = time.time()
 
         except TypeError as e:
             time.sleep(1)
-            diag_obj.publish(2, f"TypeError")
+            if not test:
+                diag_obj.publish(2, f"TypeError")
         except Exception as e:
             print("**Get Image Error**")
-            diag_obj.publish(2, f"Realsense image error: {e}")
+            if not test:
+                diag_obj.publish(2, f"Realsense image error: {e}")
             traceback.print_exc(file=sys.stdout)
             break
 
@@ -164,7 +183,11 @@ def realsense_run():
                 cv2.destroyAllWindows()
                 break
             
-        rate.sleep()
+        if not test:
+            rate.sleep()
+        else:
+            #time.sleep(1)
+            pass
 
 
 ## Argument parsing
@@ -196,6 +219,7 @@ if __name__ == "__main__":
     parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
     parser.add_argument('--conf_thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou_thres', type=float, default=0.45, help='IOU threshold for NMS')
+    parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
     
     args = parser.parse_args()
 
