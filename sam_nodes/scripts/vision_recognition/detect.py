@@ -17,6 +17,10 @@ from vision_recognition.utils.plots import plot_one_box
 from vision_recognition.utils.torch_utils import select_device, load_classifier, time_synchronized
 import numpy as np
 import math
+from scipy import stats
+import matplotlib
+matplotlib.use( 'tkagg' )
+import matplotlib.pyplot as plt
 
 class classifier():
     def __init__(self, comp_device, weights, imgsz, img, conf_thres, iou_thres):
@@ -73,7 +77,7 @@ class classifier():
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
-    def detect(self, img, depth_image=None):
+    def detect(self, img, depth_image=None, depth_histogram=False):
         im0s = [img.copy()]
         #if cv2.waitKey(1) == ord('q'):  # q to quit
         #    cv2.destroyAllWindows()
@@ -133,14 +137,17 @@ class classifier():
                 for *xyxy, conf, cls in reversed(det):
                     # Get average distance to object bounding box
                     if depth_image is not None:
-                        dist.append(np.nanmean(depth_image[xyxy[0].int():xyxy[2].int(), xyxy[1].int():xyxy[3].int()]).item())    
+                        dist_mat = np.around(np.nan_to_num(depth_image[xyxy[1].int():xyxy[3].int(), xyxy[0].int():xyxy[2].int()]), decimals=3)
+                        dist_mat = np.reshape(dist_mat, (-1,))
+                        dist_mat = np.ma.masked_equal(dist_mat, 0)
+                        dist.append(np.nanmean(dist_mat))
                     else:
                         dist.append(0)
 
                     print(self.names[int(cls)], conf, dist[-1])
                     if math.isnan(dist[-1]) == False:
-                        dist[-1] = round(dist[-1])
-                    label = '%s %.2f %s mm' % (self.names[int(cls)], conf, dist[-1])
+                        dist[-1] = round(dist[-1], 2)
+                    label = '%s %.2f %s m' % (self.names[int(cls)], conf, dist[-1])
 
                     if save_txt:  # Write to file
                         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
@@ -151,6 +158,13 @@ class classifier():
                     #if save_img or self.view_img:  # Add bbox to image
                     plot_one_box(xyxy, im0, label=label, color=self.colors[int(cls)], line_thickness=3)
                 
+                if depth_histogram:
+                    plt.cla()
+                    plt.title(self.names[int(cls)])
+                    plt.hist(dist_mat.ravel(), np.arange(np.min(dist_mat), np.max(dist_mat), 0.01).tolist(), range=(np.min(dist_mat), np.max(dist_mat)))
+                    plt.show(block=False)
+                    plt.pause(0.0001)
+
                 dist = torch.reshape(torch.Tensor(dist), (-1, 1))
                 det = torch.cat((det, dist), 1)
             # Print time (inference + NMS)

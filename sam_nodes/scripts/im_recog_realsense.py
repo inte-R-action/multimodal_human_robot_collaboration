@@ -10,6 +10,10 @@ import time
 import cv2
 from vision_recognition.detect import classifier
 import torch
+import matplotlib
+matplotlib.use( 'tkagg' )
+import matplotlib.pyplot as plt
+
 try:
     from pub_classes import diag_class, obj_class
     import rospy
@@ -42,8 +46,9 @@ class rs_cam:
         if args.depth:
             # Getting the depth sensor's depth scale (see rs-align example for explanation)
             depth_sensor = profile.get_device().first_depth_sensor()
-            depth_scale = depth_sensor.get_depth_scale()
-            #print("Depth Scale is: " , depth_scale)
+            depth_sensor.set_option(rs.option.visual_preset, 2)
+            self.depth_scale = depth_sensor.get_depth_scale()
+            print("Depth Scale is: " , self.depth_scale)
             # We will be removing the background of objects more than
             #  clipping_distance_in_meters meters away
             #clipping_distance_in_meters = 0.5 #1 meter
@@ -75,9 +80,9 @@ class rs_cam:
         # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:
             return
-        depth_image = np.asanyarray(aligned_depth_frame.get_data())
+        depth_image = np.asanyarray(aligned_depth_frame.get_data())*self.depth_scale
         color_image = np.asanyarray(color_frame.get_data())
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.1), cv2.COLORMAP_JET)
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=100), cv2.COLORMAP_JET)
 
         return color_image, depth_colormap, depth_image
 
@@ -133,7 +138,7 @@ def realsense_run():
             if args.classify:
                 try:
                     if args.depth:
-                        color_image, det = im_classifier.detect(color_image, depth_image)
+                        color_image, det = im_classifier.detect(color_image, depth_image, depth_histogram=False)
                     else:
                         color_image, det = im_classifier.detect(color_image, None)
 
@@ -175,6 +180,7 @@ def realsense_run():
                 disp_im = np.hstack((color_image, depth_colormap))
             else:
                 disp_im = color_image
+            
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
             key = cv2.waitKey(1)
@@ -235,3 +241,4 @@ if __name__ == "__main__":
     finally:
         cam.pipeline.stop()
         cv2.destroyAllWindows()
+        plt.close('all')
