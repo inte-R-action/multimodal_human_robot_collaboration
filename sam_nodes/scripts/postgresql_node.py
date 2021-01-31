@@ -8,13 +8,14 @@ from postgresql.database_funcs import database
 from pub_classes import diag_class
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL"]], 
-          ['actions', ["action_id SERIAL PRIMARY KEY",
-                    "action_name VARCHAR(255) NOT NULL",
-                    "std_dur_s INTERVAL"]],
-          ['users', ["user_id SERIAL PRIMARY KEY",
+        ['actions', ["action_id SERIAL PRIMARY KEY",
+                    "action_name VARCHAR(255) NOT NULL UNIQUE",
+                    "std_dur_s INTERVAL",
+                    "user_type VARCHAR(5)"]],
+        ['users', ["user_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) NOT NULL",
                     "last_active TIMESTAMPTZ"]],
         ['episodes', ["episode_id SERIAL PRIMARY KEY",
@@ -25,9 +26,15 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "user_id SMALLINT",
                     "hand CHAR(1)",
                     "capability TEXT",
-                    "task_id SMALLINT"]]]
+                    "task_id SMALLINT"]],
+        ['assemble_box', ["action_no SERIAL PRIMARY KEY",
+                    "action_id INTEGER REFERENCES actions(action_id)",
+                    "action_name VARCHAR(255) REFERENCES actions(action_name)",
+                    "default_time INTERVAL",
+                    "user_type VARCHAR(5)",
+                    "prev_dependent BOOL"]]]
 
-def make_tables(db, del_tab = False):
+def make_tables(db, del_tab = True):
 
     try:
         table_avail = [item[0] for item in tables]
@@ -61,6 +68,10 @@ def load_tables(db):
         try:
             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
             print(f"Loaded data into '{name}'")
+
+            if name == "box_actions":
+                pass
+                
         except FileNotFoundError:
             print(f"WARNING: Load table file not found for '{name}' at {base_dir}{name}.csv")
         except Exception as e:

@@ -228,7 +228,7 @@ class database():
         name=str(table name)"""
 
         self.connect()
-        sql = f"DROP TABLE {name};"
+        sql = f"DROP TABLE {name} CASCADE;"
         try:
             # create table one by one
             self.cur.execute(sql)
@@ -240,6 +240,39 @@ class database():
             raise
         finally:
             self.disconnect()
+
+    def query_table(self, name, rows='all'):
+        """Query rows from table
+        name=str(table name), rows='all', 'one', int"""
+
+        sql = f"SELECT * FROM {name}"
+        output = None
+        try:
+            self.connect()
+            self.cur.execute(sql)
+            if rows == 'all':
+                output = self.cur.fetchall()
+            elif rows =='one':
+                output = self.cur.fetchone() 
+            elif type(rows) == int:
+                output = self.cur.fetchmany(rows)
+            else:
+                raise TypeError('query_table rows input should be \'all\', \'one\' or int')
+
+            col_names = []
+            for i in self.cur.description:
+                col_names.append(i[0])
+
+        except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
+            raise
+        finally:
+            self.disconnect()
+
+        return col_names, output
+
+            
+
 
 
 if __name__ == '__main__':
@@ -261,7 +294,8 @@ if __name__ == '__main__':
     #     ('.jpg','zdfb',)
     # ])
     #db.csv_import(os.getcwd()+'/sam_nodes/scripts/postgresql/users.csv', tab_name="vendors")
-    db.csv_export("parts")
+    #db.csv_export("parts")
+    print(db.query_table("episodes", 'all'))
     #db.disconnect()
     #db.table_list()
     #db.remove_table('test1')

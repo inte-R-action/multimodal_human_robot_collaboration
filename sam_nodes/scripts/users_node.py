@@ -10,6 +10,8 @@ from pub_classes import diag_class
 from IMU_collator import collate_imu_seq
 import argparse
 import datetime
+import pandas as pd
+from postgresql.database_funcs import database
 
 # Argument parsing
 parser = argparse.ArgumentParser(
@@ -77,8 +79,13 @@ def users_node():
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
 
-    rate = rospy.Rate(1) # 1hz
+    db = database()
 
+    task = 'assemble_box'
+    col_names, actions_list = db.query_table(task, 'all')
+    actions = pd.DataFrame(actions_list, columns=col_names)
+
+    rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():
         hello_str = f"{frame_id} active"
         rospy.loginfo(hello_str)

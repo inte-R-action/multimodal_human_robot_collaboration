@@ -1,0 +1,7 @@
+action_id,action_name,std_dur_s,user_type
+0,screw_in,10,human
+1,screw_out,10,human
+2,allen_in,15,human
+3,allen_out,15,human
+4,bring_part,20,robot
+5,take_part,20,robot
