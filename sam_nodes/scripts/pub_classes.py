@@ -69,8 +69,8 @@ class obj_class:
             self.obj_msg.Pose.orientation.y = xyxy[1]
             self.obj_msg.Pose.orientation.z = xyxy[2]
             self.obj_msg.Pose.orientation.w = xyxy[3]
-            self.obj_msg.Pose.position.x = 0
-            self.obj_msg.Pose.position.y = 0
+            self.obj_msg.Pose.position.x = (xyxy[0]+xyxy[2])/2
+            self.obj_msg.Pose.position.y = (xyxy[1]+xyxy[3])/2
             self.obj_msg.Pose.position.z = dist
             self.obj_msg.Header.stamp = rospy.get_rostime()
 

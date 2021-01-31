@@ -8,13 +8,27 @@ import argparse
 import sys, os
 import time
 import cv2
-import rospy
 from vision_recognition.detect import classifier
-from pub_classes import diag_class, obj_class
 import torch
+import matplotlib
+matplotlib.use( 'tkagg' )
+import matplotlib.pyplot as plt
+
+try:
+    from pub_classes import diag_class, obj_class
+    import rospy
+    test=False
+except ModuleNotFoundError:
+    print(f"rospy module not found, proceeding in test mode")
+    test = True
+    # Hacky way of avoiding errors
+    class ROS():
+        def is_shutdown(self):
+            return False
+    rospy = ROS()
 
 sys.path.insert(0, "./sam_nodes/scripts/vision_recognition") # Need to add path to "models" parent dir for pickler
-print(sys.path)
+
 class rs_cam:
     def __init__(self):
         # Create a pipeline
@@ -32,8 +46,9 @@ class rs_cam:
         if args.depth:
             # Getting the depth sensor's depth scale (see rs-align example for explanation)
             depth_sensor = profile.get_device().first_depth_sensor()
-            depth_scale = depth_sensor.get_depth_scale()
-            #print("Depth Scale is: " , depth_scale)
+            depth_sensor.set_option(rs.option.visual_preset, 2)
+            self.depth_scale = depth_sensor.get_depth_scale()
+            print("Depth Scale is: " , self.depth_scale)
             # We will be removing the background of objects more than
             #  clipping_distance_in_meters meters away
             #clipping_distance_in_meters = 0.5 #1 meter
@@ -65,9 +80,9 @@ class rs_cam:
         # Validate that both frames are valid
         if not aligned_depth_frame or not color_frame:
             return
-        depth_image = np.asanyarray(aligned_depth_frame.get_data())
+        depth_image = np.asanyarray(aligned_depth_frame.get_data())*self.depth_scale
         color_image = np.asanyarray(color_frame.get_data())
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.1), cv2.COLORMAP_JET)
+        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=100), cv2.COLORMAP_JET)
 
         return color_image, depth_colormap, depth_image
 
@@ -84,10 +99,12 @@ class rs_cam:
 def realsense_run():
     # ROS node setup
     frame_id = 'Realsense node'
-    rospy.init_node(f'Realsense_main', anonymous=True)
-    diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
 
-    rate = rospy.Rate(10)
+    if not test:
+        rospy.init_node(f'Realsense_main', anonymous=True)
+        diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
+        rate = rospy.Rate(10)
+    
     if args.classify:
         try:
             frames = cam.pipeline.wait_for_frames()
@@ -97,16 +114,18 @@ def realsense_run():
                 color_image = cam.colour_frames(frames)
 
             im_classifier = classifier(args.comp_device, args.weights, args.img_size, color_image, args.conf_thres, args.iou_thres)
-            obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
+            if not test:
+                obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
         
         except Exception as e:
             print("**Classifier Load Error**")
             traceback.print_exc(file=sys.stdout)
-            diag_obj.publish(2, f"load classifier error: {e}")
+            if not test:
+                diag_obj.publish(2, f"load classifier error: {e}")
             raise
 
     diag_timer = time.time()
-    while not rospy.is_shutdown():
+    while (not rospy.is_shutdown()) or test:
         try:
             # Get frameset of color and depth
             frames = cam.pipeline.wait_for_frames()
@@ -119,15 +138,17 @@ def realsense_run():
             if args.classify:
                 try:
                     if args.depth:
-                        color_image, det = im_classifier.detect(color_image, depth_image)
+                        color_image, det = im_classifier.detect(color_image, depth_image, depth_histogram=False)
                     else:
                         color_image, det = im_classifier.detect(color_image, None)
 
-                    obj_obj.publish(det)
+                    if not test:
+                        obj_obj.publish(det)
                 except Exception as e:
                     print("**Classifier Detection Error**")
                     traceback.print_exc(file=sys.stdout)
-                    diag_obj.publish(2, f"load classifier error: {e}")
+                    if not test:
+                        diag_obj.publish(2, f"load classifier error: {e}")
 
             # Remove background - Set pixels further than clipping_distance to grey
             #grey_color = 153
@@ -137,15 +158,18 @@ def realsense_run():
 
             if  (time.time()-diag_timer) > 1:
                 print(time.time())
-                diag_obj.publish(0, f"Running")
+                if not test:
+                    diag_obj.publish(0, f"Running")
                 diag_timer = time.time()
 
         except TypeError as e:
             time.sleep(1)
-            diag_obj.publish(2, f"TypeError")
+            if not test:
+                diag_obj.publish(2, f"TypeError")
         except Exception as e:
             print("**Get Image Error**")
-            diag_obj.publish(2, f"Realsense image error: {e}")
+            if not test:
+                diag_obj.publish(2, f"Realsense image error: {e}")
             traceback.print_exc(file=sys.stdout)
             break
 
@@ -156,6 +180,7 @@ def realsense_run():
                 disp_im = np.hstack((color_image, depth_colormap))
             else:
                 disp_im = color_image
+            
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
             key = cv2.waitKey(1)
@@ -164,7 +189,11 @@ def realsense_run():
                 cv2.destroyAllWindows()
                 break
             
-        rate.sleep()
+        if not test:
+            rate.sleep()
+        else:
+            #time.sleep(1)
+            pass
 
 
 ## Argument parsing
@@ -196,6 +225,7 @@ if __name__ == "__main__":
     parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
     parser.add_argument('--conf_thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou_thres', type=float, default=0.45, help='IOU threshold for NMS')
+    parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
     
     args = parser.parse_args()
 
@@ -211,3 +241,4 @@ if __name__ == "__main__":
     finally:
         cam.pipeline.stop()
         cv2.destroyAllWindows()
+        plt.close('all')
