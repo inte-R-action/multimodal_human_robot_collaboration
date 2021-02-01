@@ -1,5 +1,5 @@
 import rospy
-from sam_custom_messages.msg import object_state, diagnostics, current_action
+from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction
 from diagnostic_msgs.msg import KeyValue
 
 class diag_class:
@@ -101,3 +101,51 @@ class act_class:
         self.act_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.act_msg)
+
+class move_class:
+    def __init__(self, frame_id, queue=1):
+        # frame_id=str, queue=int
+        # Current action message definitions
+        self.move_msg = robot_move()
+        self.move_msg.Header.stamp = rospy.get_rostime()
+        self.move_msg.Header.seq = None
+        self.move_msg.Header.frame_id = frame_id
+
+        self.publisher = rospy.Publisher('RobotMove', robot_move, queue_size=queue)
+
+    def publish(self, command):
+        # command = str()
+        if self.move_msg.Header.seq is None:
+            self.move_msg.Header.seq = 0
+        else:
+            self.move_msg.Header.seq += 1
+        
+        self.move_msg.Command = command
+        self.move_msg.Header.stamp = rospy.get_rostime()
+
+        self.publisher.publish(self.move_msg)
+
+class future_class:
+    def __init__(self, frame_id, user_id=0, queue=1):
+        # frame_id=str, queue=int
+        # Current action message definitions
+        self.future_msg = user_prediction()
+        self.future_msg.Header.stamp = rospy.get_rostime()
+        self.future_msg.Header.seq = None
+        self.future_msg.Header.frame_id = frame_id
+        self.future_msg.UserId = user_id
+        self.future_msg.Predictions = []
+
+        self.publisher = rospy.Publisher('FutureState', user_prediction, queue_size=queue)
+
+    def publish(self, prediction):
+        # prediction = float64[]
+        if self.future_msg.Header.seq is None:
+            self.future_msg.Header.seq = 0
+        else:
+            self.future_msg.Header.seq += 1
+        
+        self.future_msg.Command = prediction
+        self.future_msg.Header.stamp = rospy.get_rostime()
+
+        self.publisher.publish(self.future_msg)

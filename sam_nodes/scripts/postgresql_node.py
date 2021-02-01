@@ -8,15 +8,15 @@ from postgresql.database_funcs import database
 from pub_classes import diag_class
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'current_actions']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
-                    "task_name VARCHAR(255) NOT NULL"]], 
+                    "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
         ['actions', ["action_id SERIAL PRIMARY KEY",
                     "action_name VARCHAR(255) NOT NULL UNIQUE",
                     "std_dur_s INTERVAL",
                     "user_type VARCHAR(5)"]],
         ['users', ["user_id SERIAL PRIMARY KEY",
-                    "user_name VARCHAR(255) NOT NULL",
+                    "user_name VARCHAR(255) NOT NULL UNIQUE",
                     "last_active TIMESTAMPTZ"]],
         ['episodes', ["episode_id SERIAL PRIMARY KEY",
                     "date DATE",
@@ -32,7 +32,13 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "action_name VARCHAR(255) REFERENCES actions(action_name)",
                     "default_time INTERVAL",
                     "user_type VARCHAR(5)",
-                    "prev_dependent BOOL"]]]
+                    "prev_dependent BOOL"]],
+        ['current_actions', ["user_id INTEGER REFERENCES users(user_id)",
+                    "user_name VARCHAR(255) REFERENCES users(user_name)",
+                    "updated_t TIMESTAMPTZ",
+                    "task_name VARCHAR(255) REFERENCES tasks(task_name)",
+                    "current_action_no INTEGER",
+                    "start_time INTERVAL"]]]
 
 def make_tables(db, del_tab = True):
 
@@ -47,7 +53,7 @@ def make_tables(db, del_tab = True):
             if (name in curr_tables) and not del_tab:
                 print(f"Table '{name}' already exists, leaving as is")
             else:
-                if del_tab:
+                if name in curr_tables:#del_tab:
                     print(f"Table '{name}' alredy exists, deleting")
                     db.remove_table(name)
                 _, cmd = [i for i in tables if i[0]==name][0]
