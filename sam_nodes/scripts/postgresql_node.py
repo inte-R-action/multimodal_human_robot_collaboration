@@ -33,13 +33,13 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "default_time INTERVAL",
                     "user_type VARCHAR(5)",
                     "prev_dependent BOOL"]],
-        ['current_actions', ["user_id INTEGER REFERENCES users(user_id)",
+        ['current_actions', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
                     "user_name VARCHAR(255) REFERENCES users(user_name)",
                     "updated_t TIMESTAMPTZ",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
                     "current_action_no INTEGER",
-                    "start_time INTERVAL"]]]
-
+                    "start_time TIMESTAMPTZ"]]]
+## ADD STUFF TO AUTO LOAD BLANK COLUMN WHERE RELEVANT - ASSEMBLE_BOX ONLY TEMP VALUES FOR USER AND TIME
 def make_tables(db, del_tab = True):
 
     try:

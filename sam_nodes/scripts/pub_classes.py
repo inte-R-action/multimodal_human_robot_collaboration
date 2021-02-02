@@ -1,5 +1,5 @@
 import rospy
-from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction
+from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability
 from diagnostic_msgs.msg import KeyValue
 
 class diag_class:
@@ -149,3 +149,40 @@ class future_class:
         self.future_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.future_msg)
+
+class capability_class:
+    def __init__(self, frame_id, user_id=0, queue=1):
+        # frame_id=str, queue=int
+        # Current action message definitions
+        self.capability_msg = capability()
+        self.capability_msg.Header.stamp = rospy.get_rostime()
+        self.capability_msg.Header.seq = None
+        self.capability_msg.Header.frame_id = frame_id
+        self.capability_msg.UserId = user_id
+        self.capability_msg.Object.Id = 0
+        self.capability_msg.Object.Type = 0
+        self.capability_msg.Object.Info = 'N/A'
+        self.capability_msg.Pose.orientation.x = 0
+        self.capability_msg.Pose.orientation.y = 0
+        self.capability_msg.Pose.orientation.z = 0
+        self.capability_msg.Pose.orientation.w = 0
+        self.capability_msg.Pose.position.x = 0
+        self.capability_msg.Pose.position.y = 0
+        self.capability_msg.Pose.position.z = 0
+        self.capability_msg.Type = 0
+        self.capability_msg.Info = []
+
+        self.publisher = rospy.Publisher('CurrentState', capability, queue_size=queue)
+
+    def publish(self, cap_type, cap_info):
+        # prediction = float64[]
+        if self.capability_msg.Header.seq is None:
+            self.capability_msg.Header.seq = 0
+        else:
+            self.capability_msg.Header.seq += 1
+        
+        self.capability_msg.Type = cap_type
+        self.capability_msg.Info = cap_info
+        self.capability_msg.Header.stamp = rospy.get_rostime()
+
+        self.publisher.publish(self.capability_msg)
