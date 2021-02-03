@@ -1,4 +1,5 @@
 import rospy
+from std_msgs.msg import String 
 from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability
 from diagnostic_msgs.msg import KeyValue
 
@@ -106,24 +107,26 @@ class move_class:
     def __init__(self, frame_id, queue=1):
         # frame_id=str, queue=int
         # Current action message definitions
-        self.move_msg = robot_move()
-        self.move_msg.Header.stamp = rospy.get_rostime()
-        self.move_msg.Header.seq = None
-        self.move_msg.Header.frame_id = frame_id
+        #self.move_msg = robot_move()
+        #self.move_msg.Header.stamp = rospy.get_rostime()
+        #self.move_msg.Header.seq = None
+        #self.move_msg.Header.frame_id = frame_id
 
-        self.publisher = rospy.Publisher('RobotMove', robot_move, queue_size=queue)
+        self.publisher = rospy.Publisher('RobotMove', String, queue_size=queue)
 
     def publish(self, command):
         # command = str()
-        if self.move_msg.Header.seq is None:
-            self.move_msg.Header.seq = 0
-        else:
-            self.move_msg.Header.seq += 1
+        # if self.move_msg.Header.seq is None:
+        #     self.move_msg.Header.seq = 0
+        # else:
+        #     self.move_msg.Header.seq += 1
         
-        self.move_msg.Command = command
-        self.move_msg.Header.stamp = rospy.get_rostime()
+        #self.move_msg.Command = commands
+        #self.move_msg.Header.stamp = rospy.get_rostime()
 
-        self.publisher.publish(self.move_msg)
+        #self.msg = command
+
+        self.publisher.publish(command)
 
 class future_class:
     def __init__(self, frame_id, user_id=0, queue=1):
