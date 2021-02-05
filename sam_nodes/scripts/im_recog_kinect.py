@@ -12,7 +12,9 @@ from vision_recognition.detect import classifier
 import torch
 import matplotlib
 matplotlib.use( 'tkagg' )
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+import freenect 
+import frame_convert2
 
 try:
     from pub_classes import diag_class, obj_class
@@ -111,7 +113,8 @@ def realsense_run():
             if args.depth:
                 color_image, depth_colormap, depth_image = cam.depth_frames(frames)
             else:
-                color_image = cam.colour_frames(frames)
+                color_image = np.array(frame_convert2.video_cv(freenect.sync_get_video()[0]))
+                #color_image = cam.colour_frames(frames)
 
             im_classifier = classifier(args.comp_device, args.weights, args.img_size, color_image, args.conf_thres, args.iou_thres)
             if not test:
@@ -133,7 +136,8 @@ def realsense_run():
             if args.depth:
                 color_image, depth_colormap, depth_image = cam.depth_frames(frames)
             else:
-                color_image = cam.colour_frames(frames)
+                #color_image = cam.colour_frames(frames)
+                color_image = np.array(frame_convert2.video_cv(freenect.sync_get_video()[0]))
 
             if args.classify:
                 try:
@@ -206,7 +210,7 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument('--depth', '-D',
                         help='Depth active',
-                        default=True,
+                        default=False,
                         action="store_true")
     parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
@@ -226,9 +230,11 @@ if __name__ == "__main__":
     parser.add_argument('--conf_thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou_thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
+    #parser.add_argument('--camera', default='realsense', help='Camera to use, either \'realsense\' or \'kinect\'')
     
     args = parser.parse_args()
 
+    #if args.camera == 'realsense':
     cam = rs_cam()
 
     try:

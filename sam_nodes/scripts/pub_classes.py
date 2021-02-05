@@ -104,7 +104,7 @@ class act_class:
         self.publisher.publish(self.act_msg)
 
 class move_class:
-    def __init__(self, frame_id, queue=1):
+    def __init__(self, frame_id, queue=10):
         # frame_id=str, queue=int
         # Current action message definitions
         #self.move_msg = robot_move()

@@ -33,7 +33,9 @@ def test_robot_control_node():
     col_names, act_data = db.query_table('current_actions',rows=0)
     while (not rospy.is_shutdown()):# and (i < len(data)):
         try:
+            print('here')
             capability_obj.publish(i, [task_data.loc[i]['action_name']])
+            
             time = datetime.datetime.utcnow()
 
             data_ins = "%s" + (", %s"*(len(col_names)-1))
@@ -58,6 +60,7 @@ def test_robot_control_node():
             raise
         
         rate.sleep()
+        print('here2')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

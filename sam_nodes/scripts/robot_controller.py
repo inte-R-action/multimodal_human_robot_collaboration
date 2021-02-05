@@ -66,7 +66,7 @@ def robot_control_node():
 
     predictor = future_predictor()
 
-    move_obj = move_class(frame_id=frame_id, queue=1)
+    move_obj = move_class(frame_id=frame_id, queue=10)
     rospy.Subscriber("CurrentState", capability, predictor.user_prediction_callback)
 
     rate = rospy.Rate(1) # 1hz
@@ -75,12 +75,16 @@ def robot_control_node():
             predictor.update_predictions()
 
             for index, row in predictor.future_estimates.iterrows():
-                if (row['est_t_remain'] < datetime.timedelta(seconds=5)) and (row['done']==False):
+                if (row['est_t_remain'] < datetime.timedelta(seconds=5)):# and (row['done']==False):
                     action = predictor.task_overview.loc[row['action_id']]['action_name']
                     move_obj.publish(action)
                     predictor.future_estimates.loc[index, 'done'] = True
+                else:
+                    move_obj.publish('')
 
             diag_obj.publish(0, "Running")
+            print('running')
+
         except Exception as e:
             print(f"robot_control_node connection error: {e}")
             diag_obj.publish(2, f"Error: {e}")
