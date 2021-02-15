@@ -539,7 +539,7 @@ def IMUsensorsMain():
         status[3] = 2 # setting up
         for s in shimmers:
             ready[s] = shimmers[s]._ready
-            alive[s] = shim_threads[s].isAlive()
+            alive[s] = shim_threads[s].is_alive()
             conn[s] = shimmers[s]._connected
             s_down[s] = shimmers[s]._shutdown
             status[s] = shimmers[s]._status
@@ -612,7 +612,7 @@ if __name__ == "__main__":
         while threads_alive:
             threads_alive = False
             for s in shim_threads:
-                threads_alive = threads_alive | shim_threads[s].isAlive()
+                threads_alive = threads_alive | shim_threads[s].is_alive()
             time.sleep(0.01)
 
         if args.disp:
@@ -627,7 +627,7 @@ if __name__ == "__main__":
 
         for s in shimmers:
             ready[s] = shimmers[s]._ready
-            alive[s] = shim_threads[s].isAlive()
+            alive[s] = shim_threads[s].is_alive()
             conn[s] = shimmers[s]._connected
             s_down[s] = shimmers[s]._shutdown
 

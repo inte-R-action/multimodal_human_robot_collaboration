@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# Must be run from scripts folder
+#!/usr/bin/env python3.7
+# Must be run from multimodal_human_robot_collaboration folder 
 # Import Statements
 import pyrealsense2 as rs
 import numpy as np

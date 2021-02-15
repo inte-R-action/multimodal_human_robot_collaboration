@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Should be run from multimodal_human_robot_collaboration folder
 
 import sys, os
 import rospy

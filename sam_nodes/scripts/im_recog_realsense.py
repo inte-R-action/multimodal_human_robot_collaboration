@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 # Must be run from scripts folder
 # Import Statements
 import pyrealsense2 as rs

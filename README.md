@@ -10,6 +10,8 @@ postgresql: https://www.postgresql.org/download/
 
 pgadmin 4: https://www.pgadmin.org/download/
 
+Python version 3-3.7 required, >=3.8 will not work
+
 Python libraries required:
 
   pyserial: python3 -m pip install pyserial
