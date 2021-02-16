@@ -4,5 +4,6 @@
         "/home/james/actionlib_tutorials/devel/lib/python2.7/dist-packages",
         "/opt/ros/melodic/lib/python2.7/dist-packages"
     ],
-    "ros.distro": "melodic"
+    "ros.distro": "melodic",
+    "cmake.sourceDirectory": "${workspaceFolder}/robot_control"
 }
