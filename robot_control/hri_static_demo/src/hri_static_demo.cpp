@@ -34,6 +34,8 @@ using namespace std;
 string objectString = "";
 bool robotMove = false;
 string gripper_state = "";
+namespace rvt = rviz_visual_tools;
+
 
 void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 {
@@ -104,12 +106,14 @@ class moveit_robot {
         moveit::planning_interface::MoveGroupInterface::Plan plan;
         moveit::core::RobotStatePtr current_state;
         std::vector<double> joint_group_positions;
+        moveit_visual_tools::MoveItVisualTools visual_tools;
+        Eigen::Isometry3d text_pose;
 
         moveit_robot();
         void move_robot(std::map<std::string, double> targetJoints);
 
 };
-moveit_robot::moveit_robot() : PLANNING_GROUP("manipulator"), move_group(moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP)) {
+moveit_robot::moveit_robot() : PLANNING_GROUP("manipulator"), visual_tools("world"), move_group(moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP)) {
 
     // Raw pointers are frequently used to refer to the planning group for improved performance.
     const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
@@ -118,8 +122,8 @@ moveit_robot::moveit_robot() : PLANNING_GROUP("manipulator"), move_group(moveit:
     // ^^^^^^^^^^^^^
     // The package MoveItVisualTools provides many capabilties for visualizing objects, robots,
     // and trajectories in RViz as well as debugging tools such as step-by-step introspection of a script
-    namespace rvt = rviz_visual_tools;
-    moveit_visual_tools::MoveItVisualTools visual_tools("world");
+    //namespace rvt = rviz_visual_tools;
+    //moveit_visual_tools::MoveItVisualTools visual_tools("world");
     visual_tools.deleteAllMarkers();
 
     // Remote control is an introspection tool that allows users to step through a high level script
@@ -128,7 +132,8 @@ moveit_robot::moveit_robot() : PLANNING_GROUP("manipulator"), move_group(moveit:
 
     // RViz provides many types of markers, in this demo we will use text, cylinders, and spheres
 //    Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
-    Eigen::Isometry3d text_pose = Eigen::Isometry3d::Identity();
+    //Eigen::Isometry3d 
+    text_pose = Eigen::Isometry3d::Identity();
     text_pose.translation().z() = 1.75;
     visual_tools.publishText(text_pose, "HRI Static Demo - v 0.1.0", rvt::WHITE, rvt::XLARGE);
 
@@ -182,7 +187,7 @@ void moveit_robot::move_robot(std::map<std::string, double> targetJoints){
 
 void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Robot, ros::Publisher &gripper_cmds_pub)
 {
-    double pick_ang_1[6] = {0.0, 10.0, 5.0, -5.0, 0.0, 0.0};
+    // double pick_ang_1[6] = {0.0, 10.0, 5.0, -5.0, 0.0, 0.0};
     // Open Gripper
     std_msgs::String msg;
     msg.data = "release";
@@ -191,14 +196,65 @@ void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Rob
         gripper_cmds_pub.publish(msg);
     }
 
-    // Move down
-    targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] + (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
-    targetJoints["shoulder_lift_joint"] = targetJoints["shoulder_lift_joint"] + (pick_ang_1[1]*3.1416/180);
-    targetJoints["elbow_joint"] = targetJoints["elbow_joint"] + (pick_ang_1[2]*3.1416/180);
-    targetJoints["wrist_1_joint"] = targetJoints["wrist_1_joint"] + (pick_ang_1[3]*3.1416/180);
-    targetJoints["wrist_2_joint"] = targetJoints["wrist_2_joint"] + (pick_ang_1[4]*3.1416/180);
-    targetJoints["wrist_3_joint"] = targetJoints["wrist_3_joint"] + (pick_ang_1[5]*3.1416/180);
-    Robot.move_robot(targetJoints);
+    geometry_msgs::Pose target_home = Robot.move_group.getCurrentPose().pose;
+
+    geometry_msgs::Pose homeZPosition = Robot.move_group.getCurrentPose().pose;
+
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
+
+    // Vector to store the waypoints for the planning process
+    std::vector<geometry_msgs::Pose> waypoints;
+    // Stores the first target pose or waypoint
+    geometry_msgs::Pose target_pose3 = target_home;
+    // Decrements current X position by BACKWARD_MOVE*3
+//        target_pose3.position.y = target_pose3.position.y - yHomePosition[k];
+    target_pose3.position.z = target_pose3.position.z - 0.05;
+    waypoints.push_back(target_pose3);
+
+    // We want the Cartesian path to be interpolated at a resolution of 1 cm
+    // which is why we will specify 0.01 as the max step in Cartesian
+    // translation.  We will specify the jump threshold as 0.0, effectively disabling it.
+    // Warning - disabling the jump threshold while operating real hardware can cause
+    // large unpredictable motions of redundant joints and could be a safety issue
+    moveit_msgs::RobotTrajectory trajectory;
+    const double jump_threshold = 0.0;
+    const double eef_step = 0.01;
+    double fraction = Robot.move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, true);
+    ROS_INFO_NAMED("tutorial", "Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+    // Visualize the plan in RViz
+    Robot.visual_tools.deleteAllMarkers();
+    Robot.visual_tools.publishText(Robot.text_pose, "Cartesian Path", rvt::WHITE, rvt::XLARGE);
+    Robot.visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
+    for (std::size_t i = 0; i < waypoints.size(); ++i)
+    Robot.visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+    Robot.visual_tools.trigger();
+
+    // Cartesian motions should often be slow, e.g. when approaching objects. The speed of cartesian
+    // plans cannot currently be set through the maxVelocityScalingFactor, but requires you to time
+    // the trajectory manually, as described [here](https://groups.google.com/forum/#!topic/moveit-users/MOoFxy2exT4).
+    // Pull requests are welcome.
+
+    // You can execute a trajectory like this.
+    Robot.move_group.execute(trajectory);
+
+    // double pick_ang_1[6] = {0.0, 10.0, 5.0, -5.0, 0.0, 0.0};
+    // Open Gripper
+    // std_msgs::String msg;
+    // msg.data = "release";
+    // while (gripper_state != "release_completed")
+    // {
+    //     gripper_cmds_pub.publish(msg);
+    // }
+
+    // // Move down
+    // targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] + (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
+    // targetJoints["shoulder_lift_joint"] = targetJoints["shoulder_lift_joint"] + (pick_ang_1[1]*3.1416/180);
+    // targetJoints["elbow_joint"] = targetJoints["elbow_joint"] + (pick_ang_1[2]*3.1416/180);
+    // targetJoints["wrist_1_joint"] = targetJoints["wrist_1_joint"] + (pick_ang_1[3]*3.1416/180);
+    // targetJoints["wrist_2_joint"] = targetJoints["wrist_2_joint"] + (pick_ang_1[4]*3.1416/180);
+    // targetJoints["wrist_3_joint"] = targetJoints["wrist_3_joint"] + (pick_ang_1[5]*3.1416/180);
+    // Robot.move_robot(targetJoints);
 
     // Close Gripper
     msg.data = "grasp";
@@ -208,17 +264,60 @@ void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Rob
     }
 
     // Move up
-    targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] - (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
-    targetJoints["shoulder_lift_joint"] = targetJoints["shoulder_lift_joint"] - (pick_ang_1[1]*3.1416/180);
-    targetJoints["elbow_joint"] = targetJoints["elbow_joint"] - (pick_ang_1[2]*3.1416/180);
-    targetJoints["wrist_1_joint"] = targetJoints["wrist_1_joint"] - (pick_ang_1[3]*3.1416/180);
-    targetJoints["wrist_2_joint"] = targetJoints["wrist_2_joint"] - (pick_ang_1[4]*3.1416/180);
-    targetJoints["wrist_3_joint"] = targetJoints["wrist_3_joint"] - (pick_ang_1[5]*3.1416/180);
-    Robot.move_robot(targetJoints);
+    // targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] - (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
+    // targetJoints["shoulder_lift_joint"] = targetJoints["shoulder_lift_joint"] - (pick_ang_1[1]*3.1416/180);
+    // targetJoints["elbow_joint"] = targetJoints["elbow_joint"] - (pick_ang_1[2]*3.1416/180);
+    // targetJoints["wrist_1_joint"] = targetJoints["wrist_1_joint"] - (pick_ang_1[3]*3.1416/180);
+    // targetJoints["wrist_2_joint"] = targetJoints["wrist_2_joint"] - (pick_ang_1[4]*3.1416/180);
+    // targetJoints["wrist_3_joint"] = targetJoints["wrist_3_joint"] - (pick_ang_1[5]*3.1416/180);
+    // Robot.move_robot(targetJoints);
+
+//     target_home = Robot.move_group.getCurrentPose().pose;
+
+//     homeZPosition = Robot.move_group.getCurrentPose().pose;
+
+//     Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
+
+//     // Vector to store the waypoints for the planning process
+//     //std::vector<geometry_msgs::Pose> waypoints;
+//     // Stores the first target pose or waypoint
+//     target_pose3 = target_home;
+//     // Decrements current X position by BACKWARD_MOVE*3
+// //        target_pose3.position.y = target_pose3.position.y - yHomePosition[k];
+//     target_pose3.position.z = target_pose3.position.z + 0.05;
+//     waypoints.push_back(target_pose3);
+
+//     // We want the Cartesian path to be interpolated at a resolution of 1 cm
+//     // which is why we will specify 0.01 as the max step in Cartesian
+//     // translation.  We will specify the jump threshold as 0.0, effectively disabling it.
+//     // Warning - disabling the jump threshold while operating real hardware can cause
+//     // large unpredictable motions of redundant joints and could be a safety issue
+//     //moveit_msgs::RobotTrajectory trajectory;
+//     //const double jump_threshold = 0.0;
+//     //const double eef_step = 0.01;
+//     fraction = Robot.move_group.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory, true);
+//     ROS_INFO_NAMED("tutorial", "Visualizing plan 4 (Cartesian path) (%.2f%% acheived)", fraction * 100.0);
+
+//     // Visualize the plan in RViz
+//     Robot.visual_tools.deleteAllMarkers();
+//     Robot.visual_tools.publishText(Robot.text_pose, "Cartesian Path", rvt::WHITE, rvt::XLARGE);
+//     Robot.visual_tools.publishPath(waypoints, rvt::LIME_GREEN, rvt::SMALL);
+//     for (std::size_t i = 0; i < waypoints.size(); ++i)
+//     Robot.visual_tools.publishAxisLabeled(waypoints[i], "pt" + std::to_string(i), rvt::SMALL);
+//     Robot.visual_tools.trigger();
+
+//     // Cartesian motions should often be slow, e.g. when approaching objects. The speed of cartesian
+//     // plans cannot currently be set through the maxVelocityScalingFactor, but requires you to time
+//     // the trajectory manually, as described [here](https://groups.google.com/forum/#!topic/moveit-users/MOoFxy2exT4).
+//     // Pull requests are welcome.
+
+//     // You can execute a trajectory like this.
+//     Robot.move_group.execute(trajectory);
 }
 
 void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
 {
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     string bring_cmd = "home";
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
@@ -233,6 +332,7 @@ void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std:
 
 void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions, ros::Publisher &gripper_cmds_pub)
 {
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
     targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
@@ -243,6 +343,8 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     Robot.move_robot(targetJoints);
 
     pick_up_side(targetJoints, Robot, gripper_cmds_pub);
+
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
 
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions["deliver_2_user"].angles[0]*3.1416/180;	// (deg*PI/180)
@@ -261,11 +363,13 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
         gripper_cmds_pub.publish(msg);
     }
 
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     home(targetJoints, Robot, joint_positions);
 }
 
 void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions, ros::Publisher &gripper_cmds_pub)
 {
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
     targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
@@ -292,7 +396,7 @@ void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, mov
     {
         gripper_cmds_pub.publish(msg);
     }
-
+    Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     home(targetJoints, Robot, joint_positions);
 }
 
