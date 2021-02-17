@@ -26,6 +26,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <map>
+#include <sstream>
 
 using namespace std;
 
@@ -162,10 +163,14 @@ void moveit_robot::move_robot(std::map<std::string, double> targetJoints){
 }
 
 
-void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
+void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Robot, ros::Publisher &gripper_cmds_pub)
 {
     double pick_ang_1[6] = {0.0, 20.0, -10.0, -20.0, 0.0, 0.0};
     // Open Gripper
+    std_msgs::String msg;
+    msg.data = "release";
+    gripper_cmds_pub.publish(msg);
+
 
     // Move down
     targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] + (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
@@ -177,6 +182,8 @@ void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Rob
     Robot.move_robot(targetJoints);
 
     // Close Gripper
+    msg.data = "grasp";
+    gripper_cmds_pub.publish(msg);
 
     // Move up
     targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] - (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
@@ -202,7 +209,7 @@ void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std:
     Robot.move_robot(targetJoints);
 }
 
-void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions, ros::Publisher &gripper_cmds_pub)
 {
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
@@ -213,7 +220,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints);
 
-    pick_up_side(targetJoints, Robot);
+    pick_up_side(targetJoints, Robot, gripper_cmds_pub);
 
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions["deliver_2_user"].angles[0]*3.1416/180;	// (deg*PI/180)
@@ -225,11 +232,14 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     Robot.move_robot(targetJoints);
 
     // Open Gripper
+    std_msgs::String msg;
+    msg.data = "release";
+    gripper_cmds_pub.publish(msg);
 
     home(targetJoints, Robot, joint_positions);
 }
 
-void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions, ros::Publisher &gripper_cmds_pub)
 {
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
@@ -242,9 +252,16 @@ void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, mov
     Robot.move_robot(targetJoints);
 
     // Close Gripper
+    std_msgs::String msg;
+    msg.data = "grasp";
+    gripper_cmds_pub.publish(msg);
+
     // Move to position
+
     // Open Gripper
-    
+    msg.data = "release";
+    gripper_cmds_pub.publish(msg);
+
     home(targetJoints, Robot, joint_positions);
 }
 
@@ -256,7 +273,7 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-
+    ros::Publisher gripper_cmds_pub = node_handle.advertise<std_msgs::String>("UR2Gripper", 1);
 	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 1000, robotMoveCallback);
 
     // Start the demo
@@ -284,11 +301,11 @@ int main(int argc, char** argv)
                 last_obj_string = objectString;
                 if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
                 {          
-                    take_side(objectString, targetJoints, Robot, joint_positions);
+                    take_side(objectString, targetJoints, Robot, joint_positions, gripper_cmds_pub);
                 }
                 else if( objectString == "take_box" )
                 {            
-                    take_box(objectString, targetJoints, Robot, joint_positions);
+                    take_box(objectString, targetJoints, Robot, joint_positions, gripper_cmds_pub);
                 }
                 else
                 {
