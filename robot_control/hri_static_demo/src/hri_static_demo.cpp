@@ -62,6 +62,7 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["bring_side_3"] = {-2.74, -43.48, 55.18, -103.14, -90.87, 0.26};
     joint_positions["bring_side_4"] = {12.00, -43.48, 55.18, -103.14, -90.87, 0.26};
     joint_positions["take_box"] = {46.68, -67.95, 108.8, -125.00, -90.0, 0.26};
+    joint_positions["deliver_2_user"] = {46.68, -67.95, 108.8, -125.00, -90.0, 0.26};
     return joint_positions;
 };
 
@@ -155,7 +156,7 @@ void moveit_robot::move_robot(std::map<std::string, double> targetJoints){
     move_group.setJointValueTarget(targetJoints);
 
     bool success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-    ROS_INFO("Visualizing TAKE BOX position plan (%.2f%% acheived)",success * 100.0);
+    ROS_INFO("Visualizing new move position plan (%.2f%% acheived)",success * 100.0);
 
     move_group.execute(plan);
 }
@@ -163,7 +164,7 @@ void moveit_robot::move_robot(std::map<std::string, double> targetJoints){
 
 void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    double pick_ang_1[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    double pick_ang_1[6] = {0.0, 20.0, -10.0, -20.0, 0.0, 0.0};
     // Open Gripper
 
     // Move down
@@ -187,8 +188,9 @@ void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Rob
     Robot.move_robot(targetJoints);
 }
 
-void home(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
 {
+    string bring_cmd = "home";
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
     targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
@@ -209,10 +211,22 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
     targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
-
     Robot.move_robot(targetJoints);
 
     pick_up_side(targetJoints, Robot);
+
+    targetJoints.clear();
+    targetJoints["shoulder_pan_joint"] = joint_positions["deliver_2_user"].angles[0]*3.1416/180;	// (deg*PI/180)
+    targetJoints["shoulder_lift_joint"] = joint_positions["deliver_2_user"].angles[1]*3.1416/180;
+    targetJoints["elbow_joint"] = joint_positions["deliver_2_user"].angles[2]*3.1416/180;
+    targetJoints["wrist_1_joint"] = joint_positions["deliver_2_user"].angles[3]*3.1416/180;
+    targetJoints["wrist_2_joint"] = joint_positions["deliver_2_user"].angles[4]*3.1416/180;
+    targetJoints["wrist_3_joint"] = joint_positions["deliver_2_user"].angles[5]*3.1416/180;
+    Robot.move_robot(targetJoints);
+
+    // Open Gripper
+
+    home(targetJoints, Robot, joint_positions);
 }
 
 void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
@@ -226,6 +240,12 @@ void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, mov
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
 
     Robot.move_robot(targetJoints);
+
+    // Close Gripper
+    // Move to position
+    // Open Gripper
+    
+    home(targetJoints, Robot, joint_positions);
 }
 
 
@@ -248,25 +268,32 @@ int main(int argc, char** argv)
     moveit_robot Robot;
     std::map<std::string, double> targetJoints;
     std::map<std::string, jnt_angs> joint_positions = create_joint_pos();
+    string last_obj_string = "";
 
-    while( true )
+    home(targetJoints, Robot, joint_positions);
+
+    while( ros::ok() )
     {
     // wait position
         cout << "waiting for command" << endl;
 
             targetJoints.clear();
 
-            if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
-			{          
-                take_side(objectString, targetJoints, Robot, joint_positions);
-            }
-            else if( objectString == "take_box" )
-			{            
-                take_box(objectString, targetJoints, Robot, joint_positions);
-            }
-            else
-			{            
-                home(objectString, targetJoints, Robot, joint_positions);
+            if (objectString != last_obj_string)
+            {
+                last_obj_string = objectString;
+                if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
+                {          
+                    take_side(objectString, targetJoints, Robot, joint_positions);
+                }
+                else if( objectString == "take_box" )
+                {            
+                    take_box(objectString, targetJoints, Robot, joint_positions);
+                }
+                else
+                {
+                    home(targetJoints, Robot, joint_positions);
+                }
             }
             
     }
