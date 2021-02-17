@@ -56,13 +56,13 @@ struct jnt_angs{
 
 std::map<std::string, jnt_angs> create_joint_pos(){
     std::map<std::string, jnt_angs> joint_positions;
-    joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 0.26};
-    joint_positions["bring_side_1"] = {-31.85, -43.48, 55.18, -103.14, -90.87, 0.26};
-    joint_positions["bring_side_2"] = {-19.00, -43.48, 55.18, -103.14, -90.87, 0.26};
-    joint_positions["bring_side_3"] = {-2.74, -43.48, 55.18, -103.14, -90.87, 0.26};
-    joint_positions["bring_side_4"] = {12.00, -43.48, 55.18, -103.14, -90.87, 0.26};
-    joint_positions["take_box"] = {46.68, -67.95, 108.8, -125.00, -90.0, 0.26};
-    joint_positions["deliver_2_user"] = {46.68, -67.95, 108.8, -125.00, -90.0, 0.26};
+    joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 354.1};
+    joint_positions["bring_side_1"] = {-48.10, -62.90, 40.2, -68.6, -89.8, 354.1};
+    joint_positions["bring_side_2"] = {-25.4, -62.90, 40.2, -68.6, -89.8, 354.1};
+    joint_positions["bring_side_3"] = {-8.5, -62.90, 40.2, -68.6, -89.8, 354.1};
+    joint_positions["bring_side_4"] = {12.9, -62.90, 40.2, -68.6, -89.8, 354.1};
+    joint_positions["take_box"] = {79.9, -62.90, 40.2, -68.6, -89.8, 354.1};
+    joint_positions["deliver_2_user"] = {56.9, -62.90, 40.2, -68.6, -89.8, 354.1};
     return joint_positions;
 };
 
@@ -164,7 +164,7 @@ void moveit_robot::move_robot(std::map<std::string, double> targetJoints){
 
 void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    double pick_ang_1[6] = {0.0, 20.0, -10.0, -20.0, 0.0, 0.0};
+    double pick_ang_1[6] = {0.0, 10.0, 5.0, -5.0, 0.0, 0.0};
     // Open Gripper
 
     // Move down
