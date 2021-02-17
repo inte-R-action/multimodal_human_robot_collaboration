@@ -33,6 +33,7 @@ using namespace std;
 
 string objectString = "";
 bool robotMove = false;
+string gripper_state = "";
 
 void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 {
@@ -49,6 +50,22 @@ void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 
     cout << "Robot move: " << robotMove << endl; 
     cout << "Object: " << objectString << endl;
+}
+
+void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
+{
+//  ROS_INFO("I heard: [%s]", msg->data);
+
+//  if( msg->data != "" )
+//      robotMove = true;
+//  else
+//      robotMove = false;
+ 
+    gripper_state.clear();
+
+    gripper_state = msg->data; 
+
+    cout << "Gripper State: " << gripper_state << endl;
 }
 
 struct jnt_angs{
@@ -169,8 +186,10 @@ void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Rob
     // Open Gripper
     std_msgs::String msg;
     msg.data = "release";
-    gripper_cmds_pub.publish(msg);
-
+    while (gripper_state != "release_completed")
+    {
+        gripper_cmds_pub.publish(msg);
+    }
 
     // Move down
     targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] + (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
@@ -183,7 +202,10 @@ void pick_up_side(std::map<std::string, double> &targetJoints, moveit_robot &Rob
 
     // Close Gripper
     msg.data = "grasp";
-    gripper_cmds_pub.publish(msg);
+    while (gripper_state != "grasp_completed")
+    {
+        gripper_cmds_pub.publish(msg);
+    }
 
     // Move up
     targetJoints["shoulder_pan_joint"] = targetJoints["shoulder_pan_joint"] - (pick_ang_1[0]*3.1416/180);	// (deg*PI/180)
@@ -234,7 +256,10 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     // Open Gripper
     std_msgs::String msg;
     msg.data = "release";
-    gripper_cmds_pub.publish(msg);
+    while (gripper_state != "release_completed")
+    {
+        gripper_cmds_pub.publish(msg);
+    }
 
     home(targetJoints, Robot, joint_positions);
 }
@@ -254,13 +279,19 @@ void take_box(string bring_cmd, std::map<std::string, double> &targetJoints, mov
     // Close Gripper
     std_msgs::String msg;
     msg.data = "grasp";
-    gripper_cmds_pub.publish(msg);
+    while (gripper_state != "grasp_completed")
+    {
+        gripper_cmds_pub.publish(msg);
+    }
 
     // Move to position
 
     // Open Gripper
     msg.data = "release";
-    gripper_cmds_pub.publish(msg);
+    while (gripper_state != "release_completed")
+    {
+        gripper_cmds_pub.publish(msg);
+    }
 
     home(targetJoints, Robot, joint_positions);
 }
@@ -274,6 +305,8 @@ int main(int argc, char** argv)
     spinner.start();
 
     ros::Publisher gripper_cmds_pub = node_handle.advertise<std_msgs::String>("UR2Gripper", 1);
+    ros::Subscriber gripper_feedback_sub = node_handle.subscribe("Gripper2UR", 1000, gripperStatusCallback);
+
 	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 1000, robotMoveCallback);
 
     // Start the demo
