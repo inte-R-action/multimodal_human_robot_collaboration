@@ -1,0 +1,50 @@
+<launch>
+
+  <!-- By default, we are not in debug mode -->
+  <arg name="test_mode" default="true" />
+
+  <arg if="$(arg test_mode)" name="im_recog" default="true" />
+  <arg if="$(arg test_mode)" name="postgresql" default="false" />
+  <arg if="$(arg test_mode)" name="robot_controller" default="false" />
+  <arg if="$(arg test_mode)" name="robot_controller_test" default="false" />
+  <arg if="$(arg test_mode)" name="users_node" default="false" />
+  <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
+
+  <arg unless="$(arg test_mode)" name="im_recog" default="true" />
+  <arg unless="$(arg test_mode)" name="postgresql" default="true" />
+  <arg unless="$(arg test_mode)" name="robot_controller" default="true" />
+  <arg unless="$(arg test_mode)" name="robot_controller_test" default="false" />
+  <arg unless="$(arg test_mode)" name="users_node" default="true" />
+  <arg unless="$(arg test_mode)" name="shimmerBase" default="true" />
+
+  <group if="$(arg im_recog)">
+    <node name="im_recog_realsense" pkg="sam_nodes" type="im_recog_realsense.py" respawn="false" output="screen">
+    </node>
+  </group>
+
+  <group if="$(arg postgresql)">
+    <node name="postgresql_node" pkg="sam_nodes" type="postgresql_node.py" respawn="false" output="screen">
+    </node>
+  </group>
+
+  <group if="$(arg robot_controller)">
+    <node name="robot_controller" pkg="sam_nodes" type="robot_controller.py" respawn="false" output="screen">
+    </node>
+  </group>
+
+  <group if="$(arg robot_controller_test)">
+    <node name="robot_controller_test" pkg="sam_nodes" type="robot_controller_test.py" respawn="false" output="screen">
+    </node>
+  </group>
+
+  <group if="$(arg users_node)">
+    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen">
+    </node>
+  </group>
+
+  <group if="$(arg shimmerBase)">
+    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen">
+    </node>
+  </group>
+
+</launch>

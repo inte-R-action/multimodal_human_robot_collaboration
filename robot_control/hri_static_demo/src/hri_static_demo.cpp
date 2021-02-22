@@ -50,12 +50,13 @@ void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
 {
 //  ROS_INFO("I heard: [%s]", msg->data);
- 
-    gripper_state.clear();
 
-    gripper_state = msg->data; 
-
-    cout << "Gripper State: " << gripper_state << endl;
+    if (msg->data != gripper_state)
+    {
+        gripper_state.clear();
+        gripper_state = msg->data; 
+        cout << "Gripper State: " << gripper_state << endl;
+    }
 }
 
 // Map high level position to joint angles as seen on teach pendant
@@ -388,11 +389,12 @@ int main(int argc, char** argv)
     // Send robot to home position
     home(targetJoints, Robot, joint_positions);
 
+    // wait position
+    cout << ">>>>-- Waiting for command --<<<<" << endl;
+
     while( ros::ok() )
     {
-        // wait position
-        cout << "waiting for command" << endl;
-
+        
             targetJoints.clear();
 
             // Ignore repeat requests
@@ -411,6 +413,9 @@ int main(int argc, char** argv)
                 {
                     home(targetJoints, Robot, joint_positions);
                 }
+
+                // wait position
+                cout << ">>>>-- Waiting for command --<<<<" << endl;
             }
             
     }
