@@ -29,6 +29,7 @@ except ModuleNotFoundError:
             return False
     rospy = ROS()
 
+os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
 sys.path.insert(0, "./sam_nodes/scripts/vision_recognition") # Need to add path to "models" parent dir for pickler
 
 class rs_cam:
@@ -232,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
     #parser.add_argument('--camera', default='realsense', help='Camera to use, either \'realsense\' or \'kinect\'')
     
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]
 
     #if args.camera == 'realsense':
     cam = rs_cam()

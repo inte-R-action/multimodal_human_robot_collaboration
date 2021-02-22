@@ -7,6 +7,7 @@ import argparse
 import traceback
 from postgresql.database_funcs import database
 from pub_classes import diag_class
+os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
 tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'current_actions']
@@ -148,7 +149,7 @@ if __name__ == '__main__':
                         default=False,
                         action="store_true")
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]
     db = None
     try:
         db = database()

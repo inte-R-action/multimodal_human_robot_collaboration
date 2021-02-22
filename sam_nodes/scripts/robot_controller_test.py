@@ -10,6 +10,7 @@ from sam_custom_messages.msg import capability
 from postgresql.database_funcs import database
 import pandas as pd
 import datetime
+os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
 
 def test_robot_control_node():
     # ROS node setup
@@ -66,7 +67,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Run test robot controller ROS node')
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]
 
     try:
         test_robot_control_node()

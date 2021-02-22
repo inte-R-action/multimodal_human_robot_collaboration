@@ -11,6 +11,7 @@ from postgresql.database_funcs import database
 import pandas as pd
 import datetime
 import pytz
+os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
 
 class future_predictor():
     def __init__(self):
@@ -99,7 +100,7 @@ if __name__ == '__main__':
                         default=False,
                         action="store_true")
 
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]
 
     try:
         robot_control_node()

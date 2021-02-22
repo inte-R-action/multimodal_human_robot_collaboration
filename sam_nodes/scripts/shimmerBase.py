@@ -22,6 +22,7 @@ from imu_classifier import classify_data
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, act_class
 import csv
+os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
 
 IMU_MSGS = ['ERROR', 'Ready', 'Unknown', 'Shutdown', 'Starting', 'Connecting', 'Initialising']
 IMU_SYS_MSGS = ['ERROR', 'Ready', 'Setting Up']
@@ -55,7 +56,7 @@ parser.add_argument('--user_id', '-I',
                     default=0,
                     action="store_true")
 
-args = parser.parse_args()
+args = parser.parse_known_args()[0]
 
 frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
 

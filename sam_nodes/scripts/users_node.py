@@ -12,6 +12,8 @@ import argparse
 import datetime
 import pandas as pd
 from postgresql.database_funcs import database
+import os
+os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
 
 # Argument parsing
 parser = argparse.ArgumentParser(
@@ -23,7 +25,7 @@ parser.add_argument('--user_names', '-N',
                     default='unknown',
                     type=lambda s: [str(item) for item in s.split(',')])
 
-args = parser.parse_args()
+args = parser.parse_known_args()[0]
 
 
 def setup_user(users, name=None):
