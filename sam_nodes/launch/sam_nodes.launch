@@ -4,10 +4,10 @@
   <arg name="test_mode" default="true" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
-  <arg if="$(arg test_mode)" name="postgresql" default="false" />
+  <arg if="$(arg test_mode)" name="postgresql" default="true" />
   <arg if="$(arg test_mode)" name="robot_controller" default="true" />
   <arg if="$(arg test_mode)" name="robot_controller_test" default="true" />
-  <arg if="$(arg test_mode)" name="users_node" default="false" />
+  <arg if="$(arg test_mode)" name="users_node" default="true" />
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
 
   <arg unless="$(arg test_mode)" name="im_recog" default="true" />
