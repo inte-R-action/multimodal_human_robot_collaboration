@@ -28,7 +28,7 @@ def test_robot_control_node():
         print(e)
         raise e
 
-    rate = rospy.Rate(1/10) # 1hz
+    rate = rospy.Rate(1/10) # 0.1hz
     i = 0
 
     col_names, act_data = db.query_table('current_actions',rows=0)
