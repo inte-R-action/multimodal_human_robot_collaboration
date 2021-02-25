@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 
 import numpy as np
 import rospy
@@ -8,6 +8,7 @@ import time, datetime
 import matplotlib.pyplot as plt
 from postgresql.database_funcs import database
 from pub_classes import capability_class
+import pandas as pd
 
 
 ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
@@ -46,7 +47,7 @@ class User:
 
     def update_progress(self):
 
-        self._final_state_hist = np.vstack((self._final_state_hist, self.imu_state_hist[-3, :]))
+        self._final_state_hist = np.vstack((self._final_state_hist, self._imu_state_hist[-3, :]))
        
         date = datetime.date.today()
         start_t = self._final_state_hist[-1, 2]
@@ -65,17 +66,17 @@ class User:
 
         # Assume non-user actions are completed
         while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
-            self.task_data.iloc[next_action_row_i]["completed"] = True
+            self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
         # Check next action for user matches action completed
         next_action_expected = self.task_data.iloc[next_action_row_i]["action_name"]
         if capability == next_action_expected:
-            self.task_data.iloc[next_action_row_i]["completed"] = True
+            self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
             self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
-            update_current_action_output()
+            self.update_current_action_output()
 
         else:
             print(f"Updated user capability ({capability}) is not next expected ({next_action_expected})")
@@ -111,16 +112,16 @@ class User:
 
     def collate_imu_seq(self):
         # 'Dilation' filter to remove single erroneous predictions
-        if np.shape(imu_state_hist)[0] >= 4:
-            if (self.imu_state_hist[-1, 0] == self.imu_state_hist[-3, 0]):# & (imu_state_hist[-2, 1] <= 0.00000000001): # WHAT IS THIS DOING???
-                self.imu_state_hist[-2, 0] = self.imu_state_hist[-1, 0] #NEED TO CHECK CONFIDENCES HERE
+        if np.shape(self._imu_state_hist)[0] >= 4:
+            if (self._imu_state_hist[-1, 0] == self._imu_state_hist[-3, 0]):# & (imu_state_hist[-2, 1] <= 0.00000000001): # WHAT IS THIS DOING???
+                self._imu_state_hist[-2, 0] = self._imu_state_hist[-1, 0] #NEED TO CHECK CONFIDENCES HERE
 
             # Group predictions of same type together
-            if self.imu_state_hist[-2, 0] == self.imu_state_hist[-3, 0]:
-                i = np.where(self.imu_pred_hist[:, -1]==self.imu_state_hist[-3, 2])[0][0] #Get index where action starts
-                self.imu_state_hist[-2, 1] = np.mean(self.imu_pred_hist[i:-1, int(self.imu_state_hist[-2, 0])].astype(float)) #Not convinced about this mean
-                self.imu_state_hist[-2, 2] = self.imu_state_hist[-3, 2] # set start time
-                self.imu_state_hist = np.delete(self.imu_state_hist, -3, 0)
+            if self._imu_state_hist[-2, 0] == self._imu_state_hist[-3, 0]:
+                i = np.where(self._imu_pred_hist[:, -1]==self._imu_state_hist[-3, 2])[0][0] #Get index where action starts
+                self._imu_state_hist[-2, 1] = np.mean(self._imu_pred_hist[i:-1, int(self._imu_state_hist[-2, 0])].astype(float)) #Not convinced about this mean
+                self._imu_state_hist[-2, 2] = self._imu_state_hist[-3, 2] # set start time
+                self._imu_state_hist = np.delete(self._imu_state_hist, -3, 0)
             else:
                 # New action predicted
                 self.update_progress()

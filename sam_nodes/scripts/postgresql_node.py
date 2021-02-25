@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 # Should be run from multimodal_human_robot_collaboration folder
 
 import sys, os

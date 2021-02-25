@@ -1,7 +1,7 @@
 <launch>
 
   <!-- By default, we are not in debug mode -->
-  <arg name="test_mode" default="true" />
+  <arg name="test_mode" default="false" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
   <arg if="$(arg test_mode)" name="postgresql" default="true" />
@@ -10,7 +10,7 @@
   <arg if="$(arg test_mode)" name="users_node" default="true" />
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
 
-  <arg unless="$(arg test_mode)" name="im_recog" default="true" />
+  <arg unless="$(arg test_mode)" name="im_recog" default="false" />
   <arg unless="$(arg test_mode)" name="postgresql" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller_test" default="false" />
@@ -36,15 +36,17 @@
     <node name="robot_controller_test" pkg="sam_nodes" type="robot_controller_test.py" respawn="false" output="screen">
     </node>
   </group>
-
-  <group if="$(arg users_node)">
-    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen">
-    </node>
-  </group>
-
+  
   <group if="$(arg shimmerBase)">
     <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen">
     </node>
   </group>
+  
+  <arg name="node_start_delay" default="2.0" />  
+  <group if="$(arg users_node)">
+    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    </node>
+  </group>
+
 
 </launch>

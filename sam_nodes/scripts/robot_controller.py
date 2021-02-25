@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 
 import sys, os
 import rospy
@@ -84,7 +84,7 @@ def robot_control_node():
                     move_obj.publish('')
 
             diag_obj.publish(0, "Running")
-            print('running')
+            rospy.loginfo(f"{frame_id} active")
 
         except Exception as e:
             print(f"robot_control_node connection error: {e}")

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 
 import rospy
 import numpy as np
@@ -7,7 +7,6 @@ from user import User
 from sam_custom_messages.msg import hand_pos, capability, current_action
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, capability_class
-from IMU_collator import collate_imu_seq
 import argparse
 import datetime
 import pandas as pd
@@ -28,13 +27,13 @@ parser.add_argument('--user_names', '-N',
 args = parser.parse_known_args()[0]
 
 
-def setup_user(users, name=None, frame_id, task):
+def setup_user(users, frame_id, task, name=None):
 
     id = len(users)
     if name is None:
         name = f"unknown_user_{id}"
     
-    users.append(User(name, id, frame_id, actions))
+    users.append(User(name, id, frame_id))
 
     users[id].update_task(task)
     
@@ -79,7 +78,7 @@ def users_node():
     users = []
     task = 'assemble_box'
     for name in args.user_names:
-        users = setup_user(users, name, frame_id, task)
+        users = setup_user(users, frame_id, task, name)
 
 
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
@@ -90,8 +89,7 @@ def users_node():
 
     rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():
-        hello_str = f"{frame_id} active"
-        rospy.loginfo(hello_str)
+        rospy.loginfo(f"{frame_id} active")
 
         diag_obj.publish(0, "Running")
         rate.sleep()

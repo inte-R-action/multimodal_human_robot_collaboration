@@ -1,5 +1,5 @@
 # Adapted from https://www.postgresqltutorial.com/postgresql-python/connect/
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 import psycopg2
 import os
 from configparser import ConfigParser

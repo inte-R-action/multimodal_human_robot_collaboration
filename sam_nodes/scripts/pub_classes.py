@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.7
+
 import rospy
 from std_msgs.msg import String 
 from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability
