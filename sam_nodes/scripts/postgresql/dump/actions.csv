@@ -8,3 +8,4 @@ action_id,action_name,std_dur_s,user_type
 6,bring_side_3,00:00:20,robot
 7,bring_side_4,00:00:20,robot
 8,take_box,00:00:20,robot
+9,null,00:00:00,human

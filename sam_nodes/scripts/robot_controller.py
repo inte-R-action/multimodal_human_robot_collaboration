@@ -6,12 +6,18 @@ import argparse
 import traceback
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, move_class
-from sam_custom_messages.msg import user_prediction, capability
+from sam_custom_messages.msg import user_prediction, capability, diagnostics
 from postgresql.database_funcs import database
 import pandas as pd
-import datetime
+import datetime, time
 import pytz
 os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
+
+database_stat = 1
+def sys_stat_callback(data):
+    global database_stat
+    if data.Header.frame_id == 'Database node':
+        database_stat = data.DiagnosticStatus.level
 
 class future_predictor():
     def __init__(self):
@@ -64,6 +70,13 @@ def robot_control_node():
     rospy.init_node(f'robot_control_node', anonymous=True)
     frame_id = 'robot_control_node'
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+
+    rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
+    global database_stat
+    # Wait for postgresql node to be ready
+    while database_stat != 0:
+        print(f"Waiting for postgresql node status, currently {database_stat}")
+        time.sleep(0.1)
 
     predictor = future_predictor()
 

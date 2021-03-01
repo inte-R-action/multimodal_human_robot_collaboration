@@ -39,12 +39,12 @@ void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 {
 //  ROS_INFO("I heard: [%s]", msg->data);
  
- 	objectString.clear();
+ 	//objectString.clear();
 
     objectString = msg->data; 
 
-    cout << "Robot move: " << robotMove << endl; 
-    cout << "Object: " << objectString << endl;
+    //cout << "Robot move: " << robotMove << endl; 
+    //cout << "Object: " << objectString << endl;
 }
 
 void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
@@ -400,6 +400,7 @@ int main(int argc, char** argv)
             // Ignore repeat requests
             if (objectString != last_obj_string)
             {
+                cout << "Robot Objective: " << objectString << endl;
                 last_obj_string = objectString;
                 if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
                 {          

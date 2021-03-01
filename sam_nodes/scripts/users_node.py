@@ -4,11 +4,11 @@ import rospy
 import numpy as np
 from std_msgs.msg import String
 from user import User
-from sam_custom_messages.msg import hand_pos, capability, current_action
+from sam_custom_messages.msg import hand_pos, capability, current_action, diagnostics
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, capability_class
 import argparse
-import datetime
+import datetime, time
 import pandas as pd
 from postgresql.database_funcs import database
 import os
@@ -26,6 +26,7 @@ parser.add_argument('--user_names', '-N',
 
 args = parser.parse_known_args()[0]
 
+database_stat = 1
 
 def setup_user(users, frame_id, task, name=None):
 
@@ -69,11 +70,23 @@ def current_action_callback(data, users):
 
     return
 
+def sys_stat_callback(data):
+    global database_stat
+    if data.Header.frame_id == 'Database node':
+        database_stat = data.DiagnosticStatus.level
+
 def users_node():
     
     frame_id = "users_node"
     rospy.init_node('users_node', anonymous=True)
     keyvalues = []
+
+    rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
+    global database_stat
+    # Wait for postgresql node to be ready
+    while database_stat != 0:
+        print(f"Waiting for postgresql node status, currently {database_stat}")
+        time.sleep(0.1)
 
     users = []
     task = 'assemble_box'

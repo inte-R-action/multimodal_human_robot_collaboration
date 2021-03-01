@@ -28,25 +28,27 @@ class User:
         self.task_data = None
         self.task = None
         self.col_names = None
+        self.db = database()
 
         self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
-        self.curr_task_no = None
+        self.curr_task_no = 0
 
         self.capability_obj = capability_class(frame_id=f"{frame_id}_{self.name}", user_id=self.id)
+        
 
     def update_task(self, task):
 
         self.task = task
-        db = database()
-        col_names, actions_list = db.query_table(self.task, 'all')
+        col_names, actions_list = self.db.query_table(self.task, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["completed"] = False
 
-        self.col_names, act_data = db.query_table('current_actions',rows=0)
+        self.col_names, act_data = self.db.query_table('current_actions',rows=0)
+        self.curr_task_no = 0
+        self.update_current_action_output()
 
 
-    def update_progress(self):
-
+    def collate_episode(self):
         self._final_state_hist = np.vstack((self._final_state_hist, self._imu_state_hist[-3, :]))
        
         date = datetime.date.today()
@@ -56,10 +58,13 @@ class User:
         capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
          # Can publish new episode to sql
-        db = database()
-        db.insert_data_list("Episodes", 
+        self.db.insert_data_list("Episodes", 
         ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
-        [(date, start_t, end_t, dur, 0, "R", capability, 0)])
+        [(date, start_t, end_t, dur, 0, "R", capability, int(self.task_data.loc[self.curr_task_no]['action_no']))])
+
+        
+    def update_progress(self):
+        capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
         # Get next row where action not completed
         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
@@ -74,42 +79,29 @@ class User:
         if capability == next_action_expected:
             self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
-
-            self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
-            self.update_current_action_output()
-
         else:
             print(f"Updated user capability ({capability}) is not next expected ({next_action_expected})")
 
-        return
-    
-    def collate_episode(self):
-        return
+        self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
 
     def update_current_action_output(self):
         try:
-
             # Update user current action in sql table
             time = datetime.datetime.utcnow()
             data_ins = "%s" + (", %s"*(len(self.col_names)-1))
             separator = ', '
             sql_cmd = f"""INSERT INTO current_actions ({separator.join(self.col_names)})
-            VALUES (0, 'N/A', '{time}', '{task_name}', {int(self.task_data.loc[self.curr_task_no]['action_no'])}, '{time}') 
-            ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{task_name}', current_action_no={int(self.task_data.loc[self.curr_task_no]['action_no'])}, start_time='{time}';"""
-            db.gen_cmd(sql_cmd)
-
-            #db.insert_data_list('current_actions', col_names, 
-            #    [(0, "N/A", time, task_name, int(task_data.loc[i]['action_no']), time)])
+            VALUES (0, 'N/A', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_task_no]['action_no'])}, '{time}') 
+            ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{self.task}', current_action_no={int(self.task_data.loc[self.curr_task_no]['action_no'])}, start_time='{time}';"""
+            self.db.gen_cmd(sql_cmd)
 
             self.capability_obj.publish(self.curr_task_no, [self.task_data.loc[self.curr_task_no]['action_name']])
             print(self.task_data.loc[self.curr_task_no])
 
         except Exception as e:
-            print(f"test_robot_control_node connection error: {e}")
+            print(f"Users node update action output error: {e}")
             raise
         
-        return
-
     def collate_imu_seq(self):
         # 'Dilation' filter to remove single erroneous predictions
         if np.shape(self._imu_state_hist)[0] >= 4:
@@ -124,7 +116,9 @@ class User:
                 self._imu_state_hist = np.delete(self._imu_state_hist, -3, 0)
             else:
                 # New action predicted
+                self.collate_episode()
                 self.update_progress()
+                self.update_current_action_output()
 
                 
 

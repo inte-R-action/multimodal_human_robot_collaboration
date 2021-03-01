@@ -166,7 +166,7 @@ class capability_class:
         self.capability_msg.UserId = user_id
         self.capability_msg.Object.Id = 0
         self.capability_msg.Object.Type = 0
-        self.capability_msg.Object.Info = 'N/A'
+        self.capability_msg.Object.Info = "N/A"
         self.capability_msg.Pose.orientation.x = 0
         self.capability_msg.Pose.orientation.y = 0
         self.capability_msg.Pose.orientation.z = 0
