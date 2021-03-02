@@ -7,7 +7,8 @@ import argparse
 import traceback
 from postgresql.database_funcs import database
 from pub_classes import diag_class
-os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
+
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
 tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'current_actions']

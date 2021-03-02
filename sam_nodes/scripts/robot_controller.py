@@ -11,13 +11,17 @@ from postgresql.database_funcs import database
 import pandas as pd
 import datetime, time
 import pytz
-os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 database_stat = 1
+user_node_stat = 1
 def sys_stat_callback(data):
     global database_stat
+    global user_node_stat
     if data.Header.frame_id == 'Database node':
         database_stat = data.DiagnosticStatus.level
+    elif data.Header.frame_id == 'users_node':
+        user_node_stat = data.DiagnosticStatus.level
 
 class future_predictor():
     def __init__(self):
@@ -78,6 +82,12 @@ def robot_control_node():
         print(f"Waiting for postgresql node status, currently {database_stat}")
         time.sleep(0.1)
 
+    global user_node_stat
+    # Wait for users node to be ready
+    while user_node_stat != 0:
+        print(f"Waiting for users node status, currently {user_node_stat}")
+        time.sleep(0.1)
+
     predictor = future_predictor()
 
     move_obj = move_class(frame_id=frame_id, queue=10)
@@ -100,7 +110,7 @@ def robot_control_node():
             rospy.loginfo(f"{frame_id} active")
 
         except Exception as e:
-            print(f"robot_control_node connection error: {e}")
+            print(f"robot_control_node error: {e}")
             diag_obj.publish(2, f"Error: {e}")
         
         rate.sleep()

@@ -72,7 +72,11 @@ class User:
         # Assume non-user actions are completed
         while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
             self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
-            next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+            try:
+                next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+            except IndexError as e:
+                print(f"Looks like user {self.name} tasks are finished")
+                return "finished"
 
         # Check next action for user matches action completed
         next_action_expected = self.task_data.iloc[next_action_row_i]["action_name"]
@@ -83,6 +87,8 @@ class User:
             print(f"Updated user capability ({capability}) is not next expected ({next_action_expected})")
 
         self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
+
+        return "continuing"
 
     def update_current_action_output(self):
         try:
@@ -117,8 +123,9 @@ class User:
             else:
                 # New action predicted
                 self.collate_episode()
-                self.update_progress()
-                self.update_current_action_output()
+                user_state = self.update_progress()
+                if user_state == "continuing":
+                    self.update_current_action_output()
 
                 
 

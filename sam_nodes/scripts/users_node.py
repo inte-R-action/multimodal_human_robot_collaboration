@@ -12,7 +12,7 @@ import datetime, time
 import pandas as pd
 from postgresql.database_funcs import database
 import os
-os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 # Argument parsing
 parser = argparse.ArgumentParser(
@@ -80,6 +80,7 @@ def users_node():
     frame_id = "users_node"
     rospy.init_node('users_node', anonymous=True)
     keyvalues = []
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
     global database_stat
@@ -93,9 +94,6 @@ def users_node():
     for name in args.user_names:
         users = setup_user(users, frame_id, task, name)
 
-
-    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
-    #future_pub = rospy.Publisher('FutureState', user_prediction, queue_size=10)
     
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))

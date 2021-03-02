@@ -12,7 +12,7 @@ from pub_classes import diag_class, act_class
 import csv
 
 CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
-os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/")
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/"))
 
 # Argument parsing
 parser = argparse.ArgumentParser(

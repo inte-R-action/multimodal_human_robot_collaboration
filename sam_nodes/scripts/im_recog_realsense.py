@@ -27,7 +27,7 @@ except ModuleNotFoundError:
             return False
     rospy = ROS()
 
-os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 sys.path.insert(0, "./sam_nodes/scripts/vision_recognition") # Need to add path to "models" parent dir for pickler
 
 class rs_cam:

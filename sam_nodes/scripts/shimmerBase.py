@@ -25,8 +25,7 @@ import csv
 from getpass import getpass
 import tkinter
 
-password = None
-def get_pwd(password):
+def get_pwd():
     out = b''
     while out == b'':
         root = tkinter.Tk() # dialog needs a root window, or will create an "ugly" one for you
@@ -34,15 +33,17 @@ def get_pwd(password):
         password = tkinter.simpledialog.askstring("Password", "Enter password:", show='*', parent=root)#.encode('utf-8')
         root.destroy() # clean up after yourself!
 
-        var = subprocess.Popen('sudo -k -S -l'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, error = var.communicate(password.encode())
-
+        cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        var = subprocess.Popen(['sudo', '-k', '-S', '-l'], stdin=cmd1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, error = var.communicate()
 
     return password
 
+password = get_pwd()
+
 #cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
-os.chdir("/home/james/catkin_ws/src/multimodal_human_robot_collaboration/")
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 IMU_MSGS = ['ERROR', 'Ready', 'Unknown', 'Shutdown', 'Starting', 'Connecting', 'Initialising']
 IMU_SYS_MSGS = ['ERROR', 'Ready', 'Setting Up']
@@ -623,9 +624,8 @@ def IMUsensorsMain():
 
 if __name__ == "__main__":
     #subprocess.call("sudo service bluetooth restart")
-    password = get_pwd(password)
     cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    p = subprocess.check_output("sudo -S rfcomm release all", shell=True, stdin=cmd1.stdout)#, stdout=subprocess.PIPE)
+    subprocess.call("sudo -S rfcomm release all", shell=True, stdin=cmd1.stdout)#, stdout=subprocess.PIPE)
     # kill any rfcomm connections currently active
     cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     subprocess.call("sudo -S killall rfcomm", shell=True, stdin=cmd1.stdout, stdout=subprocess.PIPE)

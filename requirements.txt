@@ -1,8 +1,5 @@
 tensorflow>=2.4.1
-matplotlib>=3.1.2
 pytz>=2019.3
-rospy>=1.15.9
-scipy>=1.6.0
 psycopg2>=2.8.6
 pandas>=1.2.2
 numpy>=1.19.2
