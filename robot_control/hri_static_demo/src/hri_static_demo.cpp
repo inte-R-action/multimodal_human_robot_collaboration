@@ -34,6 +34,8 @@ string objectString = "";
 bool robotMove = false;
 string gripper_state = "";
 namespace rvt = rviz_visual_tools;
+bool testy = false;
+
 
 void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 {
