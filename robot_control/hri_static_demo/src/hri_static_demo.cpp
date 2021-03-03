@@ -66,14 +66,14 @@ void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
 struct jnt_angs{double angles[6];};
 std::map<std::string, jnt_angs> create_joint_pos(){
     std::map<std::string, jnt_angs> joint_positions;
-    joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 354.1};
-    joint_positions["bring_side_1"] = {-48.10, -62.90, 40.2, -68.6, -89.8, 354.1};
-    joint_positions["bring_side_2"] = {-25.4, -62.90, 40.2, -68.6, -89.8, 354.1};
-    joint_positions["bring_side_3"] = {-8.5, -62.90, 40.2, -68.6, -89.8, 354.1};
-    joint_positions["bring_side_4"] = {12.9, -62.90, 40.2, -68.6, -89.8, 354.1};
-    joint_positions["take_box"] = {79.9, -62.90, 40.2, -68.6, -89.8, 354.1};
-    joint_positions["deliver_2_user"] = {56.9, -62.90, 40.2, -68.6, -89.8, 354.1};
-    joint_positions["deliver_box"] = {-150.0, -62.90, 40.2, -68.6, -89.8, 354.1};
+    joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 360};
+    joint_positions["bring_side_1"] = {54.1, -75.9, 49.1, -61.2, -91.1, 360};
+    joint_positions["bring_side_2"] = {80.9, -75.9, 49.1, -61.2, -91.1, 360};
+    joint_positions["bring_side_3"] = {119.3, -75.9, 49.1, -61.2, -91.1, 360};
+    joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -91.1, 360};
+    joint_positions["take_box"] = {14.5, -45.90, 12.2, -61.2, -91.1, 360};
+    joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -91.1, 360};
+    joint_positions["deliver_box"] = {-150.0, -62.90, 40.2, -61.2, -91.1, 360};
     return joint_positions;
 };
 

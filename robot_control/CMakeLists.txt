@@ -20,7 +20,8 @@ if(NOT EIGEN3_INCLUDE_DIRS)
   set(EIGEN3_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
 endif()
 
-find_package(catkin REQUIRED COMPONENTS
+find_package(catkin REQUIRED 
+  COMPONENTS
     interactive_markers
     moveit_core
     moveit_visual_tools
@@ -75,11 +76,11 @@ find_package(Boost REQUIRED system filesystem date_time thread)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#  FILES
-  #processArguments.msg
+add_message_files(
+  FILES
+  processArguments.msg
 #   Message2.msg
-#)
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -133,7 +134,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES visuo_tactile
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime 
 #  DEPENDS system_lib
 )
 
@@ -155,7 +156,6 @@ catkin_package(
     EIGEN3
 )
 
-
 ###########
 ## Build ##
 ###########
@@ -163,16 +163,14 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 #include_directories(
-# include
+#  include
 #  ${catkin_INCLUDE_DIRS}
 #)
-
 
 #include_directories(SYSTEM ${THIS_PACKAGE_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
-
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -262,4 +260,5 @@ link_directories(${catkin_LIBRARY_DIRS})
 
 #add_subdirectory(interactivity)
 add_subdirectory(hri_static_demo)
+add_subdirectory(robotiq_gripper_control)
 

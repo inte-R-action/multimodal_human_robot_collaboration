@@ -11,7 +11,7 @@
   <node name="hri_static_demo" pkg="robot_control" type="hri_static_demo" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
   </node>
 
-  <node name="gripper_demo" pkg="visuo_tactile" type="gripper_demo" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
+  <node name="gripper_control" pkg="robot_control" type="gripper_control" respawn="false" launch-prefix="$(arg launch_prefix)" output="screen">
   </node>
 
   <include file="$(find ur3_moveit_config)/launch/ur3_moveit_planning_execution.launch">
