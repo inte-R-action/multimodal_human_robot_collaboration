@@ -27,6 +27,7 @@ parser.add_argument('--user_names', '-N',
 args = parser.parse_known_args()[0]
 
 database_stat = 1
+shimmer_stat = 1
 
 def setup_user(users, frame_id, task, name=None):
 
@@ -70,10 +71,19 @@ def current_action_callback(data, users):
 
     return
 
-def sys_stat_callback(data):
+def sys_stat_callback(data, users):
     global database_stat
+    global shimmer_stat
+
     if data.Header.frame_id == 'Database node':
         database_stat = data.DiagnosticStatus.level
+
+    if users:
+        for i in range(len(users)):
+            if data.Header.frame_id == f'shimmerBase {users[i].name} {users[i].id} node':
+                users[i].shimmer_ready = data.DiagnosticStatus.level
+        
+        shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
 
 def users_node():
     
@@ -81,18 +91,24 @@ def users_node():
     rospy.init_node('users_node', anonymous=True)
     keyvalues = []
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
+    users = []
 
-    rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
+    rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback, (users))
     global database_stat
     # Wait for postgresql node to be ready
-    while database_stat != 0:
+    while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
-        time.sleep(0.1)
+        time.sleep(0.5)
 
-    users = []
     task = 'assemble_box'
     for name in args.user_names:
         users = setup_user(users, frame_id, task, name)
+
+    global shimmer_stat
+    # Wait for postgresql node to be ready
+    while shimmer_stat != 0 and not rospy.is_shutdown():
+        print(f"Waiting for shimmer node status, currently {shimmer_stat}")
+        time.sleep(0.5)
 
     
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))

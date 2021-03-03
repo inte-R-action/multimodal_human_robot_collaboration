@@ -78,15 +78,15 @@ def robot_control_node():
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
     global database_stat
     # Wait for postgresql node to be ready
-    while database_stat != 0:
+    while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     global user_node_stat
     # Wait for users node to be ready
-    while user_node_stat != 0:
+    while user_node_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for users node status, currently {user_node_stat}")
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     predictor = future_predictor()
 

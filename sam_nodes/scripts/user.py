@@ -29,6 +29,7 @@ class User:
         self.task = None
         self.col_names = None
         self.db = database()
+        self.shimmer_ready = 1
 
         self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
         self.curr_task_no = 0
@@ -66,17 +67,18 @@ class User:
     def update_progress(self):
         capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
-        # Get next row where action not completed
-        next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+        try:
+            # Get next row where action not completed
+            next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
-        # Assume non-user actions are completed
-        while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
-            self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
-            try:
+            # Assume non-user actions are completed
+            while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
+                self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
                 next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
-            except IndexError as e:
-                print(f"Looks like user {self.name} tasks are finished")
-                return "finished"
+
+        except IndexError as e:
+            print(f"Looks like user {self.name} tasks are finished")
+            return "finished"
 
         # Check next action for user matches action completed
         next_action_expected = self.task_data.iloc[next_action_row_i]["action_name"]
