@@ -62,6 +62,7 @@ class classifier():
 
         # Get names and colors
         self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+        print(self.names)
         self.colors = [[random.randint(0, 255) for _ in range(3)] for _ in self.names]
 
         # Run inference
