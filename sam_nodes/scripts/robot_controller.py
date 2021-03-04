@@ -31,8 +31,8 @@ class future_predictor():
         self.fut_cols = ['user_id', 'user_name', 'task', 'action_id', 'est_t_remain', 'done']
         self.future_estimates = pd.DataFrame(columns=self.fut_cols)
         self.task_overview = None
-        self.robot_status = ""
-        self.robot_start_t = time.time()
+        self.robot_status = 'Starting'
+        self.robot_start_t = datetime.datetime.now().time()
         self.update_predictions()
 
     def user_prediction_callback(self, data):
@@ -74,16 +74,18 @@ class future_predictor():
     def robot_stat_callback(self, data):
 
         if data != self.robot_status:
+            print()
             date = datetime.date.today()
-            end_t = time.time()
-            dur = end_t - start_t
+            end_t = datetime.datetime.now().time()
+            dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
+            print(type(str(self.robot_status)))
 
             # Can publish new episode to sql
             self.db.insert_data_list("Episodes", 
             ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
-            [(date, start_t, end_t, dur, 0, "N/A", self.robot_status, 0)])
+            [(date, self.robot_start_t, end_t, dur, 0, '-', str(self.robot_status), 0)])
 
-            self.robot_start_t = time.time()
+            self.robot_start_t = datetime.datetime.now().time()
             self.robot_status = data
 
 
@@ -110,7 +112,7 @@ def robot_control_node():
 
     move_obj = move_class(frame_id=frame_id, queue=10)
     rospy.Subscriber("CurrentState", capability, predictor.user_prediction_callback)
-    rospy.Subscriber("RobotState", String, predictor.robot_stat_callback)
+    rospy.Subscriber("RobotStatus", String, predictor.robot_stat_callback)
 
     rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():

@@ -62,7 +62,8 @@ def current_action_callback(data, users):
         print(f"ERROR: users list name {users[data.UserId].name} does not match current_action msg name {data.UserName}")
     else:
         #users[data.UserId].actions.extend([data.action_probs, data.Header.stamp])
-        time = datetime.datetime.utcfromtimestamp(data.Header.stamp.to_sec())
+        time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
+        print(data.Header.stamp.secs)
         users[data.UserId]._imu_pred_hist = np.vstack((users[data.UserId]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
         users[data.UserId]._imu_state_hist = np.vstack((users[data.UserId]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
 
@@ -81,6 +82,8 @@ def sys_stat_callback(data, users):
     if users:
         for i in range(len(users)):
             if data.Header.frame_id == f'shimmerBase {users[i].name} {users[i].id} node':
+                users[i].shimmer_ready = data.DiagnosticStatus.level
+            elif data.Header.frame_id == f'fakeIMUpub_node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
         
         shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
