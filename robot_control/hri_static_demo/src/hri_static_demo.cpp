@@ -114,8 +114,11 @@ class moveit_robot {
         ros::Publisher gripper_cmds_pub;
         ros::Subscriber gripper_feedback_sub;
 
+        std_msgs::String  robot_status_msg;
+        ros::Publisher robot_status_pub;
+
         moveit_robot(ros::NodeHandle* node_handle);
-        void move_robot(std::map<std::string, double> targetJoints);
+        void move_robot(std::map<std::string, double> targetJoints, std::string robot_action);
         void open_gripper();
         void close_gripper();
         void z_move(double dist);
@@ -182,9 +185,13 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
 
     gripper_cmds_pub = nh_.advertise<std_msgs::String>("UR2Gripper", 1);
     gripper_feedback_sub = nh_.subscribe("Gripper2UR", 1, gripperStatusCallback);
+    robot_status_pub = nh_.advertise<std_msgs::String>("RobotStatus", 1);
 }
 
-void moveit_robot::move_robot(std::map<std::string, double> targetJoints){
+void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action){
+
+    robot_status_msg.data = robot_action;
+    robot_status_pub.publish(robot_status_msg);
 
     move_group.setStartState(*move_group.getCurrentState());
 
@@ -294,7 +301,7 @@ void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std:
     targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
 
-    Robot.move_robot(targetJoints);
+    Robot.move_robot(targetJoints, bring_cmd);
 }
 
 void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
@@ -308,7 +315,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
     targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
-    Robot.move_robot(targetJoints);
+    Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, pick side up, move up
     pick_up_object(Robot, 0.05);
@@ -322,7 +329,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     targetJoints["wrist_1_joint"] = joint_positions["deliver_2_user"].angles[3]*3.1416/180;
     targetJoints["wrist_2_joint"] = joint_positions["deliver_2_user"].angles[4]*3.1416/180;
     targetJoints["wrist_3_joint"] = joint_positions["deliver_2_user"].angles[5]*3.1416/180;
-    Robot.move_robot(targetJoints);
+    Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, set down side, move up
     set_down_object(Robot, 0.05);
@@ -345,7 +352,7 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot, 
     targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
     targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
-    Robot.move_robot(targetJoints);
+    Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, pick side up, move up
     pick_up_object(Robot, 0.05);
@@ -359,7 +366,7 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot, 
     targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
     targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
     targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
-    Robot.move_robot(targetJoints);
+    Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, set down side, move up
     set_down_object(Robot, 0.05);
@@ -392,6 +399,8 @@ int main(int argc, char** argv)
     home(targetJoints, Robot, joint_positions);
 
     // wait position
+    Robot.robot_status_msg.data = "Done";
+    Robot.robot_status_pub.publish(Robot.robot_status_msg);
     cout << ">>>>-- Waiting for command --<<<<" << endl;
 
     while( ros::ok() )
@@ -416,7 +425,8 @@ int main(int argc, char** argv)
                 {
                     home(targetJoints, Robot, joint_positions);
                 }
-
+                Robot.robot_status_msg.data = "Done";
+                Robot.robot_status_pub.publish(Robot.robot_status_msg);
                 // wait position
                 cout << ">>>>-- Waiting for command --<<<<" << endl;
             }
