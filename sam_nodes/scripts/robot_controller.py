@@ -158,18 +158,20 @@ def robot_control_node():
 
             # Select row with minimum time until robot required
             row = predictor.future_estimates[predictor.future_estimates.robot_start_t == predictor.future_estimates.robot_start_t.min()]
-            print(f"min row:\n {row}")
 
-            if False:#row['robot_start_t'][0] < pd.Timedelta(0):#datetime.timedelta(seconds = 15)):# and (row['done']==False):
+            if (row['robot_start_t'][0] < pd.Timedelta(0)) and (row['done'][0]==False):
                 # if time to next colab < action time start colab action
-                action = predictor.task_overview.loc[row['action_id']]['action_name'][0]
+                action = predictor.task_overview.loc[row['action_id']]['action_name'].values[0]
+                print(f"action: {action}")
                 while predictor.robot_status != action:
                     move_obj.publish(action)
-                predictor.future_estimates.loc[index, 'done'] = True
+                predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
+                print(predictor.future_estimates)
             elif (row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished):
                 # if time to colb action > time to do solo action
                 while predictor.robot_status != robot_task.next_action:
                     move_obj.publish(robot_task.next_action)
+                robot_task.update_progress()
                 print(f"Robot solo task {robot_task.next_action}")
             else:
                 # else wait for next colab action
