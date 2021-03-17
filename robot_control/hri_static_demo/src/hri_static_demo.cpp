@@ -114,6 +114,9 @@ class moveit_robot {
         moveit_visual_tools::MoveItVisualTools visual_tools;
         Eigen::Isometry3d text_pose;
 
+        // Joint positions map
+        std::map<std::string, jnt_angs> joint_positions;
+
         // Gripper message, cmd publisher and status subscriber
         std_msgs::String  gripper_msg;
         ros::Publisher gripper_cmds_pub;
@@ -123,7 +126,7 @@ class moveit_robot {
         ros::Publisher robot_status_pub;
 
         moveit_robot(ros::NodeHandle* node_handle);
-        void move_robot(std::map<std::string, double> targetJoints, std::string robot_action);
+        void move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name);
         void open_gripper();
         void close_gripper();
         void z_move(double dist);
@@ -188,12 +191,14 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     move_group.setMaxVelocityScalingFactor(0.10);
     move_group.setMaxAccelerationScalingFactor(0.10);
 
+    joint_positions = create_joint_pos();
+
     gripper_cmds_pub = nh_.advertise<std_msgs::String>("UR2Gripper", 1);
     gripper_feedback_sub = nh_.subscribe("Gripper2UR", 1, gripperStatusCallback);
     robot_status_pub = nh_.advertise<std_msgs::String>("RobotStatus", 1);
 }
 
-void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, string jnt_pos_name){
+void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name){
 
     targetJoints.clear();
     targetJoints["shoulder_pan_joint"] = joint_positions[jnt_pos_name].angles[0]*3.1416/180;	// (deg*PI/180)
@@ -302,69 +307,35 @@ void set_down_object(moveit_robot &Robot, double down_move_dist = 0.03)
     Robot.z_move(down_move_dist);
 }
 
-void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     string bring_cmd = "home";
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
 
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 }
 
-void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     // Move to position above side
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick side up, move up
     pick_up_object(Robot, 0.07);
 
-    //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     // Move to user delivery position
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions["deliver_2_user"].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions["deliver_2_user"].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions["deliver_2_user"].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions["deliver_2_user"].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions["deliver_2_user"].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions["deliver_2_user"].angles[5]*3.1416/180;
-    Robot.move_robot(targetJoints, bring_cmd, "deliver_2_user");
+    Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
 
     // Move down, set down side, move up
     set_down_object(Robot, 0.03);
 
-    //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     // Return to home position
-    home(targetJoints, Robot, joint_positions);
+    home(targetJoints, Robot);
 }
 
-void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
-
     // Move robot to position above box
     string bring_cmd = "take_box";
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick side up, move up
@@ -372,67 +343,37 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot, 
 
     // Move to position
     bring_cmd = "deliver_box";
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, set down side, move up
     set_down_object(Robot, 0.03);
 
     // Return to home
-    home(targetJoints, Robot, joint_positions);
+    home(targetJoints, Robot);
 }
 
-void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
     // Move to position above block
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick block up, move up
     pick_up_object(Robot, 0.07);
 
     // Move to stack position
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions["final_stack"].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions["final_stack"].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions["final_stack"].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions["final_stack"].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions["final_stack"].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions["final_stack"].angles[5]*3.1416/180;
-    Robot.move_robot(targetJoints, bring_cmd, "final_stack");
+    Robot.move_robot(targetJoints, bring_cmd, string("final_stack"));
 
     // Move down, set down block, move up
     set_down_object(Robot, 0.03);
 
     // Return to home position
-    home(targetJoints, Robot, joint_positions);
+    home(targetJoints, Robot);
 }
 
-void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Robot, std::map<std::string, jnt_angs> joint_positions)
+void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
-
     // Move robot to position above box
     string bring_cmd = "final_stack";
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick side up, move up
@@ -440,20 +381,13 @@ void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Ro
 
     // Move to position
     bring_cmd = "remove_stack";
-    // targetJoints.clear();
-    // targetJoints["shoulder_pan_joint"] = joint_positions[bring_cmd].angles[0]*3.1416/180;	// (deg*PI/180)
-    // targetJoints["shoulder_lift_joint"] = joint_positions[bring_cmd].angles[1]*3.1416/180;
-    // targetJoints["elbow_joint"] = joint_positions[bring_cmd].angles[2]*3.1416/180;
-    // targetJoints["wrist_1_joint"] = joint_positions[bring_cmd].angles[3]*3.1416/180;
-    // targetJoints["wrist_2_joint"] = joint_positions[bring_cmd].angles[4]*3.1416/180;
-    // targetJoints["wrist_3_joint"] = joint_positions[bring_cmd].angles[5]*3.1416/180;
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, set down side, move up
     set_down_object(Robot, 0.03);
 
     // Return to home
-    home(targetJoints, Robot, joint_positions);
+    home(targetJoints, Robot);
 }
 
 
@@ -472,12 +406,11 @@ int main(int argc, char** argv)
     moveit_robot Robot(&node_handle);
     // Map to hold values to send to robot
     std::map<std::string, double> targetJoints;
-    // Create map of high level joint positions
-    std::map<std::string, jnt_angs> joint_positions = create_joint_pos();
+    
     string last_obj_string = "";
 
     // Send robot to home position
-    home(targetJoints, Robot, joint_positions);
+    home(targetJoints, Robot);
 
     // wait position
     Robot.robot_status_msg.data = "Done";
@@ -505,25 +438,25 @@ int main(int argc, char** argv)
 
                     if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
                     {          
-                        take_side(objectString, targetJoints, Robot, joint_positions);
+                        take_side(objectString, targetJoints, Robot);
                     }
                     else if( objectString == "take_box" )
                     {  
-                        take_box(targetJoints, Robot, joint_positions);
+                        take_box(targetJoints, Robot);
                     }
                     else if(objectString=="stack_red_small_block" || objectString=="stack_blue_small_block" || objectString=="stack_yellow_small_block" || objectString=="stack_green_small_block")
                     { 
-                        stack_blocks(objectString, targetJoints, Robot, joint_positions);
+                        stack_blocks(objectString, targetJoints, Robot);
                     }
                     else if( objectString == "remove_stack" )
                     {  
-                        remove_blocks(targetJoints, Robot, joint_positions);
+                        remove_blocks(targetJoints, Robot);
                     }
                     else
                     {
                         Robot.robot_status_msg.data = "Home";
                         Robot.robot_status_pub.publish(Robot.robot_status_msg);
-                        home(targetJoints, Robot, joint_positions);
+                        home(targetJoints, Robot);
                     }
                     Robot.robot_status_msg.data = "Done";
                     Robot.robot_status_pub.publish(Robot.robot_status_msg);
