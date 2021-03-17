@@ -63,7 +63,6 @@ def current_action_callback(data, users):
     else:
         #users[data.UserId].actions.extend([data.action_probs, data.Header.stamp])
         time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
-        print(data.Header.stamp.secs)
         users[data.UserId]._imu_pred_hist = np.vstack((users[data.UserId]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
         users[data.UserId]._imu_state_hist = np.vstack((users[data.UserId]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
 

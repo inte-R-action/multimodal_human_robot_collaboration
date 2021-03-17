@@ -56,11 +56,11 @@ class future_predictor():
             
             # sum est time until robot required
             row['start_time'] = row['start_time'].astimezone(pytz.timezone("UTC"))
-            t_diff = max(datetime.datetime.now(tz=pytz.UTC)-row['start_time'], datetime.timedelta())
+            t_diff = min(max(datetime.datetime.now(tz=pytz.UTC)-row['start_time'], datetime.timedelta()), tasks_left.iloc[0]['default_time'])
             time_to_robo = tasks_left.loc[:next_robo_action]['default_time'].sum() - t_diff - tasks_left.loc[next_robo_action]['default_time']
             print(tasks_left)
 
-            i = self.future_estimates.loc[self.future_estimates['user_id']==row['user_id']].first_valid_index()
+            i = self.future_estimates.loc[self.future_estimates['user_id'] == row['user_id']].first_valid_index()
             if i is not None:
                 # update if new action is gonna be next
                 if next_robo_action != self.future_estimates.loc[i, 'action_id']:
@@ -71,10 +71,10 @@ class future_predictor():
                 new_user_data = [row['user_id'], row['user_name'], row['task_name'], next_robo_action, time_to_robo, False]
                 self.future_estimates = self.future_estimates.append(pd.Series(new_user_data, index=self.fut_cols), ignore_index=True)
             
-    def robot_stat_callback(self, data):
-
+    def robot_stat_callback(self, msg):
+        data = msg.data;
         if data != self.robot_status:
-            print()
+            print(f"robot stat callback: {data}")
             date = datetime.date.today()
             end_t = datetime.datetime.now().time()
             dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
@@ -86,8 +86,8 @@ class future_predictor():
                 ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
                 [(date, self.robot_start_t, end_t, dur, 0, '-', str(self.robot_status), 0)])
 
-            self.robot_start_t = datetime.datetime.now().time()
-            self.robot_status = data
+                self.robot_start_t = datetime.datetime.now().time()
+                self.robot_status = data
 
 
 def robot_control_node():
@@ -121,7 +121,7 @@ def robot_control_node():
             predictor.update_predictions()
 
             for index, row in predictor.future_estimates.iterrows():
-                if (row['est_t_remain'] < datetime.timedelta(seconds=5)):# and (row['done']==False):
+                if (row['est_t_remain'] < predictor.task_overview.loc[row['action_id']]['default_time']): #datetime.timedelta(seconds = 15)):# and (row['done']==False):
                     action = predictor.task_overview.loc[row['action_id']]['action_name']
                     move_obj.publish(action)
                     predictor.future_estimates.loc[index, 'done'] = True

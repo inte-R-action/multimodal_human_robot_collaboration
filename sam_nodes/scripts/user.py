@@ -31,7 +31,7 @@ class User:
         self.db = database()
         self.shimmer_ready = 1
 
-        self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
+        self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_task_no = 0
 
         self.capability_obj = capability_class(frame_id=f"{frame_id}_{self.name}", user_id=self.id)
@@ -64,6 +64,35 @@ class User:
         [(date, start_t, end_t, dur, 0, "R", capability, int(self.task_data.loc[self.curr_task_no]['action_no']))])
 
         
+    def update_robot_progress(self):
+        capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+
+        try:
+            # Get next row where action not completed
+            next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+            
+            if self.task_data.iloc[next_action_row_i]["user_type"] != "human":
+                # Assume non-user actions are completed
+                while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
+                    if self.task_data.iloc[next_action_row_i]["user_type"] == "robot":
+                        col_names, actions_list = self.db.query_table('Episodes', 'all')
+                        episodes = pd.DataFrame(actions_list, columns=col_names)
+                        if self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.capability.values:
+                            self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+                            next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+                        else:
+                            return "continuing"
+                    else:
+                        self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+                        next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+
+                self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
+                self.update_current_action_output()
+
+        except IndexError as e:
+            print(f"Looks like user {self.name} tasks are finished")
+            return "finished"
+
     def update_progress(self):
         capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
@@ -72,9 +101,21 @@ class User:
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
             # Assume non-user actions are completed
-            while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
-                self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
-                next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+            # while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
+            #     if self.task_data.iloc[next_action_row_i]["user_type"] == "robot":
+            #         col_names, actions_list = self.db.query_table('Episodes', 'all')
+            #         episodes = pd.DataFrame(actions_list, columns=col_names)
+            #         print(f"episodes: {episodes.capability.values}")
+            #         print(f"action: {self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc('action_name')]}")
+            #         print(self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.capability.values)
+            #         if self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.capability.values:
+            #             self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+            #             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+            #         else:
+            #             return "continuing"
+            #     else:
+            #         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+            #         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
         except IndexError as e:
             print(f"Looks like user {self.name} tasks are finished")
@@ -113,6 +154,8 @@ class User:
     def collate_imu_seq(self):
         # 'Dilation' filter to remove single erroneous predictions
         if np.shape(self._imu_state_hist)[0] >= 4:
+            self.update_robot_progress()
+
             if (self._imu_state_hist[-1, 0] == self._imu_state_hist[-3, 0]):# & (imu_state_hist[-2, 1] <= 0.00000000001): # WHAT IS THIS DOING???
                 self._imu_state_hist[-2, 0] = self._imu_state_hist[-1, 0] #NEED TO CHECK CONFIDENCES HERE
 

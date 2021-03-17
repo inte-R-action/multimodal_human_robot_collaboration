@@ -65,14 +65,14 @@ void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
 struct jnt_angs{double angles[6];};
 std::map<std::string, jnt_angs> create_joint_pos(){
     std::map<std::string, jnt_angs> joint_positions;
-    joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 360};
-    joint_positions["bring_side_1"] = {54.1, -75.9, 49.1, -61.2, -91.1, 360};
-    joint_positions["bring_side_2"] = {80.9, -75.9, 49.1, -61.2, -91.1, 360};
-    joint_positions["bring_side_3"] = {119.3, -75.9, 49.1, -61.2, -91.1, 360};
-    joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -91.1, 360};
-    joint_positions["take_box"] = {14.5, -45.90, 12.2, -61.2, -91.1, 360};
-    joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -91.1, 360};
-    joint_positions["deliver_box"] = {-150.0, -62.90, 40.2, -61.2, -91.1, 360};
+    joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 0.0};
+    joint_positions["bring_side_1"] = {54.1, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_side_2"] = {80.9, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_side_3"] = {119.3, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["take_box"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
+    joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
+    joint_positions["deliver_box"] = {-150.0, -62.90, 40.2, -61.2, -91.1, 0.0};
     return joint_positions;
 };
 
@@ -280,7 +280,7 @@ void pick_up_object(moveit_robot &Robot, double down_move_dist = 0.05)
     Robot.z_move(down_move_dist);
 }
 
-void set_down_object(moveit_robot &Robot, double down_move_dist = 0.05)
+void set_down_object(moveit_robot &Robot, double down_move_dist = 0.03)
 {
     // Robot moves down, grasps part and moves back to original position
     Robot.z_move(-down_move_dist);
@@ -317,7 +317,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, pick side up, move up
-    pick_up_object(Robot, 0.05);
+    pick_up_object(Robot, 0.07);
 
     //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     // Move to user delivery position
@@ -331,7 +331,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, set down side, move up
-    set_down_object(Robot, 0.05);
+    set_down_object(Robot, 0.03);
 
     //Robot.move_group.setStartState(*Robot.move_group.getCurrentState());
     // Return to home position
@@ -354,7 +354,7 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot, 
     Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, pick side up, move up
-    pick_up_object(Robot, 0.05);
+    pick_up_object(Robot, 0.07);
 
     // Move to position
     bring_cmd = "deliver_box";
@@ -368,7 +368,7 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot, 
     Robot.move_robot(targetJoints, bring_cmd);
 
     // Move down, set down side, move up
-    set_down_object(Robot, 0.05);
+    set_down_object(Robot, 0.03);
 
     // Return to home
     home(targetJoints, Robot, joint_positions);
