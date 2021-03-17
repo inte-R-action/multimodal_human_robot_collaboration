@@ -46,8 +46,6 @@ def test_robot_control_node():
             ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{task_name}', current_action_no={int(task_data.loc[i]['action_no'])}, start_time='{time}';"""
             db.gen_cmd(sql_cmd)
 
-            #db.insert_data_list('current_actions', col_names, 
-            #    [(0, "N/A", time, task_name, int(task_data.loc[i]['action_no']), time)])
             diag_obj.publish(0, "Running")
             
             print(task_data.loc[i])

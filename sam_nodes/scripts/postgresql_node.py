@@ -11,7 +11,7 @@ from pub_classes import diag_class
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'current_actions']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'stack_tower', 'current_actions']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
         ['actions', ["action_id SERIAL PRIMARY KEY",
@@ -31,6 +31,12 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "capability TEXT",
                     "task_id SMALLINT"]],
         ['assemble_box', ["action_no SERIAL PRIMARY KEY",
+                    "action_id INTEGER REFERENCES actions(action_id)",
+                    "action_name VARCHAR(255) REFERENCES actions(action_name)",
+                    "default_time INTERVAL",
+                    "user_type VARCHAR(5)",
+                    "prev_dependent BOOL"]],
+        ['stack_tower', ["action_no SERIAL PRIMARY KEY",
                     "action_id INTEGER REFERENCES actions(action_id)",
                     "action_name VARCHAR(255) REFERENCES actions(action_name)",
                     "default_time INTERVAL",
@@ -76,10 +82,13 @@ def load_tables(db):
     for name in tables_to_make:
         try:
             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
+
+            if (name == 'assemble_box') or (name == 'stack_tower'):
+                # Update times and action ids from actions table
+                sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
+                db.gen_cmd(sql)
             print(f"Loaded data into '{name}'")
 
-            if name == "box_actions":
-                pass
                 
         except FileNotFoundError:
             print(f"WARNING: Load table file not found for '{name}' at {base_dir}{name}.csv")
