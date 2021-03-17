@@ -412,20 +412,25 @@ int main(int argc, char** argv)
             {
                 cout << "Robot Objective: " << objectString << endl;
                 last_obj_string = objectString;
-                if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
-                {          
-                    take_side(objectString, targetJoints, Robot, joint_positions);
-                }
-                else if( objectString == "take_box" )
-                {            
-                    take_box(targetJoints, Robot, joint_positions);
-                }
-                else
+
+                if ( objectString != "")
                 {
-                    home(targetJoints, Robot, joint_positions);
+                    if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
+                    {          
+                        take_side(objectString, targetJoints, Robot, joint_positions);
+                    }
+                    else if( objectString == "take_box" )
+                    {            
+                        take_box(targetJoints, Robot, joint_positions);
+                    }
+                    else
+                    {
+                        home(targetJoints, Robot, joint_positions);
+                    }
+                    Robot.robot_status_msg.data = "Done";
+                    Robot.robot_status_pub.publish(Robot.robot_status_msg);
                 }
-                Robot.robot_status_msg.data = "Done";
-                Robot.robot_status_pub.publish(Robot.robot_status_msg);
+                
                 // wait position
                 cout << ">>>>-- Waiting for command --<<<<" << endl;
             }

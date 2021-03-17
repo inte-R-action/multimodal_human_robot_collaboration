@@ -80,10 +80,11 @@ class future_predictor():
             dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
             print(type(str(self.robot_status)))
 
-            # Can publish new episode to sql
-            self.db.insert_data_list("Episodes", 
-            ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
-            [(date, self.robot_start_t, end_t, dur, 0, '-', str(self.robot_status), 0)])
+            if data != "Done":
+                # Can publish new episode to sql
+                self.db.insert_data_list("Episodes", 
+                ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
+                [(date, self.robot_start_t, end_t, dur, 0, '-', str(self.robot_status), 0)])
 
             self.robot_start_t = datetime.datetime.now().time()
             self.robot_status = data
