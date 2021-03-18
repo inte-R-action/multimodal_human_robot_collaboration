@@ -352,39 +352,41 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
     home(targetJoints, Robot);
 }
 
-void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
+void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
 {
     // Move to position above block
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick block up, move up
-    pick_up_object(Robot, 0.07);
+    pick_up_object(Robot, 0.11);
 
     // Move to stack position
     Robot.move_robot(targetJoints, bring_cmd, string("final_stack"));
 
     // Move down, set down block, move up
-    set_down_object(Robot, 0.03);
+    double z_move = 0.11 - (stack_height*0.019);
+    set_down_object(Robot, z_move);
 
     // Return to home position
     home(targetJoints, Robot);
 }
 
-void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
+void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
 {
     // Move robot to position above box
     string bring_cmd = "final_stack";
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick side up, move up
-    pick_up_object(Robot, 0.07);
+    double z_move = 0.11 - ((stack_height-1)*0.019);
+    pick_up_object(Robot, z_move);
 
     // Move to position
     bring_cmd = "remove_stack";
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, set down side, move up
-    set_down_object(Robot, 0.03);
+    set_down_object(Robot, z_move);
 
     // Return to home
     home(targetJoints, Robot);
@@ -417,6 +419,7 @@ int main(int argc, char** argv)
     Robot.robot_status_pub.publish(Robot.robot_status_msg);
     cout << ">>>>-- Waiting for command --<<<<" << endl;
 
+    int stack_height = 0;
     while( ros::ok() )
     {
         
@@ -446,11 +449,13 @@ int main(int argc, char** argv)
                     }
                     else if(objectString=="stack_red_small_block" || objectString=="stack_blue_small_block" || objectString=="stack_yellow_small_block" || objectString=="stack_green_small_block")
                     { 
-                        stack_blocks(objectString, targetJoints, Robot);
+                        stack_blocks(objectString, targetJoints, Robot, stack_height);
+                        stack_height++;
                     }
                     else if( objectString == "remove_stack" )
                     {  
-                        remove_blocks(targetJoints, Robot);
+                        remove_blocks(targetJoints, Robot, stack_height);
+                        stack_height = 0;
                     }
                     else
                     {
