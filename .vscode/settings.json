@@ -72,5 +72,7 @@
         "hash_set": "cpp",
         "cfenv": "cpp",
         "typeindex": "cpp"
-    }
+    },
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
 }

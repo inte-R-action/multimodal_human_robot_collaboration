@@ -177,23 +177,6 @@ def robot_control_node():
                 # else wait for next colab action
                 move_obj.publish('')
 
-
-            # for index, row in predictor.future_estimates.iterrows():
-            #     if (row['est_t_remain'] < predictor.task_overview.loc[row['action_id']]['default_time']): #datetime.timedelta(seconds = 15)):# and (row['done']==False):
-            #         # if time to next colab < action time start colab action
-            #         action = predictor.task_overview.loc[row['action_id']]['action_name']
-            #         while predictor.robot_status != action:
-            #             move_obj.publish(action)
-            #         predictor.future_estimates.loc[index, 'done'] = True
-            #     elif row['est_t_remain'] > robo_task_time:
-            #         # if time to colb action > time to do solo action
-            #         #action = predictor
-            #         #move_obj.publish(action)
-            #         print("Robot solo task")
-            #     else:
-            #         # else wait for next colab action
-            #         move_obj.publish('')
-
             diag_obj.publish(0, "Running")
             rospy.loginfo(f"{frame_id} active")
 
