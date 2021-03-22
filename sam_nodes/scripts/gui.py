@@ -23,7 +23,7 @@ import ttk
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 
 
-CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
+CATEGORIES = ['AllenKey\nIn', 'AllenKey\nOut', 'Screwing\nIn', 'Screwing\nOut', 'Null']
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()
@@ -41,6 +41,7 @@ class user_frame:
         self.task_name = "assemble_box"
         self.task_data = None
         self.status = "unknown"
+        self.current_action_no = None
 
         self.fig = Figure()
         self.ax = self.fig.subplots(1, 1)
@@ -76,7 +77,7 @@ class user_frame:
             self.tasks.heading(i, text=i, anchor='center')
 
         for index, row in self.task_data.iterrows():
-            self.tasks.insert("", index=index, values=list(row))
+            self.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
 
         # Remove User button
         self.remove_user_button = Tk.Button(master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, height=1)
@@ -136,8 +137,18 @@ class user_frame:
 
         plt.pause(0.0001)
 
+class node_indicator:
+    def __init__(self, node_name, master, i):
+        self.name = node_name
+        self.status = None
+        self.indicator = Tk.Label(master=master, bg="grey", text=node_name, width=1, padx=10, pady=3, borderwidth=2, relief="ridge")
+        self.indicator.grid(row=i%2, column=int(i/2), sticky="nsew")
+        self.update_time = None
+
+
 class GUI:
     def __init__(self):
+        self.db = database()
         # Create GUI
         self.root = Tk.Tk()
         self.root.wm_title("HRC Interaction System")
@@ -159,7 +170,7 @@ class GUI:
         self.root.grid_rowconfigure(0, weight=1)
 
     def create_system_frame(self):
-        self.sys_frame = Tk.Frame(master=self.root, bg="blue")
+        self.sys_frame = Tk.Frame(master=self.root, bg="dodger blue")
         self.sys_frame.grid(row=0, column=0, sticky="nsew")
         
         # Uni logo
@@ -172,16 +183,22 @@ class GUI:
         self.img.grid(row=0, column=0, columnspan=2)
 
         # Nodes Stats
-        self.nodes_stat_levels = []
+        #self.nodes_stat_levels = []
         self.node_stats = Tk.Frame(master=self.sys_frame)#, height=40)
         self.node_stats.grid(row=1, column=0, columnspan=2, sticky="nsew")
-        self.nodes_list = ['Database node', 'users', 'imrecog', 'robotcontroller', 'hristaticdemo', 'gripper']
-        self.nodes_indicators = []
+        self.nodes_list = [['Database_node', None], 
+                            ['users_node', None], 
+                            ['Realsense_node', None], 
+                            ['robot_control_node', None], 
+                            ['hristaticdemo', None], 
+                            ['gripper', None]]
+        #self.nodes_indicators = []
         i=0
         for node in self.nodes_list:
-            self.nodes_indicators.append(Tk.Label(master=self.node_stats, bg="grey", text=node, width=1, padx=10, pady=3, borderwidth=2, relief="ridge"))
-            self.nodes_indicators[i].grid(row=i%2, column=int(i/2), sticky="nsew")
-            self.nodes_stat_levels.append(1)
+            #self.nodes_indicators.append(Tk.Label(master=self.node_stats, bg="grey", text=node, width=1, padx=10, pady=3, borderwidth=2, relief="ridge"))
+            #self.nodes_indicators[i].grid(row=i%2, column=int(i/2), sticky="nsew")
+            #self.nodes_stat_levels.append([None, None])
+            node[1] = node_indicator(node[0], self.node_stats, i)
             i += 1
 
         # Adjust spacing of objects
@@ -189,19 +206,29 @@ class GUI:
         self.node_stats.grid_rowconfigure((0, 1), weight=1)
 
         # Robot Status
+        self.robot_stat_text = "Robot status: unknown"
         self.robot_stats = Tk.Text(master=self.sys_frame, height=2)
         self.robot_stats.grid(row=2, column=0, columnspan=2, sticky="nsew")
-        self.robot_stats.insert(Tk.INSERT, "Robot status")
+        self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
 
-        # Next Robot Action
-        self.next_robo_act = Tk.Text(master=self.sys_frame, height=2)
-        self.next_robo_act.grid(row=3, column=0, columnspan=2, sticky="nsew")
-        self.next_robo_act.insert(Tk.INSERT, "Next robot action")
+        # Robot Move Command
+        self.robot_move_text = f"Robot Move Cmd: unknown"
+        self.robot_move = Tk.Text(master=self.sys_frame, height=2)
+        self.robot_move.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
         # Tasks List
-        self.robo_tasks = Tk.Text(master=self.sys_frame)#, height=4)
-        self.robo_tasks.grid(row=4, column=0, columnspan=2, sticky="nsew")
-        self.robo_tasks.insert(Tk.INSERT, "Tasks list")
+        self.load_task_data()
+        self.tasks = ttk.Treeview(self.sys_frame, show=["headings"], height=18, displaycolumns="#all")
+        self.tasks.grid(row=4, column=0, columnspan=2, sticky="nsew")
+        self.tasks["columns"] = self.col_names
+
+        for i in self.col_names:
+            self.tasks.column(i, anchor="center", stretch=True, width=20)
+            self.tasks.heading(i, text=i, anchor='center')
+
+        for index, row in self.task_data.iterrows():
+            self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
         # New User button
         self.new_user_button = Tk.Button(master=self.sys_frame, text="New User", command=self._new_user, bg="green", padx=50, pady=20)
@@ -234,23 +261,56 @@ class GUI:
     def _new_user(self):
         pass
 
+    def load_task_data(self):
+        self.col_names, actions_list = self.db.query_table('robot_future_estimates', 'all')
+        self.task_data = pd.DataFrame(actions_list, columns=self.col_names)
+
     def update_gui(self):
 
         i= 0 
-        for status in self.nodes_stat_levels:
-            colour = "grey"
-            if status == 0:
-                colour = "green"
-            elif status == 1:
-                colour = "yellow"
-            elif status == 2:
-                colour = "red"
-            elif status == 3:
-                colour = "blue"
-            else:
+        for node in self.nodes_list:
+            # Check node has had initial reading
+            if node[1].update_time is not None:
+                # Time out on node status
+                if (time.time() - node[1].update_time) > 3:
+                    node[1].status = 3
                 colour = "grey"
-            self.nodes_indicators[i].config(bg=colour)
+                if node[1].status == 0:
+                    colour = "green"
+                elif node[1].status == 1:
+                    colour = "yellow"
+                elif node[1].status == 2:
+                    colour = "red"
+                elif node[1].status == 3:
+                    colour = "blue"
+                else:
+                    colour = "grey"
+                node[1].indicator.config(bg=colour)
             i += 1
+
+        if [node[1].status for node in self.nodes_list if node[1].name == 'Database_node'][0] == 0:
+            col_names, actions_list = self.db.query_table('current_actions', 'all')
+            current_data = pd.DataFrame(actions_list, columns=col_names)
+            for _, row in current_data.iterrows():
+                user_id = row['user_id']
+                user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id][0]
+                if self.users[user_i].current_action_no != row['current_action_no']:
+                    self.users[user_i].tasks.tag_configure(row['current_action_no'], background = 'green')
+                    if self.users[user_i].current_action_no is not None:
+                        self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background = 'grey')
+                    self.users[user_i].current_action_no = row['current_action_no']
+
+            self.load_task_data()
+            self.tasks.delete(*self.tasks.get_children())
+            for index, row in self.task_data.iterrows():
+                self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
+
+
+        self.robot_stats.delete("1.0", Tk.END)
+        self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
+
+        self.robot_move.delete("1.0", Tk.END)
+        self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
         self.root.update_idletasks()
         self.root.update()
@@ -263,9 +323,18 @@ class GUI:
             self.users[data.UserId].update_action_plot()
 
     def update_sys_stat(self, data):
-        if data.Header.frame_id in self.nodes_list:
-            i = self.nodes_list.index(data.Header.frame_id)
-            self.nodes_stat_levels[i] = data.DiagnosticStatus.level
+        try:
+            i = [idx for idx, sublist in enumerate(self.nodes_list) if data.Header.frame_id in sublist[0]][0]
+            self.nodes_list[i][1].status = data.DiagnosticStatus.level
+            self.nodes_list[i][1].update_time = time.time()
+        except IndexError as e:
+            pass
+
+    def update_robot_stat(self, data):
+        self.robot_stat_text = f"Robot status: {data.data}"
+
+    def update_robot_move(self, data):
+        self.robot_move_text = f"Robot Move Cmd: {data.data}"
             
             
 def run_gui():
@@ -274,6 +343,8 @@ def run_gui():
     rospy.init_node('gui', anonymous=True)
     rospy.Subscriber('CurrentAction', current_action, gui.update_actions)
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
+    rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)
+    rospy.Subscriber('RobotMove', String, gui.update_robot_move)
 
     while not rospy.is_shutdown():
         gui.update_gui()

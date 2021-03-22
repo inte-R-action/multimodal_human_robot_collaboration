@@ -137,7 +137,7 @@ class User:
         try:
             # Update user current action in sql table
             time = datetime.datetime.utcnow()
-            data_ins = "%s" + (", %s"*(len(self.col_names)-1))
+            #data_ins = "%s" + (", %s"*(len(self.col_names)-1))
             separator = ', '
             sql_cmd = f"""INSERT INTO current_actions ({separator.join(self.col_names)})
             VALUES (0, 'N/A', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_task_no]['action_no'])}, '{time}') 

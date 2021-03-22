@@ -99,10 +99,10 @@ class rs_cam:
 
 def realsense_run():
     # ROS node setup
-    frame_id = 'Realsense node'
+    frame_id = 'Realsense_node'
 
     if not test:
-        rospy.init_node(f'Realsense_main', anonymous=True)
+        rospy.init_node(frame_id, anonymous=True)
         diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
         rate = rospy.Rate(10)
     

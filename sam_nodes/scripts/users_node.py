@@ -75,7 +75,7 @@ def sys_stat_callback(data, users):
     global database_stat
     global shimmer_stat
 
-    if data.Header.frame_id == 'Database node':
+    if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
 
     if users:
@@ -90,7 +90,7 @@ def sys_stat_callback(data, users):
 def users_node():
     
     frame_id = "users_node"
-    rospy.init_node('users_node', anonymous=True)
+    rospy.init_node(frame_id, anonymous=True)
     keyvalues = []
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
     users = []
@@ -100,6 +100,7 @@ def users_node():
     # Wait for postgresql node to be ready
     while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
+        diag_obj.publish(1, "Waiting for postgresql node")
         time.sleep(0.5)
 
     task = 'assemble_box'
@@ -110,6 +111,7 @@ def users_node():
     # Wait for postgresql node to be ready
     while shimmer_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for shimmer node status, currently {shimmer_stat}")
+        diag_obj.publish(1, "Waiting for shimmer node")
         time.sleep(0.5)
 
     

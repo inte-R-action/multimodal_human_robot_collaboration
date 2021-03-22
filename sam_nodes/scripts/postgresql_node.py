@@ -11,7 +11,7 @@ from pub_classes import diag_class
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'stack_tower', 'current_actions']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'stack_tower', 'current_actions', 'robot_future_estimates']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
         ['actions', ["action_id SERIAL PRIMARY KEY",
@@ -47,8 +47,16 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "updated_t TIMESTAMPTZ",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
                     "current_action_no INTEGER",
-                    "start_time TIMESTAMPTZ"]]]
-## ADD STUFF TO AUTO LOAD BLANK COLUMN WHERE RELEVANT - ASSEMBLE_BOX ONLY TEMP VALUES FOR USER AND TIME
+                    "start_time TIMESTAMPTZ"]],
+        ['robot_future_estimates', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
+                    "user_name VARCHAR(255) REFERENCES users(user_name)",
+                    "task_name VARCHAR(255) REFERENCES tasks(task_name)",
+                    "current_action_no INTEGER",
+                    "est_t_remain INTERVAL",
+                    "robo_task_t INTERVAL",
+                    "robot_start_t INTERVAL",
+                    "done BOOL"]]]
+
 def make_tables(db, del_tab = True):
 
     try:
@@ -121,8 +129,8 @@ def shutdown(db):
 
 def database_run(db):
     # ROS node setup
-    rospy.init_node(f'Database_main', anonymous=True)
-    frame_id = 'Database node'
+    frame_id = 'Database_node'
+    rospy.init_node(frame_id, anonymous=True)
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
 
     rate = rospy.Rate(1) # 1hz
