@@ -8,7 +8,8 @@ from matplotlib.backends.backend_tkagg import (
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 import numpy as np
-import time, datetime
+import time
+import datetime
 from PIL import Image, ImageTk
 import rospy
 from diagnostic_msgs.msg import KeyValue
@@ -20,16 +21,19 @@ import os
 import pandas as pd
 import ttk
 
-os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
+os.chdir(os.path.expanduser(
+    "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 
 
-CATEGORIES = ['AllenKey\nIn', 'AllenKey\nOut', 'Screwing\nIn', 'Screwing\nOut', 'Null']
+CATEGORIES = ['AllenKey\nIn', 'AllenKey\nOut',
+              'Screwing\nIn', 'Screwing\nOut', 'Null']
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()
 
 k = 0
 QUIT = False
+
 
 class user_frame:
     def __init__(self, no, id, name, root):
@@ -62,14 +66,18 @@ class user_frame:
         self.update_user_deets()
 
         # Graph area for current predictions
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.user_frame)  # A tk.DrawingArea.
+        # A tk.DrawingArea.
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.user_frame)
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+        self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3,
+                                         sticky=Tk.W + Tk.E + Tk.N + Tk.S)
 
         # Tasks List
         self.load_task_data()
-        self.tasks = ttk.Treeview(self.user_frame, show=["headings"], height=18, displaycolumns="#all")
-        self.tasks.grid(row=2, column=0, columnspan=3, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+        self.tasks = ttk.Treeview(self.user_frame, show=[
+                                  "headings"], height=18, displaycolumns="#all")
+        self.tasks.grid(row=2, column=0, columnspan=3,
+                        sticky=Tk.W + Tk.E + Tk.N + Tk.S)
         self.tasks["columns"] = self.col_names
 
         for i in self.col_names:
@@ -77,19 +85,26 @@ class user_frame:
             self.tasks.heading(i, text=i, anchor='center')
 
         for index, row in self.task_data.iterrows():
-            self.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
+            self.tasks.insert("", index=index, values=list(
+                row), tags=(row['action_no'],))
 
         # Remove User button
-        self.remove_user_button = Tk.Button(master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, height=1)
-        self.remove_user_button.grid(row=3, column=0, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+        self.remove_user_button = Tk.Button(
+            master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, height=1)
+        self.remove_user_button.grid(
+            row=3, column=0, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
 
         # Change Task button
-        self.change_task_button = Tk.Button(master=self.user_frame, text="Change Task", command=self.change_task, bg="blue", padx=50, pady=20, height=1)
-        self.change_task_button.grid(row=3, column=1, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+        self.change_task_button = Tk.Button(
+            master=self.user_frame, text="Change Task", command=self.change_task, bg="blue", padx=50, pady=20, height=1)
+        self.change_task_button.grid(
+            row=3, column=1, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
 
         # Restart Task button
-        self.restart_task_button = Tk.Button(master=self.user_frame, text="Restart Task", command=self.restart_task, bg="green", padx=50, pady=20, height=1)
-        self.restart_task_button.grid(row=3, column=2, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+        self.restart_task_button = Tk.Button(
+            master=self.user_frame, text="Restart Task", command=self.restart_task, bg="green", padx=50, pady=20, height=1)
+        self.restart_task_button.grid(
+            row=3, column=2, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
 
         # Adjust spacing of objects
         self.user_frame.grid_columnconfigure(0, weight=1)
@@ -102,7 +117,9 @@ class user_frame:
         self.user_frame.grid_rowconfigure(3, weight=0)
 
     def remove_user(self):
-        pass
+        self.user_frame.quit()     # stops mainloop
+        self.user_frame.destroy()  # this is necessary on Windows to prevent
+        # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 
     def change_task(self):
         pass
@@ -137,13 +154,63 @@ class user_frame:
 
         plt.pause(0.0001)
 
+
 class node_indicator:
     def __init__(self, node_name, master, i):
         self.name = node_name
         self.status = None
-        self.indicator = Tk.Label(master=master, bg="grey", text=node_name, width=1, padx=10, pady=3, borderwidth=2, relief="ridge")
-        self.indicator.grid(row=i%2, column=int(i/2), sticky="nsew")
+        self.indicator = Tk.Label(master=master, bg="grey", text=node_name,
+                                  width=1, padx=10, pady=3, borderwidth=2, relief="ridge")
+        self.indicator.grid(row=i % 2, column=int(i/2), sticky="nsew")
         self.update_time = None
+
+
+class new_user_dialogue(object):
+    def __init__(self, parent):
+        self.fcancel = False
+        self.toplevel = Tk.Toplevel(parent)
+        self.toplevel.geometry('350x150')
+        self.toplevel.resizable(False, False)
+        self.var = Tk.StringVar()
+
+        db = database()
+        col_names, users = db.query_table('users', 'all')
+        users = pd.DataFrame(users, columns=col_names)
+        self.default = "Select User"
+        options = [self.default]
+        for _, row in users.iterrows():
+            options.append((row['user_id'], row['user_name']))
+
+        options = tuple(options)
+        label = Tk.Label(self.toplevel, text="Choose New User:", height=1, padx=50, pady=2, anchor='center')
+        om = ttk.OptionMenu(self.toplevel, self.var, options[0], *options)
+        ok_button = Tk.Button(self.toplevel, text="OK", command=self.toplevel.destroy, width=10, height=1, padx=30, pady=10, anchor='center')
+        cancel_button = Tk.Button(self.toplevel, text="Cancel", command=self.cancel, width=10, height=1, padx=30, pady=10, anchor='center')
+
+        label.grid(row=0, column=0, columnspan=2)#, sticky="nsew")
+        om.grid(row=1, column=0, columnspan=2)#, sticky="nsew")
+        ok_button.grid(row=2, column=0)#, sticky="nsew")
+        cancel_button.grid(row=2, column=1)#, sticky="nsew")
+
+        # Adjust spacing of objects
+        self.toplevel.grid_columnconfigure(0, weight=1)
+        self.toplevel.grid_columnconfigure(1, weight=1)
+        self.toplevel.grid_rowconfigure(0, weight=1)
+        self.toplevel.grid_rowconfigure(1, weight=1)
+        self.toplevel.grid_rowconfigure(2, weight=1)
+
+    def cancel(self):
+        self.fcancel = True
+        self.toplevel.destroy()
+
+    def show(self):
+        self.toplevel.deiconify()
+        self.toplevel.wait_window()
+        value = self.var.get()
+        if self.fcancel or (value == self.default):
+            return None
+        else:
+            return value
 
 
 class GUI:
@@ -156,44 +223,40 @@ class GUI:
 
         self.create_system_frame()
 
-        self.users_deets = [[0, "unknown"], [1, "Bill"]]
         self.users = []
-        i = 0
-        for user in self.users_deets:
-            i = i+1
-            self.users.append(user_frame(i, user[0], user[1], self.root))
 
         self.root.grid_columnconfigure(0, weight=1)
         for i in range(len(self.users)):
             self.root.grid_columnconfigure(i+1, weight=1)
-        
+
         self.root.grid_rowconfigure(0, weight=1)
 
     def create_system_frame(self):
         self.sys_frame = Tk.Frame(master=self.root, bg="dodger blue")
         self.sys_frame.grid(row=0, column=0, sticky="nsew")
-        
+
         # Uni logo
         load = Image.open("logo.jpg")
         imsize = 100
         resized = load.resize((imsize, imsize), Image.ANTIALIAS)
         render = ImageTk.PhotoImage(resized)
-        self.img = Tk.Label(self.sys_frame, image=render)#, height=imsize+10)
+        # , height=imsize+10)
+        self.img = Tk.Label(self.sys_frame, image=render)
         self.img.image = render
         self.img.grid(row=0, column=0, columnspan=2)
 
         # Nodes Stats
         #self.nodes_stat_levels = []
-        self.node_stats = Tk.Frame(master=self.sys_frame)#, height=40)
+        self.node_stats = Tk.Frame(master=self.sys_frame)  # , height=40)
         self.node_stats.grid(row=1, column=0, columnspan=2, sticky="nsew")
-        self.nodes_list = [['Database_node', None], 
-                            ['users_node', None], 
-                            ['Realsense_node', None], 
-                            ['robot_control_node', None], 
-                            ['hristaticdemo', None], 
-                            ['gripper', None]]
+        self.nodes_list = [['Database_node', None],
+                           ['users_node', None],
+                           ['Realsense_node', None],
+                           ['robot_control_node', None],
+                           ['hristaticdemo', None],
+                           ['gripper', None]]
         #self.nodes_indicators = []
-        i=0
+        i = 0
         for node in self.nodes_list:
             #self.nodes_indicators.append(Tk.Label(master=self.node_stats, bg="grey", text=node, width=1, padx=10, pady=3, borderwidth=2, relief="ridge"))
             #self.nodes_indicators[i].grid(row=i%2, column=int(i/2), sticky="nsew")
@@ -219,7 +282,8 @@ class GUI:
 
         # Tasks List
         self.load_task_data()
-        self.tasks = ttk.Treeview(self.sys_frame, show=["headings"], height=18, displaycolumns="#all")
+        self.tasks = ttk.Treeview(self.sys_frame, show=[
+                                  "headings"], height=18, displaycolumns="#all")
         self.tasks.grid(row=4, column=0, columnspan=2, sticky="nsew")
         self.tasks["columns"] = self.col_names
 
@@ -228,7 +292,8 @@ class GUI:
             self.tasks.heading(i, text=i, anchor='center')
 
         for index, row in self.task_data.iterrows():
-            self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
+            self.tasks.insert("", index=index, values=list(
+                row), tags=(row['user_id'],))
 
         # New User button
         self.new_user_button = Tk.Button(master=self.sys_frame, text="New User", command=self._new_user, bg="green", padx=50, pady=20)
@@ -241,7 +306,7 @@ class GUI:
         # Adjust spacing of objects
         self.sys_frame.grid_columnconfigure(0, weight=1)
         self.sys_frame.grid_columnconfigure(1, weight=1)
-        
+
         self.sys_frame.grid_rowconfigure(0, weight=0)
         self.sys_frame.grid_rowconfigure(1, weight=0)
         self.sys_frame.grid_rowconfigure(2, weight=0)
@@ -256,10 +321,13 @@ class GUI:
         rospy.signal_shutdown('Quit Button')
         self.root.quit()     # stops mainloop
         self.root.destroy()  # this is necessary on Windows to prevent
-                        # Fatal Python Error: PyEval_RestoreThread: NULL tstate
+        # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 
     def _new_user(self):
-        pass
+        user = new_user_dialogue(self.root).show()
+        if user is not None:
+            user = eval(user)
+            self.users.append(user_frame(len(self.users)+1, user[0], user[1], self.root))
 
     def load_task_data(self):
         self.col_names, actions_list = self.db.query_table('robot_future_estimates', 'all')
@@ -267,7 +335,7 @@ class GUI:
 
     def update_gui(self):
 
-        i= 0 
+        i = 0
         for node in self.nodes_list:
             # Check node has had initial reading
             if node[1].update_time is not None:
@@ -293,18 +361,21 @@ class GUI:
             current_data = pd.DataFrame(actions_list, columns=col_names)
             for _, row in current_data.iterrows():
                 user_id = row['user_id']
-                user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id][0]
-                if self.users[user_i].current_action_no != row['current_action_no']:
-                    self.users[user_i].tasks.tag_configure(row['current_action_no'], background = 'green')
-                    if self.users[user_i].current_action_no is not None:
-                        self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background = 'grey')
-                    self.users[user_i].current_action_no = row['current_action_no']
+                user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
+
+                if user_i:
+                    user_i = user_i[0]
+                    if self.users[user_i].current_action_no != row['current_action_no']:
+                        self.users[user_i].tasks.tag_configure(
+                            row['current_action_no'], background='green')
+                        if self.users[user_i].current_action_no is not None:
+                            self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
+                        self.users[user_i].current_action_no = row['current_action_no']
 
             self.load_task_data()
             self.tasks.delete(*self.tasks.get_children())
             for index, row in self.task_data.iterrows():
                 self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
-
 
         self.robot_stats.delete("1.0", Tk.END)
         self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
@@ -316,18 +387,21 @@ class GUI:
         self.root.update()
 
     def update_actions(self, data):
-        if self.users[data.UserId].name != data.UserName:
-            print(f"ERROR: users list name {self.users[data.UserId].name} does not match current_action msg name {data.UserName}")
-        else:
-            self.users[data.UserId].imu_pred = data.ActionProbs
-            self.users[data.UserId].update_action_plot()
+
+        for user in self.users:
+            if data.UserId == user.id:
+                if user.name != data.UserName:
+                    print(f"ERROR: users list name {self.users[data.UserId].name} does not match current_action msg name {data.UserName}")
+                else:
+                    user.imu_pred = data.ActionProbs
+                    user.update_action_plot()
 
     def update_sys_stat(self, data):
         try:
             i = [idx for idx, sublist in enumerate(self.nodes_list) if data.Header.frame_id in sublist[0]][0]
             self.nodes_list[i][1].status = data.DiagnosticStatus.level
             self.nodes_list[i][1].update_time = time.time()
-        except IndexError as e:
+        except IndexError:
             pass
 
     def update_robot_stat(self, data):
@@ -335,8 +409,8 @@ class GUI:
 
     def update_robot_move(self, data):
         self.robot_move_text = f"Robot Move Cmd: {data.data}"
-            
-            
+
+
 def run_gui():
     # Run GUI
     gui = GUI()
@@ -354,4 +428,3 @@ def run_gui():
 if __name__ == '__main__':
     # Run ROS node
     run_gui()
-

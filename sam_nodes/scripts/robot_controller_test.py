@@ -16,7 +16,7 @@ def test_robot_control_node():
     # ROS node setup
     rospy.init_node(f'test_robot_control_node', anonymous=True)
     frame_id = 'test_robot_control_node'
-    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="robot", queue=1)
     capability_obj = capability_class(frame_id=frame_id, user_id=0)
 
     task_name = 'assemble_box'

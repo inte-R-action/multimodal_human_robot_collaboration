@@ -31,19 +31,24 @@ shimmer_stat = 1
 
 def setup_user(users, frame_id, task, name=None):
 
-    id = len(users)
+    id = len(users)+1
     if name is None:
-        name = f"unknown_user_{id}"
+        name = "unknown"
     
     users.append(User(name, id, frame_id))
 
-    users[id].update_task(task)
-    
+    db = database()
+    time = datetime.datetime.utcnow()
+    sql_cmd = f"""DELETE FROM users WHERE user_id = {id};"""
+    db.gen_cmd(sql_cmd)
+    db.insert_data_list("users", ['user_id', 'user_name', 'last_active'], [(id, name, time)])
+
+    users[id-1].update_task(task)
     return users
 
 def hand_pos_callback(data, users):
-    if users[data.UserId].name != data.UserName:
-        print(f"ERROR: users list name {users[data.UserId].name} does not match hand_pos msg name {data.UserName}")
+    if users[data.UserId-1].name != data.UserName:
+        print(f"ERROR: users list name {users[data.UserId-1].name} does not match hand_pos msg name {data.UserName}")
     else:
         if data.Hand == 0:
             self.left_h_pos = [Pose.Position.X, Pose.Position.Y, Pose.Position.Z]
@@ -58,17 +63,20 @@ def hand_pos_callback(data, users):
     
 
 def current_action_callback(data, users):
-    if users[data.UserId].name != data.UserName:
-        print(f"ERROR: users list name {users[data.UserId].name} does not match current_action msg name {data.UserName}")
-    else:
-        #users[data.UserId].actions.extend([data.action_probs, data.Header.stamp])
-        time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
-        users[data.UserId]._imu_pred_hist = np.vstack((users[data.UserId]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
-        users[data.UserId]._imu_state_hist = np.vstack((users[data.UserId]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
 
-        #users[data.UserId]._imu_state_hist, users[data.UserId]._imu_pred_hist = collate_imu_seq(users[data.UserId]._imu_state_hist, users[data.UserId]._imu_pred_hist)
-        users[data.UserId].collate_imu_seq()
+    i = [idx for idx, user in enumerate(users) if data.UserId==user.id]
+    if i:
+        i = i[0]
+        if users[i].name != data.UserName:
+            print(f"ERROR: users list name {users[i].name} does not match current_action msg name {data.UserName}")
+        else:
+            #users[i].actions.extend([data.action_probs, data.Header.stamp])
+            time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
+            users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
+            users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
 
+            #users[i]._imu_state_hist, users[i]._imu_pred_hist = collate_imu_seq(users[i]._imu_state_hist, users[i]._imu_pred_hist)
+            users[i].collate_imu_seq()
     return
 
 def sys_stat_callback(data, users):

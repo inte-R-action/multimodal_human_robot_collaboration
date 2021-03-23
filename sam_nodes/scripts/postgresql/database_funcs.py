@@ -195,7 +195,6 @@ class database():
             self.cur.execute(command)
             # commit the changes
             self.conn.commit()
-            print(f"Successfully performed custom command")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
             raise

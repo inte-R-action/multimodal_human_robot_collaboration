@@ -36,8 +36,8 @@ def fakeIMUmain():
     rospy.init_node(frame_id, anonymous=True)
     rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
 
-    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name='unknown', queue=1)
-    act_obj = act_class(frame_id=frame_id, user_id=0, user_name='unknown', queue=1)
+    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=1)
+    act_obj = act_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=1)
     
     prediction = np.zeros(5)
 

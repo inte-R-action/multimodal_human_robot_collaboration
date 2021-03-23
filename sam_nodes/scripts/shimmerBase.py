@@ -74,7 +74,7 @@ parser.add_argument('--user_name', '-N',
 
 parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',
-                    default=0,
+                    default=1,
                     action="store_true")
 
 args = parser.parse_known_args()[0]

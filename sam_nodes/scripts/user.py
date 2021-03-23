@@ -117,7 +117,7 @@ class User:
             #         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
             #         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
-        except IndexError as e:
+        except IndexError:
             print(f"Looks like user {self.name} tasks are finished")
             return "finished"
 
@@ -140,7 +140,7 @@ class User:
             #data_ins = "%s" + (", %s"*(len(self.col_names)-1))
             separator = ', '
             sql_cmd = f"""INSERT INTO current_actions ({separator.join(self.col_names)})
-            VALUES (0, 'N/A', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_task_no]['action_no'])}, '{time}') 
+            VALUES ({self.id}, '{self.name}', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_task_no]['action_no'])}, '{time}') 
             ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{self.task}', current_action_no={int(self.task_data.loc[self.curr_task_no]['action_no'])}, start_time='{time}';"""
             self.db.gen_cmd(sql_cmd)
 

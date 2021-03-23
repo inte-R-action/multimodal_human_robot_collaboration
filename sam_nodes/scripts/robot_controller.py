@@ -125,9 +125,9 @@ class robot_solo_task():
     def update_progress(self):
         try:
             self.next_action_id += 1
-            self.next_action = self.task_overview.loc[self.task_overview['action_no']==self.next_action_id, ['action_name']]
-            self.next_task_time = self.task_overview.loc[self.task_overview['action_no']==self.next_action_id, ['default_time']]
-        except IndexError as e:
+            self.next_action = self.task_overview.loc[self.task_overview['action_no']==self.next_action_id, ['action_name']].values[0][0]
+            self.next_task_time = pd.Timedelta(self.task_overview.loc[self.task_overview['action_no']==self.next_action_id, ['default_time']].values[0][0])
+        except IndexError:
             print(f"Looks like user robot task is finished")
             self.finished = True
 
@@ -135,7 +135,7 @@ def robot_control_node():
     # ROS node setup
     frame_id = 'robot_control_node'
     rospy.init_node(frame_id, anonymous=True)
-    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="robot", queue=1)
     diag_obj.publish(1, "Starting")
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
@@ -167,19 +167,10 @@ def robot_control_node():
             predictor.update_predictions()
 
             # Update future prediction in sql table
-            for index, row in predictor.future_estimates.iterrows():
-                for i in row.tolist():
-                    print(type(i))
-                #time = datetime.datetime.utcnow()
-                #data_ins = "%s" + (", %s"*(len(predictor.col_names)-1))
-                separator = ', '
+            for _, row in predictor.future_estimates.iterrows():
                 sql_cmd = f"""DELETE FROM robot_future_estimates WHERE user_id = {row['user_id']};"""
                 db.gen_cmd(sql_cmd)
-                print([tuple(row.tolist())])
                 db.insert_data_list("robot_future_estimates", predictor.fut_cols, [tuple(row.tolist())])
-
-                #sql_cmd = f"""INSERT INTO robot_future_estimates ({separator.join(predictor.fut_cols)}) VALUES {tuple(row.tolist())};"""
-                #db.gen_cmd(sql_cmd)
 
             # Select row with minimum time until robot required
             row = predictor.future_estimates[predictor.future_estimates.robot_start_t == predictor.future_estimates.robot_start_t.min()]
