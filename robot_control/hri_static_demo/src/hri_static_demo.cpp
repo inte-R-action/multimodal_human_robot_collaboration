@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <map>
 #include <sstream>
+#include "sam_custom_messages/diagnostics.h"
 
 using namespace std;
 
@@ -396,10 +397,25 @@ void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Ro
 int main(int argc, char** argv)
 {
     // Set up ROS stuff
-    ros::init(argc, argv, "hri_static_demo");
+    string frame_id = "hri_static_demo";
+    ros::init(argc, argv, frame_id);
     ros::NodeHandle node_handle;
     ros::AsyncSpinner spinner(1);
     spinner.start();
+    ros::Publisher diag_obj = node_handle.advertise<sam_custom_messages::diagnostics>("SystemStatus", 10);
+    sam_custom_messages::diagnostics diag_msg;
+    diag_msg.Header.stamp = ros::Time::now();
+    diag_msg.Header.seq = 0;
+    diag_msg.Header.frame_id = frame_id;
+    diag_msg.UserId = 0;
+    diag_msg.UserName = "N/A";
+    diag_msg.DiagnosticStatus.level = 1; // 0:ok, 1:warning, 2:error, 3:stale
+    diag_msg.DiagnosticStatus.name = frame_id;
+    diag_msg.DiagnosticStatus.message = "Starting...";
+    diag_msg.DiagnosticStatus.hardware_id = "N/A";
+    //diag_msg.DiagnosticStatus.values = keyvalues;
+    diag_obj.publish(diag_msg);
+    ros::Time diag_timeout = ros::Time::now();
 
     // High level move commands subscriber
 	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 1000, robotMoveCallback);
@@ -472,6 +488,18 @@ int main(int argc, char** argv)
                 Robot.robot_status_pub.publish(Robot.robot_status_msg);
                 cout << ">>>>-- Waiting for command --<<<<" << endl;
             }
+
+
+            if (ros::Time::now()-diag_timeout > ros::Duration(3))
+            {
+                diag_msg.DiagnosticStatus.level = 0; // 0:ok, 1:warning, 2:error, 3:stale
+                diag_msg.DiagnosticStatus.message = "Ok";
+                diag_msg.Header.stamp = ros::Time::now();
+                diag_msg.Header.seq++;
+                diag_obj.publish(diag_msg);
+                diag_timeout = ros::Time::now();
+            }
+            
             
     }
 
