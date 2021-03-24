@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 
 import tkinter as Tk
 import matplotlib.pyplot as plt
@@ -253,8 +253,8 @@ class GUI:
                            ['users_node', None],
                            ['Realsense_node', None],
                            ['robot_control_node', None],
-                           ['hristaticdemo', None],
-                           ['gripper', None]]
+                           ['hri_static_demo', None],
+                           ['rq_gripper_2F140', None]]
         #self.nodes_indicators = []
         i = 0
         for node in self.nodes_list:

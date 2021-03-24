@@ -28,6 +28,10 @@
 #include <map>
 #include <sstream>
 #include "sam_custom_messages/diagnostics.h"
+#include "robotiq_ft_sensor/ft_sensor.h"
+#include "robotiq_ft_sensor/sensor_accessor.h"
+
+ #include <moveit_msgs/ExecuteTrajectoryActionResult.h>
 
 using namespace std;
 
@@ -35,7 +39,13 @@ string objectString = "";
 bool robotMove = false;
 string gripper_state = "";
 namespace rvt = rviz_visual_tools;
-
+int robot_execute_code;
+double ft_readings [6];
+void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
+{
+    double data [] = {msg.Fx,msg.Fy,msg.Fz,msg.Mx,msg.My,msg.Mz};
+    std::copy(data, data + 6, ft_readings);
+}
 
 void robotMoveCallback(const std_msgs::String::ConstPtr& msg)
 {
@@ -59,6 +69,11 @@ void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
         gripper_state = msg->data; 
         cout << "Gripper State: " << gripper_state << endl;
     }
+}
+
+void robotExecuteCallback(const moveit_msgs::ExecuteTrajectoryActionResult::ConstPtr& msg)
+{
+    robot_execute_code = msg->result.error_code.val;
 }
 
 // Map high level position to joint angles as seen on teach pendant
@@ -123,8 +138,15 @@ class moveit_robot {
         ros::Publisher gripper_cmds_pub;
         ros::Subscriber gripper_feedback_sub;
 
+        ros::Subscriber robot_execute_sub;
+
         std_msgs::String  robot_status_msg;
         ros::Publisher robot_status_pub;
+
+        // Force sensor
+        ros::ServiceClient ft_client;
+        ros::Subscriber ft_sub1;
+        robotiq_ft_sensor::sensor_accessor ft_srv;
 
         moveit_robot(ros::NodeHandle* node_handle);
         void move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name);
@@ -197,6 +219,11 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     gripper_cmds_pub = nh_.advertise<std_msgs::String>("UR2Gripper", 1);
     gripper_feedback_sub = nh_.subscribe("Gripper2UR", 1, gripperStatusCallback);
     robot_status_pub = nh_.advertise<std_msgs::String>("RobotStatus", 1);
+
+    robot_execute_sub = nh_.subscribe("execute_trajectory/result", 1, robotExecuteCallback);
+
+    ft_client = nh_.serviceClient<robotiq_ft_sensor::sensor_accessor>("robotiq_ft_sensor_acc");
+    ft_sub1 = nh_.subscribe("robotiq_ft_sensor",100,ftSensorCallback);
 }
 
 void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name){
@@ -247,12 +274,13 @@ void moveit_robot::close_gripper(){
 void moveit_robot::z_move(double dist){
     //--Cartesian movement planning for straight down movement--//
     // dist is -ve down, +ve up in m
+    move_group.setStartState(*move_group.getCurrentState());
 
     geometry_msgs::Pose target_home = move_group.getCurrentPose().pose;
 
     geometry_msgs::Pose homeZPosition = move_group.getCurrentPose().pose;
 
-    move_group.setStartState(*move_group.getCurrentState());
+    //move_group.setStartState(*move_group.getCurrentState());
 
     // Vector to store the waypoints for the planning process
     std::vector<geometry_msgs::Pose> waypoints;
@@ -288,7 +316,25 @@ void moveit_robot::z_move(double dist){
     // Pull requests are welcome.
 
     // You can execute a trajectory like this.
-    move_group.execute(trajectory);
+    //move_group.execute(trajectory);
+    robot_execute_code = 0;
+    ft_srv.request.command_id = ft_srv.request.COMMAND_SET_ZERO;
+    if(ft_client.call(ft_srv)){
+        ROS_INFO("ret: %s", ft_srv.response.res.c_str());
+        ROS_INFO("I heard: FX[%f] FY[%f] FZ[%f] MX[%f] MY[%f] MZ[%f]", ft_readings[0], ft_readings[1], ft_readings[2], ft_readings[3], ft_readings[4], ft_readings[5]);
+    }
+
+    move_group.asyncExecute(trajectory);
+    double last = 0.0;
+    while ((ft_readings[2] > -3) && (robot_execute_code != 1))
+    {
+        if (abs(ft_readings[2]) > abs(last)){
+            last = ft_readings[2];
+            std::cout << ft_readings[2] << endl;
+        }
+    }
+    move_group.stop();
+    std::cout << ">> Robot code: " << robot_execute_code << "  Force: " << ft_readings[2] << "  Max: " << last << endl;
 }
 
 void pick_up_object(moveit_robot &Robot, double down_move_dist = 0.05)
@@ -402,6 +448,8 @@ int main(int argc, char** argv)
     ros::NodeHandle node_handle;
     ros::AsyncSpinner spinner(1);
     spinner.start();
+
+    // Diagnostics status publisher
     ros::Publisher diag_obj = node_handle.advertise<sam_custom_messages::diagnostics>("SystemStatus", 10);
     sam_custom_messages::diagnostics diag_msg;
     diag_msg.Header.stamp = ros::Time::now();
@@ -438,7 +486,6 @@ int main(int argc, char** argv)
     int stack_height = 0;
     while( ros::ok() )
     {
-        
             targetJoints.clear();
 
             // Ignore repeat requests
