@@ -39,6 +39,8 @@ find_package(catkin REQUIRED
     rospy
     std_msgs
     message_generation
+    sam_custom_messages
+    diagnostic_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -162,10 +164,10 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-#include_directories(
+include_directories(
 #  include
-#  ${catkin_INCLUDE_DIRS}
-#)
+  ${catkin_INCLUDE_DIRS}
+)
 
 #include_directories(SYSTEM ${THIS_PACKAGE_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIRS})

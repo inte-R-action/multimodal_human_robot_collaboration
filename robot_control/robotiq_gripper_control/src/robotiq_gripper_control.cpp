@@ -103,48 +103,69 @@ int main(int argc, char** argv)
 
     printf("==================================================\n");
     // reset the robotic gripper (needed to activate the robot)
-    outputControlValues.rACT = 0;
-    outputControlValues.rGTO = 0;
-    outputControlValues.rATR = 0;
-    outputControlValues.rPR = 0;
-    outputControlValues.rSP = 0;
-    outputControlValues.rFR = 0;
+    // outputControlValues.rACT = 0;
+    // //outputControlValues.rGTO = 0;
+    // //outputControlValues.rATR = 0;
+    // //outputControlValues.rPR = 0;
+    // //outputControlValues.rSP = 0;
+    // //outputControlValues.rFR = 0;
 
-    Robotiq2FGripperArgPub.publish(outputControlValues);
-    std::cout << "RESET GRIPPER" << std::endl;
+    // Robotiq2FGripperArgPub.publish(outputControlValues);
+    // std::cout << "RESET GRIPPER" << std::endl;
+    // // give some time the gripper to reset
+    // sleep(3);
 
-    // give some time the gripper to reset
-    sleep(3);
-
-
-    // activate the robotic gripper
+    // Activate Gripper
     outputControlValues.rACT = 1;
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    std::cout << "ACTIVATE GRIPPER" << std::endl;
+    sleep(2);
+
+
+    int gripperSpeed = 10;
+    int gripperForce = 255;//25;
+    int gripperPosition = 255;
+
     outputControlValues.rGTO = 1;
-    outputControlValues.rATR = 0;
-    outputControlValues.rPR = 0;
-    outputControlValues.rSP = 255;
-    outputControlValues.rFR = 150;
+    outputControlValues.rSP = gripperSpeed;
+    outputControlValues.rFR = gripperForce;
+    outputControlValues.rPR = gripperPosition;
 
     Robotiq2FGripperArgPub.publish(outputControlValues);
-    std::cout << "ACTIVATE GRIPPER" << std::endl; 
+    std::cout << "CLOSE GRIPPER" << std::endl; 
 
     // wait until the activation action is completed to continue with the next action
-    while( gripperStatus.gSTA != 3 )
+    while( gripperStatus.gOBJ != 3 && gripperStatus.gOBJ != 2 )
     {
-        printf("IN PROGRESS: gSTA [%d]\n", gripperStatus.gSTA);
+        printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+        usleep(100000);
+    }
+    printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
+
+    outputControlValues.rGTO = 0;
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    sleep(1);
+
+    // open the gripper to the maximum value of rPR = 0
+    outputControlValues.rGTO = 1;
+    outputControlValues.rSP = 255;
+    outputControlValues.rFR = gripperForce;
+    outputControlValues.rPR = 0;
+
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    std::cout << "OPEN GRIPPER" << std::endl; 
+
+    // wait until the activation action is completed to continue with the next action
+    while( gripperStatus.gOBJ != 3 )
+    {
+        printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
         usleep(100000);
     }
 
-    printf("COMPLETED: gSTA [%d]\n", gripperStatus.gSTA);
-    sleep(1);
-
-
-    int gripperSpeed = 20;
-    int gripperForce = 25;
-    int gripperPosition = 255;
+    printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
 
     std_msgs::String msg;
-    std::stringstream ss;
+    //std::stringstream ss;
 
     while( ros::ok() )
     {
@@ -159,7 +180,7 @@ int main(int argc, char** argv)
         outputControlValues.rGTO = 0;
 
         Robotiq2FGripperArgPub.publish(outputControlValues);
-        std::cout << "STANDBY GRIPPER" << std::endl; 
+        //std::cout << "STANDBY GRIPPER" << std::endl; 
         sleep(1);
 
         if( gripper_action == "grasp" )
@@ -190,6 +211,7 @@ int main(int argc, char** argv)
                 msg.data = "grasp_completed";
                 gripperStatusPub.publish(msg);
             }
+            printf("Acknowledge from UR received \n");
 
         }
         else if( gripper_action == "release" )
@@ -197,7 +219,7 @@ int main(int argc, char** argv)
             // open the gripper to the maximum value of rPR = 0
             // rGTO = 1 allows the robot to perform an action
             outputControlValues.rGTO = 1;
-            outputControlValues.rSP = gripperSpeed;
+            outputControlValues.rSP = 255;
             outputControlValues.rFR = gripperForce;
             outputControlValues.rPR = 0;
 
@@ -220,11 +242,12 @@ int main(int argc, char** argv)
                 msg.data = "release_completed";
                 gripperStatusPub.publish(msg);
             }
-        }
-        else if ( gripper_action == "completion acknowledged" )
-        {
             printf("Acknowledge from UR received \n");
         }
+        //else if ( gripper_action == "completion acknowledged" )
+        //{
+        //   printf("Acknowledge from UR received \n");
+        //}
         else
         {
             // keep current configuration
@@ -238,6 +261,7 @@ int main(int argc, char** argv)
             diag_msg.Header.seq++;
             diag_obj.publish(diag_msg);
             diag_timeout = ros::Time::now();
+            std::cout << "STANDBY GRIPPER" << std::endl;
         }
     }
 

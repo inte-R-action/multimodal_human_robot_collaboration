@@ -14,6 +14,7 @@
  *********************************************************************************
  */
 
+//#include <moveit_core/robot_trajectory.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/DisplayRobotState.h>
@@ -171,7 +172,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     visual_tools.loadRemoteControl();
 
     // RViz provides many types of markers, in this demo we will use text, cylinders, and spheres
-//    Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
+    //Eigen::Affine3d text_pose = Eigen::Affine3d::Identity();
     //Eigen::Isometry3d 
     text_pose = Eigen::Isometry3d::Identity();
     text_pose.translation().z() = 1.75;
@@ -272,6 +273,7 @@ void moveit_robot::close_gripper(){
 }
 
 void moveit_robot::z_move(double dist){
+
     //--Cartesian movement planning for straight down movement--//
     // dist is -ve down, +ve up in m
     move_group.setStartState(*move_group.getCurrentState());
@@ -286,8 +288,7 @@ void moveit_robot::z_move(double dist){
     std::vector<geometry_msgs::Pose> waypoints;
     // Stores the first target pose or waypoint
     geometry_msgs::Pose target_pose3 = target_home;
-    // Decrements current X position by BACKWARD_MOVE*3
-//        target_pose3.position.y = target_pose3.position.y - yHomePosition[k];
+
     target_pose3.position.z = target_pose3.position.z + dist;
     waypoints.push_back(target_pose3);
 
@@ -315,8 +316,35 @@ void moveit_robot::z_move(double dist){
     // the trajectory manually, as described [here](https://groups.google.com/forum/#!topic/moveit-users/MOoFxy2exT4).
     // Pull requests are welcome.
 
+    // The trajectory needs to be modified so it will include velocities as well.
+    // First to create a RobotTrajectory object
+    robot_trajectory::RobotTrajectory rt(move_group.getCurrentState()->getRobotModel(), PLANNING_GROUP);
+
+    // Second get a RobotTrajectory from trajectory
+    rt.setRobotTrajectoryMsg(*move_group.getCurrentState(), trajectory);
+     
+    // Thrid create a IterativeParabolicTimeParameterization object
+    trajectory_processing::IterativeParabolicTimeParameterization iptp;
+    // Fourth compute computeTimeStamps
+    double max_velocity_scale_factor;
+    if (dist < 0){
+        max_velocity_scale_factor = 0.1;
+    }
+    else{
+        max_velocity_scale_factor = 1;
+    }
+    bool success = iptp.computeTimeStamps(rt, max_velocity_scale_factor);
+    ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
+    // Get RobotTrajectory_msg from RobotTrajectory
+    rt.getRobotTrajectoryMsg(trajectory);
+    // Check trajectory_msg for velocities not empty
+    //std::cout << trajectory << std::endl;
+
+    plan.trajectory_ = trajectory;
+    ROS_INFO("Visualizing plan 4 (cartesian path) (%.2f%% acheived)",fraction * 100.0);   
+    //move_group.execute(plan);
+
     // You can execute a trajectory like this.
-    //move_group.execute(trajectory);
     robot_execute_code = 0;
     ft_srv.request.command_id = ft_srv.request.COMMAND_SET_ZERO;
     if(ft_client.call(ft_srv)){
@@ -324,17 +352,31 @@ void moveit_robot::z_move(double dist){
         ROS_INFO("I heard: FX[%f] FY[%f] FZ[%f] MX[%f] MY[%f] MZ[%f]", ft_readings[0], ft_readings[1], ft_readings[2], ft_readings[3], ft_readings[4], ft_readings[5]);
     }
 
-    move_group.asyncExecute(trajectory);
-    double last = 0.0;
-    while ((ft_readings[2] > -3) && (robot_execute_code != 1))
-    {
-        if (abs(ft_readings[2]) > abs(last)){
-            last = ft_readings[2];
-            std::cout << ft_readings[2] << endl;
+    if (dist < 0){
+        move_group.asyncExecute(plan);
+        double last = 0.0;
+        while ((ft_readings[2] > -3) && (robot_execute_code != 1))
+        {
+            if (abs(ft_readings[2]) > abs(last)){
+                last = ft_readings[2];
+                std::cout << ft_readings[2] << endl;
+            }
         }
+        move_group.stop();
+        string execute_result = "unknown";
+        if (robot_execute_code == 1){
+            execute_result = "Complete";
+        }
+        else if (robot_execute_code == 0){
+            execute_result = "Force Stop";
+        }
+        std::cout << ">> Robot code: " << robot_execute_code << " (" << execute_result << ")  Force: " << ft_readings[2] << "  Max: " << last << endl;
+
     }
-    move_group.stop();
-    std::cout << ">> Robot code: " << robot_execute_code << "  Force: " << ft_readings[2] << "  Max: " << last << endl;
+    else{
+        move_group.execute(plan);
+    }
+
 }
 
 void pick_up_object(moveit_robot &Robot, double down_move_dist = 0.05)
