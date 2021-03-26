@@ -538,11 +538,11 @@ int main(int argc, char** argv)
 
                 if ( objectString != "")
                 {
-                    if ( objectString != "home")
-                    {
-                        Robot.robot_status_msg.data = objectString;
-                        Robot.robot_status_pub.publish(Robot.robot_status_msg);
-                    }
+                    //if ( objectString != "home")
+                    //{
+                    Robot.robot_status_msg.data = objectString;
+                    Robot.robot_status_pub.publish(Robot.robot_status_msg);
+                    //}
 
                     if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
                     {          
@@ -564,8 +564,8 @@ int main(int argc, char** argv)
                     }
                     else
                     {
-                        Robot.robot_status_msg.data = "home";
-                        Robot.robot_status_pub.publish(Robot.robot_status_msg);
+                        //Robot.robot_status_msg.data = "home";
+                        //Robot.robot_status_pub.publish(Robot.robot_status_msg);
                         home(targetJoints, Robot);
                     }
                     Robot.robot_status_msg.data = "Done";

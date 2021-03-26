@@ -31,11 +31,12 @@ class future_predictor():
         self.fut_cols = ['user_id', 'user_name', 'task_name', 'current_action_no', 'est_t_remain', 'robo_task_t', 'robot_start_t', 'done']
         self.future_estimates = pd.DataFrame(columns=self.fut_cols)
         self.task_overview = None
-        self.robot_status = 'Starting'
+        self.robot_status = None
         self.robot_start_t = datetime.datetime.now().time()
         self.update_predictions()
         self.task_now = None
         self.action_no_now = None
+        self.done = False
 
     def user_prediction_callback(self, data):
         self.update_predictions()
@@ -86,25 +87,49 @@ class future_predictor():
         print(f"\nFuture Estimates:")
         print(self.future_estimates,"\n")
             
-    def robot_stat_callback(self, msg):
-        data = msg.data
-        if data != self.robot_status:
-            self.robot_status = data
-            print(f"robot stat callback: {data}")
-            date = datetime.date.today()
-            end_t = datetime.datetime.now().time()
-            dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
-            #print(type(str(self.robot_status)))
-
-            if (data != "Done") and (data != "Waiting"):
-                # Can publish new episode to sql
-                self.db.insert_data_list("Episodes", 
-                ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
-                [(date, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)])
-                self.task_now = None
-                self.action_no_now = None
-                self.robot_start_t = datetime.datetime.now().time()
+    # def robot_stat_callback(self, msg):
+    #     data = msg.data
+    #     if data != self.robot_status:
             
+    #         print(f"######################################robot stat callback: {data} {self.robot_status}")
+    #         date = datetime.date.today()
+    #         end_t = datetime.datetime.now().time()
+    #         dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
+    #         #print(type(str(self.robot_status)))
+
+    #         if (self.robot_status != "Done") and (self.robot_status != "Waiting") and (self.robot_status != None):
+    #             # Can publish new episode to sql
+    #             self.db.insert_data_list("Episodes", 
+    #             ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
+    #             [(date, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)])
+    #             self.task_now = None
+    #             self.action_no_now = None
+    #             self.robot_start_t = datetime.datetime.now().time()
+                
+    #         self.robot_status = data
+
+    def robot_stat_callback(self, msg):
+        print(f"######################################robot stat callback: {msg.data} {self.robot_status} {self.task_now} {self.action_no_now}")
+        if msg.data == 'Done':
+            self.update_episodic()
+            self.done = True
+
+        self.robot_status = msg.data
+
+    def update_episodic(self):
+        date = datetime.date.today()
+        end_t = datetime.datetime.now().time()
+        dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
+
+        if (self.robot_status != "Done") and (self.robot_status != "Waiting") and (self.robot_status != None):
+            # Can publish new episode to sql
+            self.db.insert_data_list("Episodes", 
+            ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
+            [(date, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)])
+            self.task_now = None
+            self.action_no_now = None
+
+
 class robot_solo_task():
     def __init__(self):
         self.db = database()
@@ -186,23 +211,37 @@ def robot_control_node():
                 print(f"action: {action}")
                 while predictor.robot_status != action:
                     move_obj.publish(action)
+                predictor.robot_start_t = datetime.datetime.now().time()
+                predictor.done = False
+                while not predictor.done:
+                    time.sleep(0.01)
                 predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
-                print(predictor.future_estimates)
+
             elif (row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished):
                 # if time to colb action > time to do solo action
                 predictor.task_now = robot_task.task_name
                 predictor.action_no_now = robot_task.next_action_id
+                print(f"Robot solo task {robot_task.next_action}")
                 while predictor.robot_status != robot_task.next_action:
                     move_obj.publish(robot_task.next_action)
+                predictor.robot_start_t = datetime.datetime.now().time()
+                predictor.done = False
+                while not predictor.done:
+                    time.sleep(0.01)
                 robot_task.update_progress()
-                print(f"Robot solo task {robot_task.next_action}")
+                
             else:
                 # else wait for next colab action
                 predictor.task_now = None
                 predictor.action_no_now = None
+                print(f"Sending robot home")
                 while predictor.robot_status != 'home':
                     move_obj.publish('home')
-                move_obj.publish('')
+                predictor.robot_start_t = datetime.datetime.now().time()
+                predictor.done = False
+                while not predictor.done:
+                    time.sleep(0.01)
+                # move_obj.publish('')
 
             diag_obj.publish(0, "Running")
             rospy.loginfo(f"{frame_id} active")

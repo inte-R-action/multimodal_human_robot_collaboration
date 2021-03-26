@@ -48,7 +48,7 @@ class database():
                 print('Connected! PostgreSQL database version:')    
                 print(db_version)
         except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
+            print(f"db connect error: {error}")
             if self.conn is not None:
                 self.conn.close()
                 print('Database connection closed.')
@@ -72,22 +72,27 @@ class database():
     def insert_data_list(self, table, columns, data):
         """ insert multiple data rows into table  
         table:str(table name), columns:[str(column name),], data:[('data1', data2, ),]"""
-        self.connect()
-
         data_ins = "%s" + (", %s"*(len(columns)-1))
         separator = ', '
         sql = f"INSERT INTO {table}({separator.join(columns)}) VALUES({data_ins})"
-        try:
-            # execute the INSERT statement
-            self.cur.executemany(sql, data)
-            # commit the changes to the database
-            self.conn.commit()
-            print(f"Data successfully inserted into {table} table")
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
-            raise
-        finally:
-            self.disconnect()
+        try_again = True
+        while try_again:
+            self.connect()
+            try:
+                # execute the INSERT statement
+                self.cur.executemany(sql, data)
+                # commit the changes to the database
+                self.conn.commit()
+                print(f"Data successfully inserted into {table} table")
+                self.disconnect()
+                break
+            except (Exception, psycopg2.DatabaseError) as error:
+                print(f"Insert db error: {error}")
+                print(f"Try again: {try_again}")
+                try_again = False
+                self.disconnect()
+                if not try_again:
+                    raise
     
     def csv_export(self, table, file_path=None, verbose=True):
         # https://kb.objectrocket.com/postgresql/from-postgres-to-csv-with-python-910
