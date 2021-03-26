@@ -56,16 +56,16 @@ class User:
         start_t = self._final_state_hist[-1, 2]
         end_t = self._final_state_hist[-1, 3]
         dur = end_t - start_t
-        capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+        action_name = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
          # Can publish new episode to sql
         self.db.insert_data_list("Episodes", 
-        ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
-        [(date, start_t, end_t, dur, 0, "R", capability, int(self.task_data.loc[self.curr_task_no]['action_no']))])
+        ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
+        [(date, start_t, end_t, dur, self.id, "R", self.task, action_name, int(self.task_data.loc[self.curr_task_no]['action_no']))])
 
         
     def update_robot_progress(self):
-        capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+        action_name = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
         try:
             # Get next row where action not completed
@@ -77,7 +77,7 @@ class User:
                     if self.task_data.iloc[next_action_row_i]["user_type"] == "robot":
                         col_names, actions_list = self.db.query_table('Episodes', 'all')
                         episodes = pd.DataFrame(actions_list, columns=col_names)
-                        if self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.capability.values:
+                        if self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.action_name.values:
                             self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
                             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
                         else:
@@ -94,7 +94,7 @@ class User:
             return "finished"
 
     def update_progress(self):
-        capability = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+        action_name = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
         try:
             # Get next row where action not completed
@@ -123,11 +123,11 @@ class User:
 
         # Check next action for user matches action completed
         next_action_expected = self.task_data.iloc[next_action_row_i]["action_name"]
-        if capability == next_action_expected:
+        if action_name == next_action_expected:
             self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
         else:
-            print(f"Updated user capability ({capability}) is not next expected ({next_action_expected})")
+            print(f"Updated user action ({action_name}) is not next expected ({next_action_expected})")
 
         self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
 

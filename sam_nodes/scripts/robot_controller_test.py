@@ -42,7 +42,7 @@ def test_robot_control_node():
             data_ins = "%s" + (", %s"*(len(col_names)-1))
             separator = ', '
             sql_cmd = f"""INSERT INTO current_actions ({separator.join(col_names)})
-            VALUES (0, 'N/A', '{time}', '{task_name}', {int(task_data.loc[i]['action_no'])}, '{time}') 
+            VALUES (1, 'unknown', '{time}', '{task_name}', {int(task_data.loc[i]['action_no'])}, '{time}') 
             ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{task_name}', current_action_no={int(task_data.loc[i]['action_no'])}, start_time='{time}';"""
             db.gen_cmd(sql_cmd)
 

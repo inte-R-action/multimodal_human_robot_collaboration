@@ -34,6 +34,8 @@ class future_predictor():
         self.robot_status = 'Starting'
         self.robot_start_t = datetime.datetime.now().time()
         self.update_predictions()
+        self.task_now = None
+        self.action_no_now = None
 
     def user_prediction_callback(self, data):
         self.update_predictions()
@@ -97,9 +99,10 @@ class future_predictor():
             if (data != "Done") and (data != "Waiting"):
                 # Can publish new episode to sql
                 self.db.insert_data_list("Episodes", 
-                ["date", "start_t", "end_t", "duration", "user_id", "hand", "capability", "task_id"], 
-                [(date, self.robot_start_t, end_t, dur, 0, '-', str(self.robot_status), 0)])
-
+                ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
+                [(date, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)])
+                self.task_now = None
+                self.action_no_now = None
                 self.robot_start_t = datetime.datetime.now().time()
             
 class robot_solo_task():
@@ -178,6 +181,8 @@ def robot_control_node():
             if (row['robot_start_t'][0] < pd.Timedelta(0)) and (row['done'][0]==False):
                 # if time to next colab < action time start colab action
                 action = predictor.task_overview.loc[row['current_action_no']]['action_name'].values[0]
+                predictor.task_now = row['task_name'][0]
+                predictor.action_no_now = row['current_action_no'][0]
                 print(f"action: {action}")
                 while predictor.robot_status != action:
                     move_obj.publish(action)
@@ -185,12 +190,18 @@ def robot_control_node():
                 print(predictor.future_estimates)
             elif (row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished):
                 # if time to colb action > time to do solo action
+                predictor.task_now = robot_task.task_name
+                predictor.action_no_now = robot_task.next_action_id
                 while predictor.robot_status != robot_task.next_action:
                     move_obj.publish(robot_task.next_action)
                 robot_task.update_progress()
                 print(f"Robot solo task {robot_task.next_action}")
             else:
                 # else wait for next colab action
+                predictor.task_now = None
+                predictor.action_no_now = None
+                while predictor.robot_status != 'home':
+                    move_obj.publish('home')
                 move_obj.publish('')
 
             diag_obj.publish(0, "Running")

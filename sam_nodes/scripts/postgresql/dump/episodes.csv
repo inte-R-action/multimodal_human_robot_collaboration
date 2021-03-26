@@ -1,1 +1,9 @@
-episode_id,date,start_t,end_t,duration,user_id,hand,capability,task_id
+episode_id,date,start_t,end_t,duration,user_id,hand,task_name,action_name,action_no
+1,2021-03-26,14:16:56.154739,14:16:56.695531,00:00:00.540792,0,-,assemble_box,bring_side_1,0
+2,2021-03-26,14:16:56.733562,14:17:57.174071,00:01:00.440509,0,-,stack_tower,home,0
+4,2021-03-26,00:08:09,00:08:37,00:00:28,0,R,assemble_box,null,1
+5,2021-03-26,14:18:13.319397,14:19:29.569266,00:01:16.249869,0,-,stack_tower,home,1
+6,2021-03-26,14:19:29.634303,14:19:45.173391,00:00:15.539088,0,-,,stack_yellow_small_block,
+7,2021-03-26,00:08:38,00:08:57,00:00:19,0,R,assemble_box,screw_in,1
+8,2021-03-26,00:08:57,00:09:01,00:00:04,0,R,assemble_box,null,2
+9,2021-03-26,14:19:45.2268,14:20:36.878617,00:00:51.651817,0,-,stack_tower,home,2

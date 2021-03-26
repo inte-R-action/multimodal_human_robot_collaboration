@@ -15,3 +15,4 @@ action_id,action_name,std_dur_s,user_type
 13,stack_green_small_block,10,robot
 14,stack_orange_small_block,10,robot
 15,remove_stack,25,robot
+16,home,10,robot

@@ -19,7 +19,7 @@ from std_msgs.msg import String
 from postgresql.database_funcs import database
 import os
 import pandas as pd
-import ttk
+from tkinter import ttk
 
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
@@ -340,7 +340,7 @@ class GUI:
             # Check node has had initial reading
             if node[1].update_time is not None:
                 # Time out on node status
-                if (time.time() - node[1].update_time) > 3:
+                if (time.time() - node[1].update_time) > 5:
                     node[1].status = 3
                 colour = "grey"
                 if node[1].status == 0:

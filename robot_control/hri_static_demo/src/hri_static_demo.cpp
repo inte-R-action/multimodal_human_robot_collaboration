@@ -418,7 +418,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     set_down_object(Robot, 0.03);
 
     // Return to home position
-    home(targetJoints, Robot);
+    //home(targetJoints, Robot);
 }
 
 void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
@@ -438,7 +438,7 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
     set_down_object(Robot, 0.03);
 
     // Return to home
-    home(targetJoints, Robot);
+    //home(targetJoints, Robot);
 }
 
 void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
@@ -457,7 +457,7 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
     set_down_object(Robot, z_move);
 
     // Return to home position
-    home(targetJoints, Robot);
+    //home(targetJoints, Robot);
 }
 
 void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
@@ -478,7 +478,7 @@ void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Ro
     set_down_object(Robot, z_move);
 
     // Return to home
-    home(targetJoints, Robot);
+    //home(targetJoints, Robot);
 }
 
 
@@ -538,7 +538,7 @@ int main(int argc, char** argv)
 
                 if ( objectString != "")
                 {
-                    if ( objectString != "Home")
+                    if ( objectString != "home")
                     {
                         Robot.robot_status_msg.data = objectString;
                         Robot.robot_status_pub.publish(Robot.robot_status_msg);
@@ -564,7 +564,7 @@ int main(int argc, char** argv)
                     }
                     else
                     {
-                        Robot.robot_status_msg.data = "Home";
+                        Robot.robot_status_msg.data = "home";
                         Robot.robot_status_pub.publish(Robot.robot_status_msg);
                         home(targetJoints, Robot);
                     }
