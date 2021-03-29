@@ -158,7 +158,6 @@ def realsense_run():
             #image = scale(bg_removed)
 
             if  (time.time()-diag_timer) > 1:
-                print(time.time())
                 if not test:
                     diag_obj.publish(0, f"Running")
                 diag_timer = time.time()
@@ -211,7 +210,7 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
-                    default='unknown',
+                    default='N/A',
                     action="store_true")
     parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',

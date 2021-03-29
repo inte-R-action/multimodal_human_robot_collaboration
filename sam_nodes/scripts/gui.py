@@ -14,7 +14,7 @@ from PIL import Image, ImageTk
 import rospy
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, move_class
-from sam_custom_messages.msg import user_prediction, capability, diagnostics, current_action
+from sam_custom_messages.msg import user_prediction, capability, diagnostics, current_action, screw_count
 from std_msgs.msg import String
 from postgresql.database_funcs import database
 import os
@@ -46,6 +46,7 @@ class user_frame:
         self.task_data = None
         self.status = "unknown"
         self.current_action_no = None
+        self.screw_counts = [None, None]
 
         self.fig = Figure()
         self.ax = self.fig.subplots(1, 1)
@@ -61,9 +62,16 @@ class user_frame:
         self.user_frame.grid(row=0, column=self.no, sticky=Tk.N + Tk.S)
 
         # User Details
-        self.user_deets = Tk.Text(master=self.user_frame, height=5)
-        self.user_deets.grid(row=0, column=0, columnspan=3)
+        self.user_deets = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
+        #self.user_deets.tag_configure("center", justify='center')
+        self.user_deets.grid(row=0, column=0, columnspan=2, sticky="nsew")
         self.update_user_deets()
+
+        # Screw counter
+        self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=1, font=('', 12))
+        self.screw_count_txt.tag_configure("center", justify='center')
+        self.screw_count_txt.grid(row=0, column=2, sticky="nsew")
+        self.update_screw_count_txt()
 
         # Graph area for current predictions
         # A tk.DrawingArea.
@@ -90,21 +98,21 @@ class user_frame:
 
         # Remove User button
         self.remove_user_button = Tk.Button(
-            master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, height=1)
+            master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, width=1, height=1)
         self.remove_user_button.grid(
-            row=3, column=0, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+            row=3, column=0, sticky='nsew')
 
         # Change Task button
         self.change_task_button = Tk.Button(
-            master=self.user_frame, text="Change Task", command=self.change_task, bg="blue", padx=50, pady=20, height=1)
+            master=self.user_frame, text="Change Task", command=self.change_task, bg="blue", padx=50, pady=20, width=1, height=1)
         self.change_task_button.grid(
-            row=3, column=1, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+            row=3, column=1, sticky='nsew')
 
         # Restart Task button
         self.restart_task_button = Tk.Button(
-            master=self.user_frame, text="Restart Task", command=self.restart_task, bg="green", padx=50, pady=20, height=1)
+            master=self.user_frame, text="Restart Task", command=self.restart_task, bg="green", padx=50, pady=20, width=1, height=1)
         self.restart_task_button.grid(
-            row=3, column=2, sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+            row=3, column=2, sticky='nsew')
 
         # Adjust spacing of objects
         self.user_frame.grid_columnconfigure(0, weight=1)
@@ -127,15 +135,24 @@ class user_frame:
     def restart_task(self):
         pass
 
+    def update_screw_count_txt(self):
+        text = f"\nScrew Counts \n" \
+               f"  Now: {self.screw_counts[0]} \n" \
+               f"  Last: {self.screw_counts[1]} \n"
+
+        self.screw_count_txt.delete("1.0", Tk.END)
+        self.screw_count_txt.insert(Tk.INSERT, text)
+        #self.screw_count_txt.tag_add("center", "1.0", "end")
+
     def update_user_deets(self):
-        text = f"Name: {self.name} \n " \
-               f"Id: {self.id} \n " \
-               f"Task: {self.task_name} \n " \
-               f"Status: {self.status} \n "
+        text = f" Name: {self.name} \n" \
+               f"       Id: {self.id} \n" \
+               f"  Task: {self.task_name} \n" \
+               f"Status: {self.status} \n"
 
         self.user_deets.delete("1.0", Tk.END)
         self.user_deets.insert(Tk.INSERT, text)
-        pass
+        #self.user_deets.tag_add("center", "1.0", "end")
 
     def load_task_data(self):
         self.col_names, actions_list = self.db.query_table(self.task_name, 'all')
@@ -335,12 +352,13 @@ class GUI:
 
     def update_gui(self):
 
+        # Update node status indicators
         i = 0
         for node in self.nodes_list:
             # Check node has had initial reading
             if node[1].update_time is not None:
                 # Time out on node status
-                if (time.time() - node[1].update_time) > 5:
+                if (time.time() - node[1].update_time) > 10:
                     node[1].status = 3
                 colour = "grey"
                 if node[1].status == 0:
@@ -356,7 +374,9 @@ class GUI:
                 node[1].indicator.config(bg=colour)
             i += 1
 
+        
         if [node[1].status for node in self.nodes_list if node[1].name == 'Database_node'][0] == 0:
+            # Update user action tasks
             col_names, actions_list = self.db.query_table('current_actions', 'all')
             current_data = pd.DataFrame(actions_list, columns=col_names)
             for _, row in current_data.iterrows():
@@ -371,18 +391,29 @@ class GUI:
                         if self.users[user_i].current_action_no is not None:
                             self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
                         self.users[user_i].current_action_no = row['current_action_no']
-
+            
+            # Update robot actions
             self.load_task_data()
             self.tasks.delete(*self.tasks.get_children())
             for index, row in self.task_data.iterrows():
                 self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
+        # Update user screw counts
+        for user in self.users:
+            user.update_screw_count_txt()
+
+        # Update robot status text
         self.robot_stats.delete("1.0", Tk.END)
         self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
-
+        # Update robot move cmd text
         self.robot_move.delete("1.0", Tk.END)
         self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
+        self.root.grid_columnconfigure(0, weight=1)
+        for i in range(len(self.users)):
+            self.root.grid_columnconfigure(i+1, weight=1)
+
+        # Update gui
         self.root.update_idletasks()
         self.root.update()
 
@@ -410,6 +441,13 @@ class GUI:
     def update_robot_move(self, data):
         self.robot_move_text = f"Robot Move Cmd: {data.data}"
 
+    def update_screw_count(self, data):
+        for user in self.users:
+            if data.UserId == user.id:
+                if user.name != data.UserName:
+                    print(f"ERROR: users list name {user.name} does not match screw_count msg name {data.UserName}")
+                else:
+                    user.screw_counts = [data.ScrewCount, data.LastScrewCount]
 
 def run_gui():
     # Run GUI
@@ -419,6 +457,7 @@ def run_gui():
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
     rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)
     rospy.Subscriber('RobotMove', String, gui.update_robot_move)
+    rospy.Subscriber('ScrewCounts', screw_count, gui.update_screw_count)
 
     while not rospy.is_shutdown():
         gui.update_gui()

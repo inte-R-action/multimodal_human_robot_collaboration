@@ -28,14 +28,15 @@ args = parser.parse_known_args()[0]
 
 database_stat = 1
 shimmer_stat = 1
+imrecog_stat = 1
 
-def setup_user(users, frame_id, task, name=None):
+def setup_user(users, frame_id, task, name=None, use_vision=True):
 
     id = len(users)+1
     if name is None:
         name = "unknown"
     
-    users.append(User(name, id, frame_id))
+    users.append(User(name, id, frame_id, use_vision))
 
     db = database()
     time = datetime.datetime.utcnow()
@@ -82,9 +83,13 @@ def current_action_callback(data, users):
 def sys_stat_callback(data, users):
     global database_stat
     global shimmer_stat
+    global imrecog_stat
 
     if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
+
+    if data.Header.frame_id == f'Realsense_node':
+        imrecog_stat = data.DiagnosticStatus.level
 
     if users:
         for i in range(len(users)):
@@ -112,8 +117,19 @@ def users_node():
         time.sleep(0.5)
 
     task = 'assemble_box'
+    use_vision = True
+    if use_vision:
+        global imrecog_stat
+        # Wait for postgresql node to be ready
+        while imrecog_stat != 0 and not rospy.is_shutdown():
+            print(f"Waiting for imrecog_stat node status, currently {imrecog_stat}")
+            diag_obj.publish(1, "Waiting for imrecog_stat node")
+            time.sleep(0.5)
+
     for name in args.user_names:
-        users = setup_user(users, frame_id, task, name)
+        users = setup_user(users, frame_id, task, name, use_vision)
+
+    timer = time.time()
 
     global shimmer_stat
     # Wait for postgresql node to be ready
@@ -125,6 +141,12 @@ def users_node():
     
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
+
+    # Get first reading for screw counters, need to wait for good readings
+    while time.time() - timer < 5:
+        time.sleep(0.5)
+    for user in users:
+        user.screw_counter.next_screw()
 
     rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():

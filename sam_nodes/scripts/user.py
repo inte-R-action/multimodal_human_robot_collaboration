@@ -9,12 +9,13 @@ import matplotlib.pyplot as plt
 from postgresql.database_funcs import database
 from pub_classes import capability_class
 import pandas as pd
+from vision_recognition.count_screws_table import screw_counter
 
 
 ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
 
 class User:
-    def __init__(self, name, id, frame_id):
+    def __init__(self, name, id, frame_id, use_vision=True):
         self._imu_pred = np.zeros(6) #class confs, t 
         self._imu_pred_hist = np.empty(6) #class confs, t 
         self._imu_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
@@ -25,17 +26,20 @@ class User:
         self.status = None
         self.name = name
         self.id = id
+        self.frame_id = f"{frame_id}_{self.name}"
         self.task_data = None
         self.task = None
         self.col_names = None
         self.db = database()
         self.shimmer_ready = 1
+        self.use_vision = use_vision
+        if self.use_vision:
+            self.screw_counter = screw_counter(self.frame_id, self.id, self.name)
 
         self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_task_no = 0
 
-        self.capability_obj = capability_class(frame_id=f"{frame_id}_{self.name}", user_id=self.id)
-        
+        self.capability_obj = capability_class(frame_id=self.frame_id, user_id=self.id)        
 
     def update_task(self, task):
 
@@ -89,7 +93,7 @@ class User:
                 self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
                 self.update_current_action_output()
 
-        except IndexError as e:
+        except IndexError:
             print(f"Looks like user {self.name} tasks are finished")
             return "finished"
 
@@ -100,23 +104,6 @@ class User:
             # Get next row where action not completed
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
-            # Assume non-user actions are completed
-            # while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
-            #     if self.task_data.iloc[next_action_row_i]["user_type"] == "robot":
-            #         col_names, actions_list = self.db.query_table('Episodes', 'all')
-            #         episodes = pd.DataFrame(actions_list, columns=col_names)
-            #         print(f"episodes: {episodes.capability.values}")
-            #         print(f"action: {self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc('action_name')]}")
-            #         print(self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.capability.values)
-            #         if self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("action_name")] in episodes.capability.values:
-            #             self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
-            #             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
-            #         else:
-            #             return "continuing"
-            #     else:
-            #         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
-            #         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
-
         except IndexError:
             print(f"Looks like user {self.name} tasks are finished")
             return "finished"
@@ -124,8 +111,18 @@ class User:
         # Check next action for user matches action completed
         next_action_expected = self.task_data.iloc[next_action_row_i]["action_name"]
         if action_name == next_action_expected:
-            self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
-            next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+            ############ Vision Recognition Check Here #################
+            if self.use_vision and (action_name == 'screw_in'):
+                self.screw_counter.count_screws()
+                if (self.screw_counter.screw_ave_last > self.screw_counter.screw_ave):
+                    self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+                    next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+                    self.screw_counter.next_screw()
+                else:
+                    print(f"Screw task correctly recognised but last screw is {self.screw_counter.screw_ave_last} and now is {self.screw_counter.screw_ave}")
+            else:
+                self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+                next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
         else:
             print(f"Updated user action ({action_name}) is not next expected ({next_action_expected})")
 

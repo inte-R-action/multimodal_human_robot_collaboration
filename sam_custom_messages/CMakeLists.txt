@@ -62,6 +62,7 @@ add_message_files(
   robot_state.msg
   user_prediction.msg
   robot_move.msg
+  screw_count.msg
 )
 
 ## Generate services in the 'srv' folder

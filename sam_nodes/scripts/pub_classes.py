@@ -2,11 +2,11 @@
 
 import rospy
 from std_msgs.msg import String 
-from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability
+from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability, screw_count
 from diagnostic_msgs.msg import KeyValue
 
 class diag_class:
-    def __init__(self, frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=[]):
+    def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1, keyvalues=[]):
         # frame_id=str, user_id=int, user_name=str, queue=int, keyvalues=list of KeyValue items
         # Diagnostic message definitions
         self.diag_msg = diagnostics()
@@ -80,7 +80,7 @@ class obj_class:
             self.publisher.publish(self.obj_msg)
 
 class act_class:
-    def __init__(self, frame_id, user_id=0, user_name="N/A", queue=1):
+    def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1):
         # frame_id=str, user_id=int, user_name=str, queue=int
         # Current action message definitions
         self.act_msg = current_action()
@@ -131,7 +131,7 @@ class move_class:
         self.publisher.publish(command)
 
 class future_class:
-    def __init__(self, frame_id, user_id=0, queue=1):
+    def __init__(self, frame_id, user_id=1, queue=1):
         # frame_id=str, queue=int
         # Current action message definitions
         self.future_msg = user_prediction()
@@ -156,7 +156,7 @@ class future_class:
         self.publisher.publish(self.future_msg)
 
 class capability_class:
-    def __init__(self, frame_id, user_id=0, queue=1):
+    def __init__(self, frame_id, user_id=1, queue=1):
         # frame_id=str, queue=int
         # Current action message definitions
         self.capability_msg = capability()
@@ -191,3 +191,31 @@ class capability_class:
         self.capability_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.capability_msg)
+
+class screw_count_class:
+    def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1):
+        # frame_id=str, user_id=int, user_name=str, queue=int
+        # Screw counts message definitions
+        self.screw_msg = screw_count()
+        self.screw_msg.Header.stamp = rospy.get_rostime()
+        self.screw_msg.Header.seq = None
+        self.screw_msg.Header.frame_id = frame_id
+        self.screw_msg.UserId = user_id
+        self.screw_msg.UserName = user_name
+        self.screw_msg.ScrewCount = 0
+        self.screw_msg.LastScrewCount = 0
+
+        self.publisher = rospy.Publisher('ScrewCounts', screw_count, queue_size=queue)
+
+    def publish(self, count_now, count_last):
+        # count_now=int, count_last=int
+        if self.screw_msg.Header.seq is None:
+            self.screw_msg.Header.seq = 0
+        else:
+            self.screw_msg.Header.seq += 1
+        
+        self.screw_msg.ScrewCount = count_now
+        self.screw_msg.LastScrewCount = count_last
+        self.screw_msg.Header.stamp = rospy.get_rostime()
+
+        self.publisher.publish(self.screw_msg)

@@ -141,13 +141,19 @@ class classifier():
                         dist_mat = np.around(np.nan_to_num(depth_image[xyxy[1].int():xyxy[3].int(), xyxy[0].int():xyxy[2].int()]), decimals=3)
                         dist_mat = np.reshape(dist_mat, (-1,))
                         dist_mat = np.ma.masked_equal(dist_mat, 0)
-                        dist.append(np.nanmean(dist_mat))
+                        #dist.append(np.nanmean(dist_mat))
+                        #dist.append(np.mean(dist_mat))
+                        #dist.append(np.ma.mean(dist_mat))
+                        dist.append(dist_mat.mean())
                     else:
                         dist.append(0)
 
-                    print(self.names[int(cls)], conf, dist[-1])
-                    if math.isnan(dist[-1]) == False:
-                        dist[-1] = round(dist[-1], 2)
+                    #print(self.names[int(cls)], conf, dist[-1])
+                    if np.ma.is_masked(dist[-1]) == False:
+                        if math.isnan(dist[-1]) == False:
+                            dist[-1] = round(dist[-1], 2)
+                    else:      
+                        dist[-1] = float("nan")
                     label = '%s %.2f %s m' % (self.names[int(cls)], conf, dist[-1])
 
                     if save_txt:  # Write to file
@@ -166,10 +172,11 @@ class classifier():
                     plt.show(block=False)
                     plt.pause(0.0001)
 
-                dist = torch.reshape(torch.Tensor(dist), (-1, 1))
+                if dist:
+                    dist = torch.reshape(torch.Tensor(dist), (-1, 1))
                 det = torch.cat((det, dist), 1)
             # Print time (inference + NMS)
-            print('%sDone. (%.3fs)' % (s, t2 - t1))
+            #print('%sDone. (%.3fs)' % (s, t2 - t1))
 
             # Stream results
             if self.view_img:
@@ -199,7 +206,7 @@ class classifier():
             s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
             print(f"Results saved to {save_dir}{s}")
 
-        print('Done. (%.3fs)' % (time.time() - self.t0))
+        #print('Done. (%.3fs)' % (time.time() - self.t0))
 
         return im0, reversed(det)
 
