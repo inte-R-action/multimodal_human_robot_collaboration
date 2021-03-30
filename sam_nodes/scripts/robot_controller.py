@@ -190,6 +190,7 @@ def robot_control_node():
 
     rate = rospy.Rate(1) # 1hz
     db = database()
+    home = False
     while not rospy.is_shutdown():
         try:
             predictor.update_predictions()
@@ -204,6 +205,7 @@ def robot_control_node():
             row = predictor.future_estimates[predictor.future_estimates.robot_start_t == predictor.future_estimates.robot_start_t.min()]
 
             if (row['robot_start_t'][0] < pd.Timedelta(0)) and (row['done'][0]==False):
+                home = False
                 # if time to next colab < action time start colab action
                 action = predictor.task_overview.loc[row['current_action_no']]['action_name'].values[0]
                 predictor.task_now = row['task_name'][0]
@@ -218,6 +220,7 @@ def robot_control_node():
                 predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
 
             elif (row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished):
+                home = False
                 # if time to colb action > time to do solo action
                 predictor.task_now = robot_task.task_name
                 predictor.action_no_now = robot_task.next_action_id
@@ -230,7 +233,7 @@ def robot_control_node():
                     time.sleep(0.01)
                 robot_task.update_progress()
                 
-            else:
+            elif not home:
                 # else wait for next colab action
                 predictor.task_now = None
                 predictor.action_no_now = None
@@ -242,6 +245,7 @@ def robot_control_node():
                 while not predictor.done:
                     time.sleep(0.01)
                 # move_obj.publish('')
+                home = True
 
             diag_obj.publish(0, "Running")
             rospy.loginfo(f"{frame_id} active")

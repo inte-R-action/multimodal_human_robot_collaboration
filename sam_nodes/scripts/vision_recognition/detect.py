@@ -163,7 +163,7 @@ class classifier():
                             f.write(('%g ' * len(line)).rstrip() % line + '\n')
 
                     #if save_img or self.view_img:  # Add bbox to image
-                    plot_one_box(xyxy, im0, label=label, color=self.colors[int(cls)], line_thickness=3)
+                    plot_one_box(xyxy, im0, label=label, color=self.colors[int(cls)], line_thickness=1)
                 
                 if depth_histogram:
                     plt.cla()

@@ -89,10 +89,10 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["take_box"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
     joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
-    joint_positions["deliver_box"] = {-150.0, -62.90, 40.2, -61.2, -91.1, 0.0};
-    joint_positions["stack_red_small_block"] = {-100.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["stack_blue_small_block"] = {-80.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["stack_green_small_block"] = {-60.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["deliver_box"] = {130.0, -62.90, 40.2, -61.2, -91.1, 0.0};
+    joint_positions["stack_red_small_block"] = {-110.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["stack_blue_small_block"] = {-130.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["stack_green_small_block"] = {-150.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["stack_yellow_small_block"] = {-40.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["final_stack"] = {-20.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["remove_stack"] = {-170.0, -75.9, 49.1, -61.2, -91.1, 0.0};
@@ -219,7 +219,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
 
     gripper_cmds_pub = nh_.advertise<std_msgs::String>("UR2Gripper", 1);
     gripper_feedback_sub = nh_.subscribe("Gripper2UR", 1, gripperStatusCallback);
-    robot_status_pub = nh_.advertise<std_msgs::String>("RobotStatus", 1);
+    robot_status_pub = nh_.advertise<std_msgs::String>("RobotStatus", 10);
 
     robot_execute_sub = nh_.subscribe("execute_trajectory/result", 1, robotExecuteCallback);
 
@@ -562,7 +562,7 @@ int main(int argc, char** argv)
                         remove_blocks(targetJoints, Robot, stack_height);
                         stack_height = 0;
                     }
-                    else
+                    else if( objectString == "home" )
                     {
                         //Robot.robot_status_msg.data = "home";
                         //Robot.robot_status_pub.publish(Robot.robot_status_msg);

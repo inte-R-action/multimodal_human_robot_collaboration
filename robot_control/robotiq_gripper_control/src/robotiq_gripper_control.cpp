@@ -91,7 +91,7 @@ int main(int argc, char** argv)
     robotiq_2f_gripper_control::Robotiq2FGripper_robot_output outputControlValues;
 
     // connection of publisher and subscriber with the Robotiq controller from ROS Industrial
-    ros::Publisher Robotiq2FGripperArgPub = node_handle.advertise<robotiq_2f_gripper_control::Robotiq2FGripper_robot_output>("Robotiq2FGripperRobotOutput", 1);
+    ros::Publisher Robotiq2FGripperArgPub = node_handle.advertise<robotiq_2f_gripper_control::Robotiq2FGripper_robot_output>("Robotiq2FGripperRobotOutput", 10);
     ros::Subscriber Robotiq2FGripperStatusPub = node_handle.subscribe("Robotiq2FGripperRobotInput", 1000, gripperStatusCallback);
 
     ros::Publisher gripperStatusPub = node_handle.advertise<std_msgs::String>("Gripper2UR", 1000);
@@ -103,17 +103,17 @@ int main(int argc, char** argv)
 
     printf("==================================================\n");
     // reset the robotic gripper (needed to activate the robot)
-    // outputControlValues.rACT = 0;
-    // //outputControlValues.rGTO = 0;
-    // //outputControlValues.rATR = 0;
-    // //outputControlValues.rPR = 0;
-    // //outputControlValues.rSP = 0;
-    // //outputControlValues.rFR = 0;
+    outputControlValues.rACT = 0;
+    outputControlValues.rGTO = 0;
+    //outputControlValues.rATR = 0;
+    outputControlValues.rPR = 0;
+    outputControlValues.rSP = 0;
+    outputControlValues.rFR = 0;
 
-    // Robotiq2FGripperArgPub.publish(outputControlValues);
-    // std::cout << "RESET GRIPPER" << std::endl;
-    // // give some time the gripper to reset
-    // sleep(3);
+    Robotiq2FGripperArgPub.publish(outputControlValues);
+    std::cout << "RESET GRIPPER" << std::endl;
+    // give some time the gripper to reset
+    sleep(3);
 
     // Activate Gripper
     outputControlValues.rACT = 1;

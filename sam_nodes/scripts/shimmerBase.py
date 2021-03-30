@@ -54,7 +54,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--disp', '-V',
                     help='Enable displaying of live graphs',
-                    default=True,
+                    default=False,
                     action="store_true")
 
 parser.add_argument('--classify', '-C',
@@ -64,7 +64,7 @@ parser.add_argument('--classify', '-C',
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
-                    default=True,
+                    default=False,
                     action="store_true")
 
 parser.add_argument('--user_name', '-N',
@@ -544,7 +544,7 @@ def IMUsensorsMain():
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
     diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1, keyvalues=keyvalues)
 
-    act_obj = act_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
+    act_obj = act_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=10)
     
     prediction = np.zeros(5)
 

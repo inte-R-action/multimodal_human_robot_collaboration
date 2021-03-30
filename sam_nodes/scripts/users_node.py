@@ -117,7 +117,7 @@ def users_node():
         time.sleep(0.5)
 
     task = 'assemble_box'
-    use_vision = True
+    use_vision = False
     if use_vision:
         global imrecog_stat
         # Wait for postgresql node to be ready
@@ -142,11 +142,12 @@ def users_node():
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
 
-    # Get first reading for screw counters, need to wait for good readings
-    while time.time() - timer < 5:
-        time.sleep(0.5)
-    for user in users:
-        user.screw_counter.next_screw()
+    if use_vision:
+        # Get first reading for screw counters, need to wait for good readings
+        while time.time() - timer < 5:
+            time.sleep(0.5)
+        for user in users:
+            user.screw_counter.next_screw()
 
     rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():
