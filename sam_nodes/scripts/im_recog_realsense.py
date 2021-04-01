@@ -12,7 +12,8 @@ from vision_recognition.detect import classifier
 import torch
 import matplotlib
 matplotlib.use( 'tkagg' )
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
+from vision_recognition.finger_count import skinmask, getcnthull
 
 try:
     from pub_classes import diag_class, obj_class
@@ -132,16 +133,26 @@ def realsense_run():
             frames = cam.pipeline.wait_for_frames()
 
             if args.depth:
-                color_image, depth_colormap, depth_image = cam.depth_frames(frames)
+                color_image_raw, depth_colormap, depth_image = cam.depth_frames(frames)
             else:
-                color_image = cam.colour_frames(frames)
+                color_image_raw = cam.colour_frames(frames)
 
             if args.classify:
                 try:
                     if args.depth:
-                        color_image, det = im_classifier.detect(color_image, depth_image, depth_histogram=False)
+                        color_image, det = im_classifier.detect(color_image_raw, depth_image, depth_histogram=False)
                     else:
-                        color_image, det = im_classifier.detect(color_image, None)
+                        color_image, det = im_classifier.detect(color_image_raw, None)
+
+                    try:
+                        mask_img = skinmask(color_image_raw)
+                        contours, hull = getcnthull(mask_img)
+                        if cv2.contourArea(contours) > 1500:
+                            det = torch.cat((det, torch.tensor([[0, 0, 0, 0, 1, 10, 0]])))
+                            #cv2.drawContours(img, [contours], -1, (255,255,0), 2)
+                            cv2.drawContours(color_image, [hull], -1, (0, 255, 255), 2)
+                    except Exception as e:
+                        pass
 
                     if not test:
                         obj_obj.publish(det)
@@ -175,6 +186,8 @@ def realsense_run():
 
         #im_screw_states, tally = im_screw_detect.detect_screws(image, args.disp)
         #im_screw_states = im_screw_states.tolist()
+        
+
         if args.disp:
             if args.depth:
                 disp_im = np.hstack((color_image, depth_colormap))

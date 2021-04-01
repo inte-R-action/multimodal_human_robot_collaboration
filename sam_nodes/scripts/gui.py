@@ -169,8 +169,7 @@ class user_frame:
         self.ax.set_ylim([0, 1])
         self.ax.set_title('Current IMU Prediction')
 
-        plt.pause(0.0001)
-
+        plt.pause(0.00001)
 
 class node_indicator:
     def __init__(self, node_name, master, i):
@@ -401,6 +400,12 @@ class GUI:
         # Update user screw counts
         for user in self.users:
             user.update_screw_count_txt()
+            try:
+                user.canvas.draw()
+            except:
+                pass
+            # user.user_frame.update_idletasks()
+            # user.user_frame.update()
 
         # Update robot status text
         self.robot_stats.delete("1.0", Tk.END)
@@ -414,11 +419,10 @@ class GUI:
             self.root.grid_columnconfigure(i+1, weight=1)
 
         # Update gui
-        self.root.update_idletasks()
+        # self.root.update_idletasks()
         self.root.update()
 
     def update_actions(self, data):
-
         for user in self.users:
             if data.UserId == user.id:
                 if user.name != data.UserName:

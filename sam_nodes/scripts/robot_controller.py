@@ -52,61 +52,50 @@ class future_predictor():
             self.task_overview = task_data
             # current action id number wrt task
             action_no = row['current_action_no']
-            # get list of actions left incl current action
-            tasks_left = task_data.drop(task_data.index[:task_data.loc[task_data[(task_data['action_no']==action_no)].first_valid_index()].name])
-            # find index of next task for robot
-            next_robo_action = int(tasks_left[tasks_left['user_type']=='robot'].first_valid_index())
-            
-            # sum est time until robot action required
-            row['start_time'] = row['start_time'].astimezone(pytz.timezone("UTC"))
-            t_diff = min(max(datetime.datetime.now(tz=pytz.UTC)-row['start_time'], datetime.timedelta()), tasks_left.iloc[0]['default_time'])
-            time_to_robo = max(tasks_left.loc[:next_robo_action]['default_time'].sum() - t_diff - tasks_left.loc[next_robo_action]['default_time'], datetime.timedelta())
-            time_to_robo = (datetime.datetime.min + time_to_robo).time()
-            print(f"\nUser {row['user_name']} Tasks Left:")
-            print(tasks_left,"\n")
 
-            # find time to when robo action can start
-            date = datetime.date.today()
-            time2robostart = datetime.datetime.combine(date.min, time_to_robo) - datetime.datetime.combine(date.min, (datetime.datetime.min + self.task_overview.loc[next_robo_action]['default_time']).time())
-            
-            #time2robostart = (datetime.datetime.min + time2robostart).time()
-            
-            i = self.future_estimates.loc[self.future_estimates['user_id'] == row['user_id']].first_valid_index()
-            task_time = (datetime.datetime.min + self.task_overview.loc[next_robo_action]['default_time']).time()
-            if i is not None:
-                # update if new action is gonna be next
-                if next_robo_action != self.future_estimates.loc[i, 'current_action_no']:
-                    self.future_estimates.loc[index, 'done'] = False
-                self.future_estimates.loc[i] = [row['user_id'], row['user_name'], row['task_name'], next_robo_action, 
-                                                time_to_robo, task_time, time2robostart, self.future_estimates.loc[i]['done']]
-                #print(self.future_estimates.loc[i])
-            else:
-                new_user_data = [row['user_id'], row['user_name'], row['task_name'], next_robo_action, time_to_robo, task_time, time2robostart, False]
-                self.future_estimates = self.future_estimates.append(pd.Series(new_user_data, index=self.fut_cols), ignore_index=True)
-        
-        print(f"\nFuture Estimates:")
-        print(self.future_estimates,"\n")
-            
-    # def robot_stat_callback(self, msg):
-    #     data = msg.data
-    #     if data != self.robot_status:
-            
-    #         print(f"######################################robot stat callback: {data} {self.robot_status}")
-    #         date = datetime.date.today()
-    #         end_t = datetime.datetime.now().time()
-    #         dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
-    #         #print(type(str(self.robot_status)))
-
-    #         if (self.robot_status != "Done") and (self.robot_status != "Waiting") and (self.robot_status != None):
-    #             # Can publish new episode to sql
-    #             self.db.insert_data_list("Episodes", 
-    #             ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
-    #             [(date, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)])
-    #             self.task_now = None
-    #             self.action_no_now = None
-    #             self.robot_start_t = datetime.datetime.now().time()
+            while True:
+                # get list of actions left incl current action
+                tasks_left = task_data.drop(task_data.index[:task_data.loc[task_data[(task_data['action_no']==action_no)].first_valid_index()].name])
+                # find index of next task for robot
+                next_robo_action = int(tasks_left[tasks_left['user_type']=='robot'].first_valid_index())
                 
-    #         self.robot_status = data
+                # sum est time until robot action required
+                row['start_time'] = row['start_time'].astimezone(pytz.timezone("UTC"))
+                t_diff = min(max(datetime.datetime.now(tz=pytz.UTC)-row['start_time'], datetime.timedelta()), tasks_left.iloc[0]['default_time'])
+                time_to_robo = max(tasks_left.loc[:next_robo_action]['default_time'].sum() - t_diff - tasks_left.loc[next_robo_action]['default_time'], datetime.timedelta())
+                time_to_robo = (datetime.datetime.min + time_to_robo).time()
+                print(f"\nUser {row['user_name']} Tasks Left:")
+                print(tasks_left,"\n")
+
+                # find time to when robo action can start
+                date = datetime.date.today()
+                time2robostart = datetime.datetime.combine(date.min, time_to_robo) - datetime.datetime.combine(date.min, (datetime.datetime.min + self.task_overview.loc[next_robo_action]['default_time']).time())
+                
+                #time2robostart = (datetime.datetime.min + time2robostart).time()
+                
+                i = self.future_estimates.loc[self.future_estimates['user_id'] == row['user_id']].first_valid_index()
+                task_time = (datetime.datetime.min + self.task_overview.loc[next_robo_action]['default_time']).time()
+                if i is not None:
+                    # update if new action is gonna be next
+                    if next_robo_action != self.future_estimates.loc[i, 'current_action_no']:
+                        self.future_estimates.loc[index, 'done'] = False
+                        self.future_estimates.loc[i] = [row['user_id'], row['user_name'], row['task_name'], next_robo_action, 
+                                                        time_to_robo, task_time, time2robostart, self.future_estimates.loc[i]['done']]
+                        print(f"\nFuture Estimates:")
+                        print(self.future_estimates,"\n")
+                        return
+                    elif self.future_estimates.loc[index, 'done'] == True:
+                        action_no += 1
+                        print("robot action number >>> ", action_no)
+                    else:
+                        print(f"\nFuture Estimates:")
+                        print(self.future_estimates,"\n")
+                        return
+                    #print(self.future_estimates.loc[i])
+                else:
+                    new_user_data = [row['user_id'], row['user_name'], row['task_name'], next_robo_action, time_to_robo, task_time, time2robostart, False]
+                    self.future_estimates = self.future_estimates.append(pd.Series(new_user_data, index=self.fut_cols), ignore_index=True)
+                    return
 
     def robot_stat_callback(self, msg):
         print(f"######################################robot stat callback: {msg.data} {self.robot_status} {self.task_now} {self.action_no_now}")
@@ -219,7 +208,7 @@ def robot_control_node():
                     time.sleep(0.01)
                 predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
 
-            elif (row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished):
+            elif ((row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished)) or (row['done'][0]==True):
                 home = False
                 # if time to colb action > time to do solo action
                 predictor.task_now = robot_task.task_name

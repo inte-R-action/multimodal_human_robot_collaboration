@@ -21,13 +21,18 @@ class screw_counter():
         self.screw_totals = []
         self.screw_ave = 0
         self.screw_ave_last = 0
+        self.discard = False
 
     def vision_callback(self, data):          
         if data.Header.seq == self.seq:
             if data.Object.Info[0] == 'screw':
                 self.screws.append([data.Pose.position.x, data.Pose.position.y])
+            if data.Object.Info[0] == 'hand':
+                self.discard = True
         else:
-            self.count_screws()
+            if not self.discard:
+                self.count_screws()
+            self.discard = False
             self.seq = data.Header.seq
             self.screws = []
             if data.Object.Info[0] == 'screw':
@@ -37,7 +42,7 @@ class screw_counter():
         self.screw_totals.append([time.time(), len(self.screws)])
         self.screw_totals = [count for count in self.screw_totals if time.time()-count[0] < 3]
         self.screw_ave = int(Decimal(mean([b for b in zip(*self.screw_totals)][1])).to_integral_value(rounding=ROUND_HALF_UP))
-        print(f"Current number screws: {self.screw_ave}, last: {self.screw_ave_last}")
+        #print(f"Current number screws: {self.screw_ave}, last: {self.screw_ave_last}")
         self.screw_pub_obj.publish(self.screw_ave, self.screw_ave_last)
 
     def next_screw(self):  

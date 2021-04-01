@@ -153,7 +153,7 @@ class moveit_robot {
         void move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name);
         void open_gripper();
         void close_gripper();
-        void z_move(double dist);
+        void z_move(double dist, double max_velocity_scale_factor);
     
     private:
         ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
@@ -212,8 +212,8 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     // The default values are 10% (0.1).
     // Set your preferred defaults in the joint_limits.yaml file of your robot's moveit_config
     // or set explicit factors in your code if you need your robot to move faster.
-    move_group.setMaxVelocityScalingFactor(0.10);
-    move_group.setMaxAccelerationScalingFactor(0.10);
+    move_group.setMaxVelocityScalingFactor(0.25);
+    move_group.setMaxAccelerationScalingFactor(0.15);
 
     joint_positions = create_joint_pos();
 
@@ -272,7 +272,7 @@ void moveit_robot::close_gripper(){
     gripper_cmds_pub.publish(gripper_msg);
 }
 
-void moveit_robot::z_move(double dist){
+void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
 
     //--Cartesian movement planning for straight down movement--//
     // dist is -ve down, +ve up in m
@@ -326,13 +326,13 @@ void moveit_robot::z_move(double dist){
     // Thrid create a IterativeParabolicTimeParameterization object
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
     // Fourth compute computeTimeStamps
-    double max_velocity_scale_factor;
-    if (dist < 0){
-        max_velocity_scale_factor = 0.1;
-    }
-    else{
-        max_velocity_scale_factor = 1;
-    }
+    // double max_velocity_scale_factor;
+    // if (dist < 0){
+    //     max_velocity_scale_factor = 0.05;
+    // }
+    // else{
+    //     max_velocity_scale_factor = 1;
+    // }
     bool success = iptp.computeTimeStamps(rt, max_velocity_scale_factor);
     ROS_INFO("Computed time stamp %s",success?"SUCCEDED":"FAILED");
     // Get RobotTrajectory_msg from RobotTrajectory
@@ -383,17 +383,17 @@ void pick_up_object(moveit_robot &Robot, double down_move_dist = 0.05)
 {
     // Robot moves down, grasps part and moves back to original position
     Robot.open_gripper();
-    Robot.z_move(-down_move_dist);
+    Robot.z_move(-down_move_dist, 1);
     Robot.close_gripper();
-    Robot.z_move(down_move_dist);
+    Robot.z_move(down_move_dist, 1);
 }
 
-void set_down_object(moveit_robot &Robot, double down_move_dist = 0.03)
+void set_down_object(moveit_robot &Robot, double down_move_dist = 0.03, double max_velocity_scale_factor = 1)
 {
     // Robot moves down, grasps part and moves back to original position
-    Robot.z_move(-down_move_dist);
+    Robot.z_move(-down_move_dist, max_velocity_scale_factor);
     Robot.open_gripper();
-    Robot.z_move(down_move_dist);
+    Robot.z_move(down_move_dist, 1.0);
 }
 
 void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
@@ -415,7 +415,7 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
 
     // Move down, set down side, move up
-    set_down_object(Robot, 0.03);
+    set_down_object(Robot, 0.03, 0.5);
 
     // Return to home position
     //home(targetJoints, Robot);
@@ -435,7 +435,7 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, set down side, move up
-    set_down_object(Robot, 0.03);
+    set_down_object(Robot, 0.03, 0.05);
 
     // Return to home
     //home(targetJoints, Robot);
@@ -454,7 +454,7 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
 
     // Move down, set down block, move up
     double z_move = 0.11 - (stack_height*0.019);
-    set_down_object(Robot, z_move);
+    set_down_object(Robot, z_move, 0.05);
 
     // Return to home position
     //home(targetJoints, Robot);
@@ -467,6 +467,9 @@ void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Ro
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick side up, move up
+    if (stack_height < 1){
+        stack_height = 1;
+    }
     double z_move = 0.11 - ((stack_height-1)*0.019);
     pick_up_object(Robot, z_move);
 
@@ -475,7 +478,7 @@ void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Ro
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, set down side, move up
-    set_down_object(Robot, z_move);
+    set_down_object(Robot, z_move, 0.05);
 
     // Return to home
     //home(targetJoints, Robot);
