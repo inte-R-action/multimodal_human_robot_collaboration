@@ -66,6 +66,7 @@ class future_predictor():
                 time_to_robo = (datetime.datetime.min + time_to_robo).time()
                 print(f"\nUser {row['user_name']} Tasks Left:")
                 print(tasks_left,"\n")
+                print(f"useraction no: {action_no}")
 
                 # find time to when robo action can start
                 date = datetime.date.today()
@@ -84,9 +85,9 @@ class future_predictor():
                         print(f"\nFuture Estimates:")
                         print(self.future_estimates,"\n")
                         return
-                    elif self.future_estimates.loc[index, 'done'] == True:
-                        action_no += 1
-                        print("robot action number >>> ", action_no)
+                    # elif self.future_estimates.loc[index, 'done'] == True:
+                    #     action_no += 1
+                    #     print("robot action number >>> ", action_no)
                     else:
                         print(f"\nFuture Estimates:")
                         print(self.future_estimates,"\n")

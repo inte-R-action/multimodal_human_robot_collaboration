@@ -42,7 +42,7 @@ class screw_counter():
         self.screw_totals.append([time.time(), len(self.screws)])
         self.screw_totals = [count for count in self.screw_totals if time.time()-count[0] < 3]
         self.screw_ave = int(Decimal(mean([b for b in zip(*self.screw_totals)][1])).to_integral_value(rounding=ROUND_HALF_UP))
-        #print(f"Current number screws: {self.screw_ave}, last: {self.screw_ave_last}")
+        print(f"Current number screws: {self.screw_ave}, last: {self.screw_ave_last}")
         self.screw_pub_obj.publish(self.screw_ave, self.screw_ave_last)
 
     def next_screw(self):  
