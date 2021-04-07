@@ -60,7 +60,7 @@ def run():
 
     counter = screw_counter(frame_id, 1, 'unknown')    
 
-    rate = rospy.Rate(1) # 1hz
+    rate = rospy.Rate(0.1) # 1hz
     while not rospy.is_shutdown():
         counter.next_screw()
         rate.sleep()

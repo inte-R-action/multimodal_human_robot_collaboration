@@ -104,6 +104,7 @@ def load_tables(db):
         except Exception as e:
             print(f"Load Table Error: {e}")
             raise
+    print(f"Load Tables Completed")
 
 def save_tables(db, tables_to_save='all', file_path=None, verbose=True):
     if tables_to_save == 'all':
@@ -147,7 +148,7 @@ def database_run(db):
         print(f"Database node create database error: {e}")
         diag_obj.publish(2, f"Error: {e}")
         raise
-    
+
     while not rospy.is_shutdown():
         try:
             # Test database connection to ensure running smoothly
@@ -157,8 +158,8 @@ def database_run(db):
         except Exception as e:
             print(f"Database connection error: {e}")
             diag_obj.publish(2, f"Error: {e}")
-        
         rate.sleep()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

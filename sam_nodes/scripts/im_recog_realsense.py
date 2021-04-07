@@ -14,6 +14,7 @@ import matplotlib
 matplotlib.use( 'tkagg' )
 import matplotlib.pyplot as plt
 from vision_recognition.finger_count import skinmask, getcnthull
+from vision_recognition.shape_detector import rectangle_detector
 
 try:
     from pub_classes import diag_class, obj_class
@@ -152,10 +153,22 @@ def realsense_run():
                             #cv2.drawContours(img, [contours], -1, (255,255,0), 2)
                             cv2.drawContours(color_image, [hull], -1, (0, 255, 255), 2)
                     except Exception as e:
+                        print("hand mask error: ", e)
                         pass
 
-                    if not test:
-                        obj_obj.publish(det)
+                    try:
+                        approx = rectangle_detector(color_image_raw)
+                        if approx is not None:
+                            cv2.drawContours(color_image, [approx], 0, (0, 255, 0), 5)
+                            if not test:
+                                obj_obj.publish(det)
+
+                    except Exception as e:
+                        print("rectangle error: ", e)
+                        pass
+
+                    # if not test:
+                    #     obj_obj.publish(det)
                 except Exception as e:
                     print("**Classifier Detection Error**")
                     traceback.print_exc(file=sys.stdout)

@@ -24,9 +24,10 @@ class diag_class:
         self.publisher = rospy.Publisher('SystemStatus', diagnostics, queue_size=queue)
         self.publish(1, "Starting...")
 
-    def publish(self, level, message):
+    def publish(self, level, message, keyvalues=[]):
         self.diag_msg.DiagnosticStatus.level = level # 0:ok, 1:warning, 2:error, 3:stale
         self.diag_msg.DiagnosticStatus.message = message
+        self.diag_msg.DiagnosticStatus.values = keyvalues
         self.diag_msg.Header.stamp = rospy.get_rostime()
         if self.diag_msg.Header.seq is None:
             self.diag_msg.Header.seq = 0

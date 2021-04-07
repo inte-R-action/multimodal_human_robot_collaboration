@@ -610,14 +610,17 @@ def IMUsensorsMain():
         #rospy.loginfo(out_str)
 
         diag_msg = "Some helpful message"
-        keyvalues = [KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
+        keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[status[0]]), 
+                KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[status[1]]),
+                KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[status[2]]),
+                KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
 
         try:
             act_obj.publish(prediction.tolist())
         except Exception as e:
             print(e)
             print(prediction)
-        diag_obj.publish(diag_level, diag_msg)
+        diag_obj.publish(diag_level, diag_msg, keyvalues)
 
         rate.sleep()
 

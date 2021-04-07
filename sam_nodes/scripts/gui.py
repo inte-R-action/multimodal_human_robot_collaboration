@@ -47,6 +47,10 @@ class user_frame:
         self.status = "unknown"
         self.current_action_no = None
         self.screw_counts = [None, None]
+        self.shimmer = [None, None, None]
+        self.shimmer_info = []
+
+        self.next_action_pub = rospy.Publisher('NextActionOverride', String, queue_size=10)
 
         self.fig = Figure()
         self.ax = self.fig.subplots(1, 1)
@@ -64,8 +68,26 @@ class user_frame:
         # User Details
         self.user_deets = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
         #self.user_deets.tag_configure("center", justify='center')
-        self.user_deets.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.user_deets.grid(row=0, column=0, sticky="nsew")
         self.update_user_deets()
+
+        # Shimmer status indicators
+        self.shimmer_frame = Tk.Frame(master=self.user_frame, height=5, width=2, bg="red")
+        self.shimmer_frame.grid(row=0, column=1, sticky="nsew")
+        for i in range(0, 3):
+            self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=5/3, width=2, font=('', 10))
+            self.shimmer[i].tag_configure("center", justify='center')
+            self.shimmer[i].grid(row=i, column=0, sticky="nsew")
+            text = f"Unknown shimmer\n" \
+                    f"Unknown\n"
+            self.shimmer_info.append([text, 'Unknown'])
+        
+        self.update_shimmer_text()
+
+        self.shimmer_frame.grid_columnconfigure(0, weight=1)   
+        self.shimmer_frame.grid_rowconfigure(0, weight=1)
+        self.shimmer_frame.grid_rowconfigure(1, weight=1)
+        self.shimmer_frame.grid_rowconfigure(2, weight=1)
 
         # Screw counter
         self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=1, font=('', 12))
@@ -102,10 +124,10 @@ class user_frame:
         self.remove_user_button.grid(
             row=3, column=0, sticky='nsew')
 
-        # Change Task button
-        self.change_task_button = Tk.Button(
-            master=self.user_frame, text="Change Task", command=self.change_task, bg="blue", padx=50, pady=20, width=1, height=1)
-        self.change_task_button.grid(
+        # Next action button
+        self.next_action_button = Tk.Button(
+            master=self.user_frame, text="Next Action", command=self.next_action, bg="blue", padx=50, pady=20, width=1, height=1)
+        self.next_action_button.grid(
             row=3, column=1, sticky='nsew')
 
         # Restart Task button
@@ -129,11 +151,32 @@ class user_frame:
         self.user_frame.destroy()  # this is necessary on Windows to prevent
         # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 
-    def change_task(self):
+    def next_action(self):
+        self.next_action_pub.publish(self.name)
         pass
 
     def restart_task(self):
         pass
+
+    def update_shimmer_text(self):
+        for i in range(len(self.shimmer_info)):
+            IMU_MSGS = ['ERROR', 'Ready', 'Unknown', 'Shutdown', 'Starting', 'Connecting', 'Initialising']
+            colour = "grey"
+            if self.shimmer_info[i][1] == IMU_MSGS[1]:
+                colour = "green"
+            elif (self.shimmer_info[i][1] == IMU_MSGS[4]) or (self.shimmer_info[i][1] == IMU_MSGS[5]) or (self.shimmer_info[i][1] == IMU_MSGS[6]):
+                colour = "yellow"
+            elif self.shimmer_info[i][1] == IMU_MSGS[0]:
+                colour = "red"
+            elif self.shimmer_info[i][1] == IMU_MSGS[2]:
+                colour = "blue"
+            else:
+                colour = "grey"
+            self.shimmer[i].config(bg=colour)
+
+            self.shimmer[i].delete("1.0", Tk.END)
+            self.shimmer[i].insert(Tk.INSERT, self.shimmer_info[i][0])
+            self.shimmer[i].tag_add("center", "1.0", "end")
 
     def update_screw_count_txt(self):
         text = f"\nScrew Counts \n" \
@@ -400,6 +443,7 @@ class GUI:
         # Update user screw counts
         for user in self.users:
             user.update_screw_count_txt()
+            user.update_shimmer_text()
             try:
                 user.canvas.draw()
             except:
@@ -438,6 +482,16 @@ class GUI:
             self.nodes_list[i][1].update_time = time.time()
         except IndexError:
             pass
+
+        for user in self.users:
+            if data.Header.frame_id == f'shimmerBase {user.name} {user.id} node':
+                i = 0
+                for keyval in data.DiagnosticStatus.values[:-1]:
+                    text = f"{keyval.key}\n" \
+                            f"{keyval.value}\n"
+                    user.shimmer_info[i] = [text, keyval.value]
+                    i += 1
+
 
     def update_robot_stat(self, data):
         self.robot_stat_text = f"Robot status: {data.data}"

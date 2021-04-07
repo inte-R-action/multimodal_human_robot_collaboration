@@ -135,7 +135,7 @@ int main(int argc, char** argv)
     std::cout << "CLOSE GRIPPER" << std::endl; 
 
     // wait until the activation action is completed to continue with the next action
-    while( gripperStatus.gOBJ != 3 && gripperStatus.gOBJ != 2 )
+    while( gripperStatus.gOBJ != 3 && gripperStatus.gOBJ != 2 && ros::ok() )
     {
         printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
         usleep(100000);
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     std::cout << "OPEN GRIPPER" << std::endl; 
 
     // wait until the activation action is completed to continue with the next action
-    while( gripperStatus.gOBJ != 3 )
+    while( gripperStatus.gOBJ != 3 && ros::ok() )
     {
         printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
         usleep(100000);

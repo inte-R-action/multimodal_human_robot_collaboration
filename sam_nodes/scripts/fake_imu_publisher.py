@@ -20,12 +20,12 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--disp', '-V',
                     help='Enable displaying of live graphs',
-                    default=True,
+                    default=False,
                     action="store_true")
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
-                    default=True,
+                    default=False,
                     action="store_true")
 
 args = parser.parse_known_args()[0]

@@ -100,6 +100,14 @@ def sys_stat_callback(data, users):
         
         shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
 
+def next_action_override_callback(msg, users):
+    data = msg.data
+    if users:
+        for i in range(len(users)):
+            if data == users[i].name:
+                users[i].next_action_override()
+    pass
+
 def users_node():
     
     frame_id = "users_node"
@@ -109,6 +117,7 @@ def users_node():
     users = []
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback, (users))
+    rospy.Subscriber("NextActionOverride", String, next_action_override_callback, (users))
     global database_stat
     # Wait for postgresql node to be ready
     while database_stat != 0 and not rospy.is_shutdown():

@@ -123,7 +123,7 @@ class classifier():
             #txt_path = str(save_dir / 'labels' / p.stem) + ('_%g' % dataset.frame if dataset.mode == 'video' else '')
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-            
+            dist = []
             if len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()                    
@@ -133,7 +133,7 @@ class classifier():
                     n = (det[:, -1] == c).sum()  # detections per class
                     s += '%g %ss, ' % (n, self.names[int(c)])  # add to string
                 
-                dist = []
+                
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
                     # Get average distance to object bounding box
@@ -172,9 +172,10 @@ class classifier():
                     plt.show(block=False)
                     plt.pause(0.0001)
 
-                if dist:
-                    dist = torch.reshape(torch.Tensor(dist), (-1, 1))
-                det = torch.cat((det, dist), 1)
+                #if dist:
+                #    dist = torch.reshape(torch.Tensor(dist), (-1, 1))
+            dist = torch.reshape(torch.Tensor(dist), (-1, 1))
+            det = torch.cat((det, dist), 1)
             # Print time (inference + NMS)
             #print('%sDone. (%.3fs)' % (s, t2 - t1))
 

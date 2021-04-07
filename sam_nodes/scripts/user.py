@@ -130,6 +130,16 @@ class User:
 
         return "continuing"
 
+    def next_action_override(self):
+        # Get next row where action not completed    
+        next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+        self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
+        next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
+        self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
+
+        self.update_current_action_output()
+
+
     def update_current_action_output(self):
         try:
             # Update user current action in sql table
