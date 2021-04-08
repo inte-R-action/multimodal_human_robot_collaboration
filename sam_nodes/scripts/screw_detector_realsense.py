@@ -8,15 +8,14 @@ import argparse
 import sys, os
 import time
 import cv2
-from vision_recognition.detect import classifier
-import torch
-import matplotlib
-matplotlib.use( 'tkagg' )
-import matplotlib.pyplot as plt
-from vision_recognition.finger_count import skinmask, getcnthull
+#import matplotlib
+#matplotlib.use( 'tkagg' )
+#import matplotlib.pyplot as plt
+# from vision_recognition.finger_count import skinmask, getcnthull
 from vision_recognition.shape_detector import rectangle_detector
 from vision_recognition.blob_detector import detect_blobs
 from vision_recognition.rs_cam import rs_cam
+from std_msgs.msg import Int8
 
 try:
     from pub_classes import diag_class, obj_class
@@ -41,27 +40,9 @@ def realsense_run():
     if not test:
         rospy.init_node(frame_id, anonymous=True)
         diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
+        screw_publisher = rospy.Publisher('RawScrewCount', Int8, queue_size=1)
         rate = rospy.Rate(10)
-    
-    if args.classify:
-        try:
-            frames = cam.pipeline.wait_for_frames()
-            if args.depth:
-                color_image, depth_colormap, depth_image = cam.depth_frames(frames)
-            else:
-                color_image = cam.colour_frames(frames)
-
-            im_classifier = classifier(args.comp_device, args.weights, args.img_size, color_image, args.conf_thres, args.iou_thres)
-            if not test:
-                obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
-        
-        except Exception as e:
-            print("**Classifier Load Error**")
-            traceback.print_exc(file=sys.stdout)
-            if not test:
-                diag_obj.publish(2, f"load classifier error: {e}")
-            raise
-
+                
     diag_timer = time.time()
     while (not rospy.is_shutdown()) or test:
         try:
@@ -75,52 +56,23 @@ def realsense_run():
 
             if args.classify:
                 try:
-                    if args.depth:
-                        color_image, det = im_classifier.detect(color_image_raw, depth_image, depth_histogram=False)
-                    else:
-                        color_image, det = im_classifier.detect(color_image_raw, None)
+                    approx, thrash = rectangle_detector(color_image_raw)
 
                     try:
-                        mask_img = skinmask(color_image_raw)
-                        contours, hull = getcnthull(mask_img)
-                        if cv2.contourArea(contours) > 1500:
-                            det = torch.cat((det, torch.tensor([[0, 0, 0, 0, 1, 10, 0]])))
-                            #cv2.drawContours(img, [contours], -1, (255,255,0), 2)
-                            cv2.drawContours(color_image, [hull], -1, (0, 255, 255), 2)
-                    except Exception as e:
-                        print("hand mask error: ", e)
-                        pass
-
-                    try:
-                        approx, thrash = rectangle_detector(color_image_raw)
-                        if approx is not None:
-                            cv2.drawContours(color_image, [approx], 0, (0, 255, 0), 5)
-                            if not test:
-                                obj_obj.publish(det)
-
-                    except Exception as e:
-                        print("rectangle error: ", e)
-                        pass
-
-                    try:
-                        detect_blobs(thrash)
+                        key_points = detect_blobs(thrash)
+                        im_with_keypoints = cv2.drawKeypoints(color_image_raw, key_points, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                     except Exception as e:
                         print("blob error: ", e)
                         pass
 
-                    # if not test:
-                    #     obj_obj.publish(det)
-                except Exception as e:
-                    print("**Classifier Detection Error**")
-                    traceback.print_exc(file=sys.stdout)
-                    if not test:
-                        diag_obj.publish(2, f"load classifier error: {e}")
+                    if approx is not None:
+                        cv2.drawContours(im_with_keypoints, [approx], 0, (0, 255, 0), 5)
+                        if not test:
+                            screw_publisher.publish(len(key_points))
 
-            # Remove background - Set pixels further than clipping_distance to grey
-            #grey_color = 153
-            #depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-            #bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-            #image = scale(bg_removed)
+                except Exception as e:
+                    print("rectangle error: ", e)
+                    pass
 
             if  (time.time()-diag_timer) > 1:
                 if not test:
@@ -137,14 +89,11 @@ def realsense_run():
                 diag_obj.publish(2, f"Realsense image error: {e}")
             traceback.print_exc(file=sys.stdout)
             break
-
-        #im_screw_states, tally = im_screw_detect.detect_screws(image, args.disp)
-        #im_screw_states = im_screw_states.tolist()
         
 
         if args.disp:
             if args.depth:
-                disp_im = np.hstack((color_image, depth_colormap))
+                disp_im = np.hstack((im_with_keypoints, depth_colormap))
             else:
                 disp_im = color_image
             
@@ -196,7 +145,7 @@ if __name__ == "__main__":
     
     args = parser.parse_known_args()[0]
 
-    cam = rs_cam(args.disp)
+    cam = rs_cam(args.depth)
 
     try:
         realsense_run()
@@ -208,4 +157,3 @@ if __name__ == "__main__":
     finally:
         cam.pipeline.stop()
         cv2.destroyAllWindows()
-        plt.close('all')

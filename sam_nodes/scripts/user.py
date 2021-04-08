@@ -34,7 +34,7 @@ class User:
         self.shimmer_ready = 1
         self.use_vision = use_vision
         if self.use_vision:
-            self.screw_counter = screw_counter(self.frame_id, self.id, self.name)
+            self.screw_counter = screw_counter(self.frame_id, self.id, self.name, type='raw_count')
 
         self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_task_no = 0
@@ -136,7 +136,7 @@ class User:
         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
         self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
-
+        self.screw_counter.next_screw()
         self.update_current_action_output()
 
 

@@ -11,7 +11,7 @@
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
   <arg if="$(arg test_mode)" name="fake_imu_node" default="true" />
 
-  <arg unless="$(arg test_mode)" name="im_recog" default="false" />
+  <arg unless="$(arg test_mode)" name="im_recog" default="true" />
   <arg unless="$(arg test_mode)" name="postgresql" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller_test" default="false" />
@@ -23,7 +23,8 @@
     </node>
 
   <group if="$(arg im_recog)">
-    <node name="im_recog_realsense" pkg="sam_nodes" type="im_recog_realsense.py" respawn="false" output="screen">
+    <!-- <node name="im_recog_realsense" pkg="sam_nodes" type="im_recog_realsense.py" respawn="false" output="screen"> -->
+    <node name="screw_detector_realsense" pkg="sam_nodes" type="screw_detector_realsense.py" respawn="false" output="screen">
     </node>
   </group>
 

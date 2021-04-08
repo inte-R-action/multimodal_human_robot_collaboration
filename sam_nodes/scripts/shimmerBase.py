@@ -577,7 +577,7 @@ def IMUsensorsMain():
         out_str = f"Sensors Ready:{ready} Threads:{alive} Connections:{conn} Shutdowns:{s_down} " \
                   f"Total Threads:{threading.active_count()} Quit:{quit_IMU} Prediction:{class_pred}"
         #out_str = threading.enumerate()
-        print(out_str)
+        #print(out_str)
         class_pred = CATEGORIES[-1]
         new_data = np.empty((WIN_LEN, 0), dtype=np.float64)
         if all(ready) & all(conn) & all(alive):

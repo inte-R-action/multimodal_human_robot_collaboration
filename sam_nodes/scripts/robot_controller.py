@@ -108,8 +108,6 @@ class future_predictor():
             print(self.future_estimates,"\n")
             break
 
-        print("not returned")
-
     def robot_stat_callback(self, msg):
         print(f"######################################robot stat callback: {msg.data} {self.robot_status} {self.task_now} {self.action_no_now}")
         if msg.data == 'Done':
@@ -223,7 +221,7 @@ def robot_control_node():
                     time.sleep(0.01)
                 predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
 
-            elif ((row['robot_start_t'][0] > robot_task.next_task_time) and (not robot_task.finished)) or (row['done'][0]==True):
+            elif ((row['robot_start_t'][0] > robot_task.next_task_time) or (row['done'][0]==True)) and (not robot_task.finished):
                 home = False
                 # if time to colb action > time to do solo action
                 predictor.task_now = robot_task.task_name

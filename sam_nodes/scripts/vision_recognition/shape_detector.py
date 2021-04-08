@@ -5,22 +5,25 @@ import cv2
 
 def rectangle_detector(img):
     imgGry = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret , thrash = cv2.threshold(imgGry, 60 , 255, cv2.CHAIN_APPROX_NONE)#cv2.THRESH_BINARY)
-    #cv2.imshow('thrash', thrash)
+    ret , thrash = cv2.threshold(imgGry, 120 , 255, cv2.CHAIN_APPROX_NONE)#cv2.THRESH_BINARY)
 
     contours, hierarchy = cv2.findContours(thrash, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[-2:]
-
+    out_approx = None
     for contour in contours:
         approx = cv2.approxPolyDP(contour, 0.01* cv2.arcLength(contour, True), True)
+
+        cv2.drawContours(thrash, [approx], 0, (0, 0, 0), 5)
+
         x = approx.ravel()[0]
         y = approx.ravel()[1] - 5
         if len(approx) == 4 :
             x, y , w, h = cv2.boundingRect(approx)
             aspectRatio = float(w)/h
             if (w > 500) and (h > 300) and (1.5 < aspectRatio < 1.8):
-                return approx
-
-    return None
+                #return approx, thrash
+                out_approx = approx
+    
+    return out_approx, thrash
 
 
 if __name__ == '__main__':
@@ -30,7 +33,7 @@ if __name__ == '__main__':
         # Capture frame-by-frame
         ret, img = cap.read()
 
-        approx = rectangle_detector(img)
+        approx, thrash = rectangle_detector(img)
 
         if approx is not None:
             cv2.drawContours(img, [approx], 0, (0, 255, 0), 5)

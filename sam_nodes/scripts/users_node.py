@@ -126,7 +126,7 @@ def users_node():
         time.sleep(0.5)
 
     task = 'assemble_box'
-    use_vision = False
+    use_vision = True
     if use_vision:
         global imrecog_stat
         # Wait for postgresql node to be ready
