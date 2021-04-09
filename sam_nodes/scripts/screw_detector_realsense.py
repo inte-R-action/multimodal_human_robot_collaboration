@@ -57,7 +57,6 @@ def realsense_run():
             if args.classify:
                 try:
                     approx, thrash = rectangle_detector(color_image_raw)
-
                     try:
                         key_points = detect_blobs(thrash)
                         im_with_keypoints = cv2.drawKeypoints(color_image_raw, key_points, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
