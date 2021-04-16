@@ -18,6 +18,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from image_geometry import PinholeCameraModel
 import time
+import tf2_ros
 
 BASE_FRAME = 'camera_rgb_optical_frame'#'/openni_depth_frame'
 FRAMES = [
@@ -42,7 +43,7 @@ LAST = rospy.Duration()
 
 class Kinect:
 
-    def __init__(self, name='kinect_listener', user=2):
+    def __init__(self, name='kinect_listener', user=1):
         self.listener = tf.TransformListener()
         self.user = user
 
@@ -134,20 +135,23 @@ def main(args):
 
     rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():
-        frames, trans = kin.get_posture()
-        disp_image = image
-        i=0
-        for frame in frames:
-            coords = cam_model.project3dToPixel(frame)
-            disp_image = cv2.circle(disp_image, (int(coords[0]), int(coords[1])), radius=10, color=(0, 0, 255), thickness=-1)
-            disp_image = cv2.putText(disp_image, FRAMES[i], (int(coords[0]), int(coords[1])), font, 
-                   fontScale, color, thickness, cv2.LINE_AA)
-            i+=1
-        #coords = cam_model.project3dToPixel(frame)
-        disp_image = cv2.circle(disp_image, (int(cam_model.cx()), int(cam_model.cy())), radius=5, color=(0, 255, 0), thickness=-1)
-        cv2.imshow("Image window", disp_image)
-        cv2.waitKey(3)
-        #rate.sleep()
+        try:
+            frames, trans = kin.get_posture()
+            disp_image = image
+            i=0
+            for frame in frames:
+                coords = cam_model.project3dToPixel(frame)
+                disp_image = cv2.circle(disp_image, (int(coords[0]), int(coords[1])), radius=10, color=(0, 0, 255), thickness=-1)
+                disp_image = cv2.putText(disp_image, FRAMES[i], (int(coords[0]), int(coords[1])), font, 
+                       fontScale, color, thickness, cv2.LINE_AA)
+                i+=1
+            #coords = cam_model.project3dToPixel(frame)
+            disp_image = cv2.circle(disp_image, (int(cam_model.cx()), int(cam_model.cy())), radius=5, color=(0, 255, 0), thickness=-1)
+            cv2.imshow("Image window", disp_image)
+            cv2.waitKey(1)
+            #rate.sleep()
+        except tf2_ros.TransformException:
+            print("user not found error")
 
 if __name__ == '__main__':
     try:

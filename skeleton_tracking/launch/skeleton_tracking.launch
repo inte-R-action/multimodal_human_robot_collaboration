@@ -1,12 +1,20 @@
 <?xml version="1.0"?>
 
 <launch>
+  <arg name="node_start_delay" default="10.0" />  
   <!--<include file="$(find freenect_launch)/launch/freenect.launch" />-->
-
-  <node name="openni_tracker" pkg="openni_tracker" type="openni_tracker" respawn="false" output="screen">
-  </node>
+  <include file="$(find openni_launch)/launch/openni.launch"/>
 
   <node pkg="tf" type="static_transform_publisher"  name="base_to_kinect_broadcaster" args="-0 0 0 0 0 0 camera_depth_frame openni_depth_frame 100" />
+
+  <node name="openni_tracker" pkg="openni_tracker" type="openni_tracker" respawn="false" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " >
+  </node>
+
+  <node name="skeletonViewer" pkg="skeleton_tracking" type="skeletonViewer.py" respawn="false" output="screen">
+  </node>
+
+  <node name="disparity_view" pkg="image_view" type="disparity_view" respawn="false" output="screen" args="image:=/camera/depth/disparity">
+  </node>
 
 
 </launch>
