@@ -102,6 +102,8 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sam_custom_messages
+  diagnostic_msgs
 )
 
 ################################################
@@ -133,12 +135,12 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
+#catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES visuo_tactile
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime 
+#  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sam_custom_messages  diagnostic_msgs
 #  DEPENDS system_lib
-)
+#)
 
 #set(THIS_PACKAGE_INCLUDE_DIRS
 #  interactivity/include
@@ -150,6 +152,12 @@ catkin_package(
 #  INCLUDE_DIRS
 #    ${THIS_PACKAGE_INCLUDE_DIRS}
   CATKIN_DEPENDS
+    roscpp 
+    rospy 
+    std_msgs 
+    message_runtime 
+    sam_custom_messages  
+    diagnostic_msgs
     moveit_core
     moveit_visual_tools
     moveit_ros_planning_interface

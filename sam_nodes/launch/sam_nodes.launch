@@ -1,7 +1,7 @@
 <launch>
 
   <!-- By default, we are not in debug mode -->
-  <arg name="test_mode" default="false" />
+  <arg name="test_mode" default="true" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
   <arg if="$(arg test_mode)" name="postgresql" default="true" />

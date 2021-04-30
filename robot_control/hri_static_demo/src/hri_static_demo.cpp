@@ -31,7 +31,7 @@
 #include "sam_custom_messages/diagnostics.h"
 #include "robotiq_ft_sensor/ft_sensor.h"
 #include "robotiq_ft_sensor/sensor_accessor.h"
-
+#include <ros/ros.h>
  #include <moveit_msgs/ExecuteTrajectoryActionResult.h>
 
 using namespace std;
