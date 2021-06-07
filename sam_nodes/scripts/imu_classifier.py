@@ -5,10 +5,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = ""
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
+from global_data import COMPLEX_BOX_ACTIONS as CATEGORIES
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 plt.ion()
-CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
+#CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
 pos = np.arange(len(CATEGORIES))
 model = load_model(f'{dir_path}/channel_scaling_1.h5')
 model.summary()

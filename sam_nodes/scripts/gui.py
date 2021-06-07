@@ -20,13 +20,14 @@ from postgresql.database_funcs import database
 import os
 import pandas as pd
 from tkinter import ttk
+from global_data import COMPLEX_BOX_ACTIONS as CATEGORIES
 
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 
 
-CATEGORIES = ['AllenKey\nIn', 'AllenKey\nOut',
-              'Screwing\nIn', 'Screwing\nOut', 'Null']
+#CATEGORIES = ['AllenKey\nIn', 'AllenKey\nOut',
+#              'Screwing\nIn', 'Screwing\nOut', 'Null']
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()

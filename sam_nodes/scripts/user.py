@@ -11,8 +11,8 @@ from pub_classes import capability_class
 import pandas as pd
 from vision_recognition.count_screws_table import screw_counter
 
-
-ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
+from global_data import COMPLEX_BOX_ACTIONS as ACTION_CATEGORIES
+#ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
 
 class User:
     def __init__(self, name, id, frame_id, use_vision=True):
@@ -178,7 +178,3 @@ class User:
                 user_state = self.update_progress()
                 if user_state == "continuing":
                     self.update_current_action_output()
-
-                
-
-    

@@ -74,5 +74,10 @@
         "typeindex": "cpp"
     },
     "python.linting.pylintEnabled": true,
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
+    "python.analysis.extraPaths": [
+        "/home/james/catkin_ws/devel/lib/python3/dist-packages",
+        "/home/james/actionlib_tutorials/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
 }
