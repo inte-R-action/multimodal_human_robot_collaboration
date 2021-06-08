@@ -23,6 +23,9 @@ parser.add_argument('--user_names', '-N',
                     help='Set name of user, default: unknown',
                     default='unknown',
                     type=lambda s: [str(item) for item in s.split(',')])
+parser.add_argument('--task_type', '-T',
+                    help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
+                    default='basic_box')
 
 args = parser.parse_known_args()[0]
 
@@ -125,7 +128,7 @@ def users_node():
         diag_obj.publish(1, "Waiting for postgresql node")
         time.sleep(0.5)
 
-    task = 'assemble_box'
+    task = args.task_type #'assemble_box'
     use_vision = True
     if use_vision:
         global imrecog_stat

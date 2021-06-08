@@ -11,14 +11,14 @@ from pub_classes import capability_class
 import pandas as pd
 from vision_recognition.count_screws_table import screw_counter
 
-from global_data import COMPLEX_BOX_ACTIONS as ACTION_CATEGORIES
+from global_data import SIMPLE_BOX_ACTIONS, COMPLEX_BOX_ACTIONS
 #ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
 
 class User:
     def __init__(self, name, id, frame_id, use_vision=True):
-        self._imu_pred = np.zeros(6) #class confs, t 
-        self._imu_pred_hist = np.empty(6) #class confs, t 
-        self._imu_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
+        # self._imu_pred = np.zeros(6) #class confs, t 
+        # self._imu_pred_hist = np.empty(6) #class confs, t 
+        # self._imu_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
         self.left_h_pos = [None, None, None]
         self.left_h_rot = [None, None, None, None]
         self.right_h_pos = [None, None, None]
@@ -29,6 +29,7 @@ class User:
         self.frame_id = f"{frame_id}_{self.name}"
         self.task_data = None
         self.task = None
+        self.ACTION_CATEGORIES = None
         self.col_names = None
         self.db = database()
         self.shimmer_ready = 1
@@ -36,7 +37,7 @@ class User:
         if self.use_vision:
             self.screw_counter = screw_counter(self.frame_id, self.id, self.name, type='raw_count')
 
-        self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
+        # self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_task_no = 0
 
         self.capability_obj = capability_class(frame_id=self.frame_id, user_id=self.id)        
@@ -44,6 +45,21 @@ class User:
     def update_task(self, task):
 
         self.task = task
+
+        if self.task == 'assemble_box':
+            self.ACTION_CATEGORIES = SIMPLE_BOX_ACTIONS
+            self._imu_pred = np.zeros(6) #class confs, t 
+            self._imu_pred_hist = np.empty(6) #class confs, t 
+            self._imu_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
+            self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
+        
+        elif self.task == 'assemble_complex_box':
+            self.ACTION_CATEGORIES = COMPLEX_BOX_ACTIONS
+            self._imu_pred = np.zeros(6) #class confs, t 
+            self._imu_pred_hist = np.empty(6) #class confs, t 
+            self._imu_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
+            self._final_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
+
         col_names, actions_list = self.db.query_table(self.task, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["completed"] = False
@@ -60,7 +76,7 @@ class User:
         start_t = self._final_state_hist[-1, 2]
         end_t = self._final_state_hist[-1, 3]
         dur = end_t - start_t
-        action_name = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+        action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
          # Can publish new episode to sql
         self.db.insert_data_list("Episodes", 
@@ -69,7 +85,7 @@ class User:
 
         
     def update_robot_progress(self):
-        action_name = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+        action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
         try:
             # Get next row where action not completed
@@ -98,7 +114,7 @@ class User:
             return "finished"
 
     def update_progress(self):
-        action_name = ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+        action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
         try:
             # Get next row where action not completed

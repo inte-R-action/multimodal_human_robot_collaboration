@@ -18,12 +18,13 @@ from std_msgs.msg import Int8, Float64
 import socket
 import io
 import shlex
-from imu_classifier import classify_data
+from imu_classifier import imu_classifier
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, act_class
 import csv
-from getpass import getpass
+from getpass import getpasss
 import tkinter
+from global_data import COMPLEX_BOX_ACTIONS, SIMPLE_BOX_ACTIONS
 
 def get_pwd():
     out = b''
@@ -58,8 +59,8 @@ parser.add_argument('--disp', '-V',
                     action="store_true")
 
 parser.add_argument('--classify', '-C',
-                    help='Classify data',
-                    default=True,
+                    help='Classify data, 0=None, 1=basic box, 2=complex box all, 3=complex box 1v1',
+                    default=1,
                     action="store_true")
 
 parser.add_argument('--bar', '-B',
@@ -87,7 +88,7 @@ POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
 
-CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
+#CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
 Fs = 51.2  # Sampling frequency, Hz
 WIN_TIME = 3  # Window length, s
 WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples
@@ -103,14 +104,27 @@ shim_threads = {}
 connect_threads = {}
 quit_IMU = False
 passkey = "1234"  # passkey of shimmers
-pos = np.arange(len(CATEGORIES))
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(f'{dir_path}/scale_params.csv', newline='') as f:
-    reader = csv.reader(f)
-    data = np.array(list(reader))
-    means = data[1:, 1].astype(float)#np.float)
-    scales = data[1:, -1].astype(float)#np.float)
+
+if args.classify != 0:
+    if args.classify == 1:
+        scale_file = f'{dir_path}/scale_params.csv'
+        CATEGORIES = SIMPLE_BOX_ACTIONS
+    elif args.classify == 2:
+        CATEGORIES = COMPLEX_BOX_ACTIONS
+        pass
+    elif args.classify == 3:
+        CATEGORIES = COMPLEX_BOX_ACTIONS
+        pass
+
+    with open(scale_file, newline='') as f:
+        reader = csv.reader(f)
+        data = np.array(list(reader))
+        means = data[1:, 1].astype(float)#np.float)
+        scales = data[1:, -1].astype(float)#np.float)
+
+pos = np.arange(len(CATEGORIES))
 
 if args.disp:
     plt.ion()
@@ -544,9 +558,22 @@ def IMUsensorsMain():
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
     diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1, keyvalues=keyvalues)
 
-    act_obj = act_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=10)
-    
-    prediction = np.zeros(5)
+    if args.classif != 0:
+        if args.classify == 1:
+            class_count = 5
+            model_file = 'basic_box_classifier.h5'
+        elif args.classify == 2:
+            class_count = 5
+            model_file = None
+        elif args.classify == 3:
+            class_count = 4
+            model_file = None
+
+        classifier = imu_classifier(model_file, CATEGORIES)
+            
+        act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
+        
+        prediction = np.zeros(class_count)
 
     # Start separate thread for collecting data from each Shimmer
     for shimthread in range(0, numsensors):
@@ -593,10 +620,11 @@ def IMUsensorsMain():
             status[3] = 1 # Ready
             diag_level = 0 # ok
 
-            if args.classify:
-                prediction = classify_data(new_data, args.bar)
+            if args.classif != 0:
+                prediction = classifier.classify_data(new_data, args.bar)
                 prediction = np.reshape(prediction, (-1))
                 class_pred = CATEGORIES[np.argmax(prediction)]
+
         else:
             diag_level = 1 # warning
 
@@ -615,11 +643,13 @@ def IMUsensorsMain():
                 KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[status[2]]),
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
 
-        try:
-            act_obj.publish(prediction.tolist())
-        except Exception as e:
-            print(e)
-            print(prediction)
+        if args.classify != 0:
+            try:
+                act_obj.publish(prediction.tolist())
+            except Exception as e:
+                print(e)
+                print(prediction)
+        
         diag_obj.publish(diag_level, diag_msg, keyvalues)
 
         rate.sleep()

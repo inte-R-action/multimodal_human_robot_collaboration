@@ -45,7 +45,7 @@
   </group>
   
   <group if="$(arg shimmerBase)">
-    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen">
+    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen" args="$(-classify 1)">
     </node>
   </group>
   

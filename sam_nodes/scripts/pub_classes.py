@@ -81,7 +81,7 @@ class obj_class:
             self.publisher.publish(self.obj_msg)
 
 class act_class:
-    def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1):
+    def __init__(self, frame_id, class_count, user_id=1, user_name="unknown", queue=1):
         # frame_id=str, user_id=int, user_name=str, queue=int
         # Current action message definitions
         self.act_msg = current_action()
@@ -90,7 +90,7 @@ class act_class:
         self.act_msg.Header.frame_id = frame_id
         self.act_msg.UserId = user_id
         self.act_msg.UserName = user_name
-        self.act_msg.ActionProbs = [0, 0, 0, 0, 0]
+        self.act_msg.ActionProbs = [0]*class_count
 
         self.publisher = rospy.Publisher('CurrentAction', current_action, queue_size=queue)
 
