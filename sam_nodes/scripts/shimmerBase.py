@@ -562,14 +562,20 @@ def IMUsensorsMain():
         if args.classify == 1:
             class_count = 5
             model_file = 'basic_box_classifier.h5'
+            classifier = imu_classifier(model_file, CATEGORIES)
         elif args.classify == 2:
             class_count = 5
             model_file = None
+            classifier = imu_classifier(model_file, CATEGORIES)
         elif args.classify == 3:
             class_count = 4
             model_file = None
+            classifier_screw = imu_classifier(model_file, CATEGORIES)
+            classifier_allen = imu_classifier(model_file, CATEGORIES)
+            classifier_hand = imu_classifier(model_file, CATEGORIES)
+            classifier_hammer = imu_classifier(model_file, CATEGORIES)
 
-        classifier = imu_classifier(model_file, CATEGORIES)
+        
             
         act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
         
@@ -620,9 +626,16 @@ def IMUsensorsMain():
             status[3] = 1 # Ready
             diag_level = 0 # ok
 
-            if args.classif != 0:
-                prediction = classifier.classify_data(new_data, args.bar)
-                prediction = np.reshape(prediction, (-1))
+            if args.classify != 0:
+                if args.classify == 3:
+                    prediction = []
+                    prediction.append(np.reshape(classifier_screw.classify_data(new_data, args.bar), (-1))[1])
+                    prediction.append(np.reshape(classifier_allen.classify_data(new_data, args.bar), (-1))[1])
+                    prediction.append(np.reshape(classifier_hand.classify_data(new_data, args.bar), (-1))[1])
+                    prediction.append(np.reshape(classifier_hammer.classify_data(new_data, args.bar), (-1))[1])
+                else:
+                    prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
+
                 class_pred = CATEGORIES[np.argmax(prediction)]
 
         else:
@@ -645,7 +658,7 @@ def IMUsensorsMain():
 
         if args.classify != 0:
             try:
-                act_obj.publish(prediction.tolist())
+                act_obj.publish(prediction)
             except Exception as e:
                 print(e)
                 print(prediction)

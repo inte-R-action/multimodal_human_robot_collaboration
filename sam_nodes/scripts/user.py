@@ -39,6 +39,7 @@ class User:
 
         # self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_task_no = 0
+        self.curr_task_type = None
 
         self.capability_obj = capability_class(frame_id=self.frame_id, user_id=self.id)        
 
@@ -66,6 +67,7 @@ class User:
 
         self.col_names, act_data = self.db.query_table('current_actions',rows=0)
         self.curr_task_no = 0
+        self.curr_task_type = self.task_data.iloc[0]["action_name"]
         self.update_current_action_output()
 
 
@@ -92,7 +94,7 @@ class User:
             next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
             
             if self.task_data.iloc[next_action_row_i]["user_type"] != "human":
-                # Assume non-user actions are completed
+                # Check robot actions are completed, assume other non-user actions are completed
                 while self.task_data.iloc[next_action_row_i]["user_type"] != "human":
                     if self.task_data.iloc[next_action_row_i]["user_type"] == "robot":
                         col_names, actions_list = self.db.query_table('Episodes', 'all')
@@ -107,6 +109,7 @@ class User:
                         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
                 self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
+                self.curr_task_type = self.task_data.iloc[next_action_row_i]["action_name"]
                 self.update_current_action_output()
 
         except IndexError:
@@ -143,6 +146,7 @@ class User:
             print(f"Updated user action ({action_name}) is not next expected ({next_action_expected})")
 
         self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
+        self.curr_task_type = self.task_data.iloc[next_action_row_i]["action_name"]
 
         return "continuing"
 
@@ -152,6 +156,7 @@ class User:
         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
         self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
+        self.curr_task_type = self.task_data.iloc[next_action_row_i]["action_name"]
         self.screw_counter.next_screw()
         self.update_current_action_output()
 
