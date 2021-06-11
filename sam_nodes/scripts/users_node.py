@@ -25,7 +25,12 @@ parser.add_argument('--user_names', '-N',
                     type=lambda s: [str(item) for item in s.split(',')])
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-                    default='basic_box')
+                    choices=['assemble_box', 'assemble_complex_box'],
+                    default='assemble_box')
+parser.add_argument('--classifier_type', '-C',
+                    help='Either 1v1 (one) or allvall (all) classifier',
+                    choices=['one', 'all'],
+                    default='all')
 
 args = parser.parse_known_args()[0]
 
@@ -64,11 +69,11 @@ def hand_pos_callback(data, users):
             print(f"ERROR: hand_pos.hand msg is {data.Hand} but should be 0 (left) or 1 (right)")
 
     return
-    
+
 
 def current_action_callback(data, users):
 
-    i = [idx for idx, user in enumerate(users) if data.UserId==user.id]
+    i = [idx for idx, user in enumerate(users) if data.UserId == user.id]
     if i:
         i = i[0]
         if users[i].name != data.UserName:
@@ -77,7 +82,16 @@ def current_action_callback(data, users):
             #users[i].actions.extend([data.action_probs, data.Header.stamp])
             time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
             users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
-            users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
+
+            if args.classifier_type == 'all':
+                users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
+            elif args.classifier_type == 'one':
+                # Only select relevant classifier output
+                action_idx = users[i].ACTION_CATEGORIES.index(self.curr_action_type)
+                if data.ActionProbs[action_idx] > (1-data.ActionProbs[action_idx]):
+                    users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [action_idx.astype(float), 0, time, time]))
+                else:
+                    users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [users[i].ACTION_CATEGORIES.index('null').astype(float), 0, time, time]))
 
             #users[i]._imu_state_hist, users[i]._imu_pred_hist = collate_imu_seq(users[i]._imu_state_hist, users[i]._imu_pred_hist)
             users[i].collate_imu_seq()

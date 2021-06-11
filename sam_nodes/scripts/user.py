@@ -38,8 +38,8 @@ class User:
             self.screw_counter = screw_counter(self.frame_id, self.id, self.name, type='raw_count')
 
         # self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
-        self.curr_task_no = 0
-        self.curr_task_type = None
+        self.curr_action_no = 0
+        self.curr_action_type = None
 
         self.capability_obj = capability_class(frame_id=self.frame_id, user_id=self.id)        
 
@@ -66,8 +66,8 @@ class User:
         self.task_data["completed"] = False
 
         self.col_names, act_data = self.db.query_table('current_actions',rows=0)
-        self.curr_task_no = 0
-        self.curr_task_type = self.task_data.iloc[0]["action_name"]
+        self.curr_action_no = 0
+        self.curr_action_type = self.task_data.iloc[0]["action_name"]
         self.update_current_action_output()
 
 
@@ -83,7 +83,7 @@ class User:
          # Can publish new episode to sql
         self.db.insert_data_list("Episodes", 
         ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
-        [(date, start_t, end_t, dur, self.id, "R", self.task, action_name, int(self.task_data.loc[self.curr_task_no]['action_no']))])
+        [(date, start_t, end_t, dur, self.id, "R", self.task, action_name, int(self.task_data.loc[self.curr_action_no]['action_no']))])
 
         
     def update_robot_progress(self):
@@ -108,8 +108,8 @@ class User:
                         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
                         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
 
-                self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
-                self.curr_task_type = self.task_data.iloc[next_action_row_i]["action_name"]
+                self.curr_action_no = self.task_data.iloc[next_action_row_i]["action_no"]
+                self.curr_action_type = self.task_data.iloc[next_action_row_i]["action_name"]
                 self.update_current_action_output()
 
         except IndexError:
@@ -145,8 +145,8 @@ class User:
         else:
             print(f"Updated user action ({action_name}) is not next expected ({next_action_expected})")
 
-        self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
-        self.curr_task_type = self.task_data.iloc[next_action_row_i]["action_name"]
+        self.curr_action_no = self.task_data.iloc[next_action_row_i]["action_no"]
+        self.curr_action_type = self.task_data.iloc[next_action_row_i]["action_name"]
 
         return "continuing"
 
@@ -155,8 +155,8 @@ class User:
         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
         self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
-        self.curr_task_no = self.task_data.iloc[next_action_row_i]["action_no"]
-        self.curr_task_type = self.task_data.iloc[next_action_row_i]["action_name"]
+        self.curr_action_no = self.task_data.iloc[next_action_row_i]["action_no"]
+        self.curr_action_type = self.task_data.iloc[next_action_row_i]["action_name"]
         self.screw_counter.next_screw()
         self.update_current_action_output()
 
@@ -168,12 +168,12 @@ class User:
             #data_ins = "%s" + (", %s"*(len(self.col_names)-1))
             separator = ', '
             sql_cmd = f"""INSERT INTO current_actions ({separator.join(self.col_names)})
-            VALUES ({self.id}, '{self.name}', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_task_no]['action_no'])}, '{time}') 
-            ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{self.task}', current_action_no={int(self.task_data.loc[self.curr_task_no]['action_no'])}, start_time='{time}';"""
+            VALUES ({self.id}, '{self.name}', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_action_no]['action_no'])}, '{time}') 
+            ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{self.task}', current_action_no={int(self.task_data.loc[self.curr_action_no]['action_no'])}, start_time='{time}';"""
             self.db.gen_cmd(sql_cmd)
 
-            self.capability_obj.publish(self.curr_task_no, [self.task_data.loc[self.curr_task_no]['action_name']])
-            print(self.task_data.loc[self.curr_task_no])
+            self.capability_obj.publish(self.curr_action_no, [self.task_data.loc[self.curr_action_no]['action_name']])
+            print(self.task_data.loc[self.curr_action_no])
 
         except Exception as e:
             print(f"Users node update action output error: {e}")
@@ -189,7 +189,7 @@ class User:
 
             # Group predictions of same type together
             if self._imu_state_hist[-2, 0] == self._imu_state_hist[-3, 0]:
-                i = np.where(self._imu_pred_hist[:, -1]==self._imu_state_hist[-3, 2])[0][0] #Get index where action starts
+                i = np.where(self._imu_pred_hist[:, -1] == self._imu_state_hist[-3, 2])[0][0] #Get index where action starts
                 self._imu_state_hist[-2, 1] = np.mean(self._imu_pred_hist[i:-1, int(self._imu_state_hist[-2, 0])].astype(float)) #Not convinced about this mean
                 self._imu_state_hist[-2, 2] = self._imu_state_hist[-3, 2] # set start time
                 self._imu_state_hist = np.delete(self._imu_state_hist, -3, 0)
