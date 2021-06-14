@@ -1,3 +1,4 @@
 task_id,task_name
 0,assemble_box
 1,stack_tower
+2,assemble_complex_box

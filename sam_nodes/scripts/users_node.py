@@ -16,7 +16,7 @@ os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboratio
 
 # Argument parsing
 parser = argparse.ArgumentParser(
-    description='Base structure for connecting and streaming data from Shimmer 3 IMU sensor')
+    description='Node to control data flow between users and rest of system')
 
 parser.add_argument('--user_names', '-N',
                     nargs='*',
@@ -35,7 +35,7 @@ parser.add_argument('--classifier_type', '-C',
 args = parser.parse_known_args()[0]
 
 database_stat = 1
-shimmer_stat = 1
+shimmer_stat = 0#1
 imrecog_stat = 1
 
 def setup_user(users, frame_id, task, name=None, use_vision=True):
@@ -48,6 +48,8 @@ def setup_user(users, frame_id, task, name=None, use_vision=True):
 
     db = database()
     time = datetime.datetime.utcnow()
+    sql_cmd = f"""DELETE FROM current_actions WHERE user_id = {id};"""
+    db.gen_cmd(sql_cmd)
     sql_cmd = f"""DELETE FROM users WHERE user_id = {id};"""
     db.gen_cmd(sql_cmd)
     db.insert_data_list("users", ['user_id', 'user_name', 'last_active'], [(id, name, time)])
@@ -85,10 +87,18 @@ def current_action_callback(data, users):
 
             if args.classifier_type == 'all':
                 users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
+                users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
             elif args.classifier_type == 'one':
                 # Only select relevant classifier output
-                action_idx = users[i].ACTION_CATEGORIES.index(self.curr_action_type)
-                if data.ActionProbs[action_idx] > (1-data.ActionProbs[action_idx]):
+                action_idx = users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)
+                null_probs = 1-data.ActionProbs[action_idx]
+
+                if users[i].ACTION_CATEGORIES.index('null') == 0:
+                    users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((null_probs, data.ActionProbs, time)))))
+                else:
+                    users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, null_probs, time)))))
+
+                if data.ActionProbs[action_idx] > null_probs:
                     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [action_idx.astype(float), 0, time, time]))
                 else:
                     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [users[i].ACTION_CATEGORIES.index('null').astype(float), 0, time, time]))
@@ -143,7 +153,7 @@ def users_node():
         time.sleep(0.5)
 
     task = args.task_type #'assemble_box'
-    use_vision = True
+    use_vision = False
     if use_vision:
         global imrecog_stat
         # Wait for postgresql node to be ready

@@ -10,7 +10,7 @@ from postgresql.database_funcs import database
 from pub_classes import capability_class
 import pandas as pd
 from vision_recognition.count_screws_table import screw_counter
-
+import argparse
 from global_data import SIMPLE_BOX_ACTIONS, COMPLEX_BOX_ACTIONS
 #ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
 

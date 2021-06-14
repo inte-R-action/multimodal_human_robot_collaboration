@@ -22,7 +22,7 @@ from imu_classifier import imu_classifier
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, act_class
 import csv
-from getpass import getpasss
+# from getpass import getpasss
 import tkinter
 from global_data import COMPLEX_BOX_ACTIONS, SIMPLE_BOX_ACTIONS
 
@@ -58,10 +58,20 @@ parser.add_argument('--disp', '-V',
                     default=False,
                     action="store_true")
 
-parser.add_argument('--classify', '-C',
-                    help='Classify data, 0=None, 1=basic box, 2=complex box all, 3=complex box 1v1',
-                    default=1,
-                    action="store_true")
+# parser.add_argument('--classify', '-C',
+#                     help='Classify data, 0=None, 1=basic box, 2=complex box all, 3=complex box 1v1',
+#                     default=1,
+#                     action="store_true")
+
+parser.add_argument('--task_type', '-T',
+                    help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
+                    choices=['assemble_box', 'assemble_complex_box'],
+                    default='assemble_box')
+
+parser.add_argument('--classifier_type', '-C',
+                    help='Either 1v1 (one) or allvall (all) classifier',
+                    choices=['none', 'one', 'all'],
+                    default='all')
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
@@ -107,16 +117,19 @@ passkey = "1234"  # passkey of shimmers
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-if args.classify != 0:
-    if args.classify == 1:
-        scale_file = f'{dir_path}/scale_params.csv'
-        CATEGORIES = SIMPLE_BOX_ACTIONS
-    elif args.classify == 2:
-        CATEGORIES = COMPLEX_BOX_ACTIONS
-        pass
-    elif args.classify == 3:
-        CATEGORIES = COMPLEX_BOX_ACTIONS
-        pass
+if args.classifier_type != 'none':
+
+    if args.classifier_type == 'all':
+        if args.task_type == 'assemble_box':
+            scale_file = f'{dir_path}/scale_params.csv'
+            CATEGORIES = SIMPLE_BOX_ACTIONS
+        elif args.task_type == 'assemble_complex_box':
+            CATEGORIES = COMPLEX_BOX_ACTIONS
+    elif args.classifier_type == 'one':
+        if args.task_type == 'assemble_box':
+            CATEGORIES = SIMPLE_BOX_ACTIONS
+        elif args.task_type == 'assemble_complex_box':
+            CATEGORIES = COMPLEX_BOX_ACTIONS
 
     with open(scale_file, newline='') as f:
         reader = csv.reader(f)
@@ -558,24 +571,26 @@ def IMUsensorsMain():
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
     diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1, keyvalues=keyvalues)
 
-    if args.classif != 0:
-        if args.classify == 1:
-            class_count = 5
-            model_file = 'basic_box_classifier.h5'
-            classifier = imu_classifier(model_file, CATEGORIES)
-        elif args.classify == 2:
-            class_count = 5
-            model_file = None
-            classifier = imu_classifier(model_file, CATEGORIES)
-        elif args.classify == 3:
-            class_count = 4
-            model_file = None
-            classifier_screw = imu_classifier(model_file, CATEGORIES)
-            classifier_allen = imu_classifier(model_file, CATEGORIES)
-            classifier_hand = imu_classifier(model_file, CATEGORIES)
-            classifier_hammer = imu_classifier(model_file, CATEGORIES)
 
-        
+    if args.classifier_type != 'none':
+        if args.classifier_type == 'all':
+            if args.task_type == 'assemble_box':
+                class_count = 5
+                model_file = 'basic_box_classifier.h5'
+                classifier = imu_classifier(model_file, CATEGORIES)
+            elif args.task_type == 'assemble_complex_box':
+                class_count = 5
+                model_file = 'complex_box_classifier.h5'
+                classifier = imu_classifier(model_file, CATEGORIES)
+        elif args.classifier_type == 'one':
+            if args.task_type == 'assemble_box':
+                pass
+            elif args.task_type == 'assemble_complex_box':
+                class_count = 4
+                classifier_screw = imu_classifier('screw_classifier', CATEGORIES)
+                classifier_allen = imu_classifier('allen_classifier', CATEGORIES)
+                classifier_hand = imu_classifier('hand_screw_classifier', CATEGORIES)
+                classifier_hammer = imu_classifier('hammer_classifier', CATEGORIES)      
             
         act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
         

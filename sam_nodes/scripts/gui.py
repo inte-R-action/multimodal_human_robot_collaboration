@@ -13,21 +13,40 @@ import datetime
 from PIL import Image, ImageTk
 import rospy
 from diagnostic_msgs.msg import KeyValue
-from pub_classes import diag_class, move_class
+from pub_classes import diag_class, move_class, act_class
 from sam_custom_messages.msg import user_prediction, capability, diagnostics, current_action, screw_count
 from std_msgs.msg import String
 from postgresql.database_funcs import database
 import os
 import pandas as pd
 from tkinter import ttk
-from global_data import COMPLEX_BOX_ACTIONS as CATEGORIES
+from global_data import COMPLEX_BOX_ACTIONS, SIMPLE_BOX_ACTIONS
+import argparse
+
 
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 
+# Argument parsing
+parser = argparse.ArgumentParser(
+    description='Node for GUI')
 
-#CATEGORIES = ['AllenKey\nIn', 'AllenKey\nOut',
-#              'Screwing\nIn', 'Screwing\nOut', 'Null']
+parser.add_argument('--task_type', '-T',
+                    help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
+                    choices=['assemble_box', 'assemble_complex_box'],
+                    default='assemble_complex_box')
+parser.add_argument('--classifier_type', '-C',
+                    help='Either 1v1 (one) or allvall (all) classifier',
+                    choices=['one', 'all'],
+                    default='all')
+
+args = parser.parse_known_args()[0]
+
+if args.task_type == 'assemble_box':
+    CATEGORIES = SIMPLE_BOX_ACTIONS    
+elif args.task_type == 'assemble_complex_box':
+    CATEGORIES = COMPLEX_BOX_ACTIONS
+
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()
@@ -43,13 +62,14 @@ class user_frame:
         self.name = name
         self.root = root
         self.imu_pred = np.zeros(5)
-        self.task_name = "assemble_box"
+        self.task_name = args.task_type
         self.task_data = None
         self.status = "unknown"
         self.current_action_no = None
         self.screw_counts = [None, None]
         self.shimmer = [None, None, None]
         self.shimmer_info = []
+        self.current_action_type = None
 
         self.next_action_pub = rospy.Publisher('NextActionOverride', String, queue_size=10)
 
@@ -67,7 +87,7 @@ class user_frame:
         self.user_frame.grid(row=0, column=self.no, sticky=Tk.N + Tk.S)
 
         # User Details
-        self.user_deets = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
+        self.user_deets = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 10))
         #self.user_deets.tag_configure("center", justify='center')
         self.user_deets.grid(row=0, column=0, sticky="nsew")
         self.update_user_deets()
@@ -91,7 +111,7 @@ class user_frame:
         self.shimmer_frame.grid_rowconfigure(2, weight=1)
 
         # Screw counter
-        self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=1, font=('', 12))
+        self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
         self.screw_count_txt.tag_configure("center", justify='center')
         self.screw_count_txt.grid(row=0, column=2, sticky="nsew")
         self.update_screw_count_txt()
@@ -101,7 +121,7 @@ class user_frame:
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.user_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3,
-                                         sticky=Tk.W + Tk.E + Tk.N + Tk.S)
+                                         sticky="nsew")
 
         # Tasks List
         self.load_task_data()
@@ -206,7 +226,14 @@ class user_frame:
 
     def update_action_plot(self):
         self.ax.cla()
-        self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
+        bars = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
+
+        try:
+            bars[CATEGORIES.index('null')].set_color('r')
+            bars[CATEGORIES.index(self.current_action_type)].set_color('r')
+        except ValueError:
+            pass
+
         self.ax.set_xticks(pos)
         self.ax.set_xticklabels(CATEGORIES)
         self.ax.set_ylabel('Confidence')
@@ -433,7 +460,10 @@ class GUI:
                             row['current_action_no'], background='green')
                         if self.users[user_i].current_action_no is not None:
                             self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
+                        
                         self.users[user_i].current_action_no = row['current_action_no']
+
+                        self.users[user_i].current_action_type = self.users[user_i].task_data.loc[self.users[user_i].current_action_no]['action_name']
             
             # Update robot actions
             self.load_task_data()
@@ -473,7 +503,25 @@ class GUI:
                 if user.name != data.UserName:
                     print(f"ERROR: users list name {self.users[data.UserId].name} does not match current_action msg name {data.UserName}")
                 else:
-                    user.imu_pred = data.ActionProbs
+                    if args.classifier_type == 'one':
+                        if CATEGORIES.index('null') == 0:
+                            try:
+                                null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)-1]
+                                user.imu_pred = np.hstack((null_prob, data.ActionProbs))
+                            except ValueError:
+                                null_prob = 1
+                                user.imu_pred = np.hstack((null_prob, data.ActionProbs))
+                        else:
+                            try:
+                                null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)]
+                                user.imu_pred = np.hstack((data.ActionProbs, null_prob))
+                            except ValueError:
+                                null_prob = 1
+                                user.imu_pred = np.hstack((data.ActionProbs, null_prob))
+
+                    else:
+                        user.imu_pred = data.ActionProbs
+                    
                     user.update_action_plot()
 
     def update_sys_stat(self, data):
@@ -518,8 +566,11 @@ def run_gui():
     rospy.Subscriber('RobotMove', String, gui.update_robot_move)
     rospy.Subscriber('ScrewCounts', screw_count, gui.update_screw_count)
 
+    #fake_pub = act_class(frame_id='gui', class_count=4)
+
     while not rospy.is_shutdown():
         gui.update_gui()
+        #fake_pub.publish([0.1, 0.2, 0.3, 0.4, 0.5])
         pass
 
 

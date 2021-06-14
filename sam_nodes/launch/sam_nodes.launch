@@ -1,8 +1,9 @@
 <launch>
 
   <!-- By default, we are not in debug mode -->
-  <arg name="test_mode" default="true" />
-  <arg name="task_type" default="assemble_complex_box" />
+  <arg name="test_mode" default="false" />
+  <arg name="task" default="assemble_complex_box" />
+  <arg name="classifier" default="one" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
   <arg if="$(arg test_mode)" name="postgresql" default="true" />
@@ -12,7 +13,7 @@
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
   <arg if="$(arg test_mode)" name="fake_imu_node" default="true" />
 
-  <arg unless="$(arg test_mode)" name="im_recog" default="true" />
+  <arg unless="$(arg test_mode)" name="im_recog" default="false" />
   <arg unless="$(arg test_mode)" name="postgresql" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller_test" default="false" />
@@ -20,7 +21,7 @@
   <arg unless="$(arg test_mode)" name="shimmerBase" default="true" />
   <arg unless="$(arg test_mode)" name="fake_imu_node" default="false" />
 
-  <node name="gui" pkg="sam_nodes" type="gui.py" respawn="false" output="screen">
+  <node name="gui" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">
     </node>
 
   <group if="$(arg im_recog)">
@@ -45,12 +46,12 @@
   </group>
   
   <group if="$(arg shimmerBase)">
-    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen" args="$(-classify 1)">
+    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">
     </node>
   </group>
   
   <group if="$(arg users_node)">
-    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen">
+    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">
     </node>
   </group>
 

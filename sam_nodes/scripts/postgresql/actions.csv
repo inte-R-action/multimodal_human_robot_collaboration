@@ -19,4 +19,4 @@ action_id,action_name,std_dur_s,user_type
 17,deliver_box,0,robot
 18,hand_screw_in,3,human
 19,hand_screw_out,3,human
-20,hammer,0.5,human
+20,hammer,1,human
