@@ -34,7 +34,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
                     choices=['assemble_box', 'assemble_complex_box'],
-                    default='assemble_complex_box')
+                    default='assemble_box')
 parser.add_argument('--classifier_type', '-C',
                     help='Either 1v1 (one) or allvall (all) classifier',
                     choices=['one', 'all'],
@@ -508,14 +508,16 @@ class GUI:
                             try:
                                 null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)-1]
                                 user.imu_pred = np.hstack((null_prob, data.ActionProbs))
-                            except ValueError:
+                            except ValueError as e:
+                                print(f"GUI value error: {e}")
                                 null_prob = 1
                                 user.imu_pred = np.hstack((null_prob, data.ActionProbs))
                         else:
                             try:
                                 null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)]
                                 user.imu_pred = np.hstack((data.ActionProbs, null_prob))
-                            except ValueError:
+                            except ValueError as e:
+                                print(f"GUI value error: {e}")
                                 null_prob = 1
                                 user.imu_pred = np.hstack((data.ActionProbs, null_prob))
 

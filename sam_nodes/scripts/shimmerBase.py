@@ -55,7 +55,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--disp', '-V',
                     help='Enable displaying of live graphs',
-                    default=False,
+                    default=True,
                     action="store_true")
 
 # parser.add_argument('--classify', '-C',
@@ -129,6 +129,7 @@ if args.classifier_type != 'none':
         if args.task_type == 'assemble_box':
             CATEGORIES = SIMPLE_BOX_ACTIONS
         elif args.task_type == 'assemble_complex_box':
+            scale_file = f'{dir_path}/imu_scale_params1v1.csv'
             CATEGORIES = COMPLEX_BOX_ACTIONS
 
     with open(scale_file, newline='') as f:
@@ -261,10 +262,12 @@ class shimmer():
                 print(f"---{self._location} start command sending, done.")
                 #self.inquiry_response()  # Use this if you want to find the structure of data that will be streamed back
 
+                return True
+
             except Exception as e:
                 print(f'exception in {self._location} initiate: {e}')
                 self._connected = False
-        return True
+        #return True
 
     def inquiry_response(self):
         # Outputs data structure of data to be streamed back
@@ -577,20 +580,20 @@ def IMUsensorsMain():
             if args.task_type == 'assemble_box':
                 class_count = 5
                 model_file = 'basic_box_classifier.h5'
-                classifier = imu_classifier(model_file, CATEGORIES)
+                classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
             elif args.task_type == 'assemble_complex_box':
                 class_count = 5
                 model_file = 'complex_box_classifier.h5'
-                classifier = imu_classifier(model_file, CATEGORIES)
+                classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
         elif args.classifier_type == 'one':
             if args.task_type == 'assemble_box':
                 pass
             elif args.task_type == 'assemble_complex_box':
                 class_count = 4
-                classifier_screw = imu_classifier('screw_classifier', CATEGORIES)
-                classifier_allen = imu_classifier('allen_classifier', CATEGORIES)
-                classifier_hand = imu_classifier('hand_screw_classifier', CATEGORIES)
-                classifier_hammer = imu_classifier('hammer_classifier', CATEGORIES)      
+                classifier_screw = imu_classifier('data_screw_in_x_classifier_TrainOnAll_1_acc_[0.0030045127496123314, 0.9993076920509338].h5', ['null', 'screw_in'], WIN_LEN)
+                classifier_allen = imu_classifier('data_allen_in_x_classifier_TrainOnAll_1_acc_[0.003038098569959402, 0.9987289309501648].h5', ['null', 'allen_in'], WIN_LEN)
+                classifier_hand = imu_classifier('data_handscrew_in_x_classifier_TrainOnAll_1_acc_[0.07151676714420319, 0.9735816121101379].h5', ['null', 'hand_screw_in'], WIN_LEN)
+                classifier_hammer = imu_classifier('data_hammer_x_classifier_TrainOnAll_1_acc_[0.0007419306202791631, 1.0].h5', ['null', 'hammer'], WIN_LEN)      
             
         act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
         
@@ -600,6 +603,10 @@ def IMUsensorsMain():
     for shimthread in range(0, numsensors):
         shim_threads[shimthread] = threading.Thread(target=shimmer_thread, args=(shimthread,))
         shim_threads[shimthread].start()
+        # time.sleep(10)
+        # while not shimmers[shimthread]._connected:
+        #     time.sleep(5)
+        #     print(shimmers[shimthread]._connected)
 
     ready = np.zeros((len(shim_threads)))  # Bool array for if shimmers are setup and streaming
     alive = np.zeros((len(shim_threads)))  # Bool array for if shimmer thread are active
@@ -609,7 +616,7 @@ def IMUsensorsMain():
 
     print("Starting main loop")
     
-    class_pred = CATEGORIES[-1]
+    class_pred = 'null'#CATEGORIES[-1]
     status = [2, 2, 2, 2] # [unknown, unknown, unknown, setting up]
     diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
     while not quit_IMU:
@@ -625,8 +632,8 @@ def IMUsensorsMain():
         out_str = f"Sensors Ready:{ready} Threads:{alive} Connections:{conn} Shutdowns:{s_down} " \
                   f"Total Threads:{threading.active_count()} Quit:{quit_IMU} Prediction:{class_pred}"
         #out_str = threading.enumerate()
-        #print(out_str)
-        class_pred = CATEGORIES[-1]
+        print(out_str)
+        class_pred = 'null'#CATEGORIES[-1]
         new_data = np.empty((WIN_LEN, 0), dtype=np.float64)
         if all(ready) & all(conn) & all(alive):
             for p in shimmers:
@@ -640,16 +647,23 @@ def IMUsensorsMain():
             new_data = scale_data(new_data)
             status[3] = 1 # Ready
             diag_level = 0 # ok
-
-            if args.classify != 0:
-                if args.classify == 3:
-                    prediction = []
-                    prediction.append(np.reshape(classifier_screw.classify_data(new_data, args.bar), (-1))[1])
-                    prediction.append(np.reshape(classifier_allen.classify_data(new_data, args.bar), (-1))[1])
-                    prediction.append(np.reshape(classifier_hand.classify_data(new_data, args.bar), (-1))[1])
-                    prediction.append(np.reshape(classifier_hammer.classify_data(new_data, args.bar), (-1))[1])
-                else:
-                    prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
+            
+            if args.classifier_type != 'none':
+                if args.classifier_type == 'all':
+                    if args.task_type == 'assemble_box':
+                        prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
+                    elif args.task_type == 'assemble_complex_box':
+                        pass
+                elif args.classifier_type == 'one':
+                    if args.task_type == 'assemble_box':
+                        pass
+                    elif args.task_type == 'assemble_complex_box':
+                        prediction = []
+                        prediction.append(classifier_screw.classify_data(new_data, args.bar)[1])
+                        prediction.append(classifier_allen.classify_data(new_data, args.bar)[1])
+                        prediction.append(classifier_hammer.classify_data(new_data, args.bar)[1])
+                        prediction.append(classifier_hand.classify_data(new_data, args.bar)[1])
+                        print(prediction)
 
                 class_pred = CATEGORIES[np.argmax(prediction)]
 
@@ -671,7 +685,7 @@ def IMUsensorsMain():
                 KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[status[2]]),
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
 
-        if args.classify != 0:
+        if args.classifier_type != 'none':
             try:
                 act_obj.publish(prediction)
             except Exception as e:

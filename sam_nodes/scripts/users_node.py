@@ -35,7 +35,7 @@ parser.add_argument('--classifier_type', '-C',
 args = parser.parse_known_args()[0]
 
 database_stat = 1
-shimmer_stat = 0#1
+shimmer_stat = 1
 imrecog_stat = 1
 
 def setup_user(users, frame_id, task, name=None, use_vision=True):
