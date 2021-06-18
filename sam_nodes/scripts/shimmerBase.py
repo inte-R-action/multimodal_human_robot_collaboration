@@ -124,12 +124,13 @@ if args.classifier_type != 'none':
             scale_file = f'{dir_path}/scale_params.csv'
             CATEGORIES = SIMPLE_BOX_ACTIONS
         elif args.task_type == 'assemble_complex_box':
+            scale_file = f'{dir_path}/imu_scale_params_allvall.csv'
             CATEGORIES = COMPLEX_BOX_ACTIONS
     elif args.classifier_type == 'one':
         if args.task_type == 'assemble_box':
             CATEGORIES = SIMPLE_BOX_ACTIONS
         elif args.task_type == 'assemble_complex_box':
-            scale_file = f'{dir_path}/imu_scale_params1v1.csv'
+            scale_file = f'{dir_path}/imu_scale_params_1v1.csv'
             CATEGORIES = COMPLEX_BOX_ACTIONS
 
     with open(scale_file, newline='') as f:
@@ -583,7 +584,7 @@ def IMUsensorsMain():
                 classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
             elif args.task_type == 'assemble_complex_box':
                 class_count = 5
-                model_file = 'complex_box_classifier.h5'
+                model_file = 'complex_box_classifier_allvall_1.h5'
                 classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
         elif args.classifier_type == 'one':
             if args.task_type == 'assemble_box':
