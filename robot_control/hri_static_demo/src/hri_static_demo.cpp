@@ -96,6 +96,7 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["stack_yellow_small_block"] = {-40.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["final_stack"] = {-20.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["remove_stack"] = {-170.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_hand_screw_parts"] = {-70.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     return joint_positions;
 };
 
@@ -421,6 +422,24 @@ void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, mo
     //home(targetJoints, Robot);
 }
 
+void take_hand_screw_parts(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
+{
+    // Move to position above side
+    Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
+
+    // Move down, pick side up, move up
+    pick_up_object(Robot, 0.10);
+
+    // Move to user delivery position
+    Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
+
+    // Move down, set down side, move up
+    set_down_object(Robot, 0.06, 0.5);
+
+    // Return to home position
+    //home(targetJoints, Robot);
+}
+
 void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
     // Move robot to position above box
@@ -550,6 +569,10 @@ int main(int argc, char** argv)
                     if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
                     {          
                         take_side(objectString, targetJoints, Robot);
+                    }
+                    else if( objectString=="bring_hand_screw_parts" )
+                    {          
+                        take_hand_screw_parts(objectString, targetJoints, Robot);
                     }
                     else if( objectString == "take_box" )
                     {  
