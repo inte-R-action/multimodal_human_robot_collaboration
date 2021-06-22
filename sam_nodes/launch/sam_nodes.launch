@@ -1,7 +1,7 @@
 <launch>
 
   <!-- By default, we are not in debug mode -->
-  <arg name="test_mode" default="true" />
+  <arg name="test_mode" default="false" />
   <arg name="task" default="assemble_complex_box" />
   <arg name="classifier" default="one" />
 
@@ -18,7 +18,7 @@
   <arg unless="$(arg test_mode)" name="robot_controller" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller_test" default="false" />
   <arg unless="$(arg test_mode)" name="users_node" default="true" />
-  <arg unless="$(arg test_mode)" name="shimmerBase" default="true" />
+  <arg unless="$(arg test_mode)" name="shimmerBase" default="false" />
   <arg unless="$(arg test_mode)" name="fake_imu_node" default="false" />
 
   <node name="gui" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">

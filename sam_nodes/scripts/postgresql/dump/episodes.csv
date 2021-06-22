@@ -1,1 +1,7 @@
 episode_id,date,start_t,end_t,duration,user_id,hand,task_name,action_name,action_no
+1,2021-06-22,16:33:35,16:33:40,00:00:05,1,R,assemble_complex_box,null,8
+2,2021-06-22,16:33:41,16:33:42,00:00:01,1,R,assemble_complex_box,screw_in,18
+3,2021-06-22,17:33:36.199264,17:33:50.761693,00:00:14.562429,0,-,assemble_complex_box,bring_side_1,0
+4,2021-06-22,17:33:50.816547,17:34:08.386244,00:00:17.569697,0,-,stack_tower,stack_yellow_small_block,0
+5,2021-06-22,17:34:08.442315,17:34:28.745058,00:00:20.302743,0,-,stack_tower,stack_red_small_block,1
+6,2021-06-22,17:34:28.852038,17:34:49.856646,00:00:21.004608,0,-,stack_tower,stack_blue_small_block,2
