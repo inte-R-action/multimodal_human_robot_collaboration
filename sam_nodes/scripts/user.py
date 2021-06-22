@@ -131,14 +131,14 @@ class User:
         next_action_expected = self.task_data.iloc[next_action_row_i]["action_name"]
         if action_name == next_action_expected:
             ############ Vision Recognition Check Here #################
-            if self.use_vision and (action_name == 'screw_in'):
+            if self.use_vision and ((action_name == 'screw_in') or (action_name == 'allen_in') or (action_name == 'hammer')):
                 self.screw_counter.count_screws()
                 if (self.screw_counter.screw_ave_last > self.screw_counter.screw_ave):
                     self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
                     next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
                     self.screw_counter.next_screw()
                 else:
-                    print(f"Screw task correctly recognised but last screw is {self.screw_counter.screw_ave_last} and now is {self.screw_counter.screw_ave}")
+                    print(f"{action_name} task correctly recognised but last screw count is {self.screw_counter.screw_ave_last} and now is {self.screw_counter.screw_ave}")
             else:
                 self.task_data.iloc[next_action_row_i, self.task_data.columns.get_loc("completed")] = True
                 next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
@@ -157,7 +157,8 @@ class User:
         next_action_row_i = self.task_data[self.task_data.completed == False].index[0]
         self.curr_action_no = self.task_data.iloc[next_action_row_i]["action_no"]
         self.curr_action_type = self.task_data.iloc[next_action_row_i]["action_name"]
-        self.screw_counter.next_screw()
+        if self.use_vision:
+            self.screw_counter.next_screw()
         self.update_current_action_output()
 
 
@@ -181,6 +182,8 @@ class User:
         
     def collate_imu_seq(self):
         # 'Dilation' filter to remove single erroneous predictions
+        #print('state hist: ', self._imu_state_hist)
+        #print('pred hist: ', self._imu_pred_hist)
         if np.shape(self._imu_state_hist)[0] >= 4:
             self.update_robot_progress()
 

@@ -125,22 +125,19 @@ if __name__ == "__main__":
                         action="store_true")
     parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
-                    default='N/A',
+                    default='unknown',
                     action="store_true")
     parser.add_argument('--user_id', '-I',
-                    help='Set id of user, default: None',
-                    default=0,
+                    help='Set id of user, default: 1',
+                    default=1,
                     action="store_true")
     parser.add_argument('--classify', '-C',
                     help='Classify image',
                     default=True,
                     action="store_true")
-    parser.add_argument('--comp_device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--img_size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
-    parser.add_argument('--conf_thres', type=float, default=0.25, help='object confidence threshold')
-    parser.add_argument('--iou_thres', type=float, default=0.45, help='IOU threshold for NMS')
-    parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
+    parser.add_argument('--test', 
+                    default=test, 
+                    help='Test mode for visual recognition without ROS')
     
     args = parser.parse_known_args()[0]
 

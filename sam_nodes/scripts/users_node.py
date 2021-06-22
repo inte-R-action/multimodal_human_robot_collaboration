@@ -33,7 +33,7 @@ parser.add_argument('--classifier_type', '-C',
                     default='all')
 
 args = parser.parse_known_args()[0]
-
+print(f"Users node settings: {args.task_type} {args.classifier_type}")
 database_stat = 1
 shimmer_stat = 1
 imrecog_stat = 1
@@ -83,25 +83,31 @@ def current_action_callback(data, users):
         else:
             #users[i].actions.extend([data.action_probs, data.Header.stamp])
             time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
-            users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
+            #users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
 
             if args.classifier_type == 'all':
                 users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
                 users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
             elif args.classifier_type == 'one':
                 # Only select relevant classifier output
-                action_idx = users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)
-                null_probs = 1-data.ActionProbs[action_idx]
+                try:
+                    action_idx = users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)-1
+                    null_probs = 1-data.ActionProbs[action_idx]
+
+                    if data.ActionProbs[action_idx] > null_probs:
+                        users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)), 0, time, time]))
+                    else:
+                        users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
+
+                except ValueError as e:
+                    # When action is robot action so not found in user action list
+                    users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
+                    null_probs = 1
 
                 if users[i].ACTION_CATEGORIES.index('null') == 0:
                     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((null_probs, data.ActionProbs, time)))))
                 else:
                     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, null_probs, time)))))
-
-                if data.ActionProbs[action_idx] > null_probs:
-                    users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [action_idx.astype(float), 0, time, time]))
-                else:
-                    users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [users[i].ACTION_CATEGORIES.index('null').astype(float), 0, time, time]))
 
             #users[i]._imu_state_hist, users[i]._imu_pred_hist = collate_imu_seq(users[i]._imu_state_hist, users[i]._imu_pred_hist)
             users[i].collate_imu_seq()

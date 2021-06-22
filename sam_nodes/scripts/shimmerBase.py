@@ -55,7 +55,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--disp', '-V',
                     help='Enable displaying of live graphs',
-                    default=True,
+                    default=False,
                     action="store_true")
 
 # parser.add_argument('--classify', '-C',
@@ -66,12 +66,12 @@ parser.add_argument('--disp', '-V',
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
                     choices=['assemble_box', 'assemble_complex_box'],
-                    default='assemble_box')
+                    default='assemble_complex_box')
 
 parser.add_argument('--classifier_type', '-C',
                     help='Either 1v1 (one) or allvall (all) classifier',
                     choices=['none', 'one', 'all'],
-                    default='all')
+                    default='one')
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
@@ -89,7 +89,7 @@ parser.add_argument('--user_id', '-I',
                     action="store_true")
 
 args = parser.parse_known_args()[0]
-
+print(f"Shimmer settings: {args.task_type} {args.classifier_type}")
 frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
 
 # Shimmer sensor connection params
@@ -124,13 +124,15 @@ if args.classifier_type != 'none':
             scale_file = f'{dir_path}/scale_params.csv'
             CATEGORIES = SIMPLE_BOX_ACTIONS
         elif args.task_type == 'assemble_complex_box':
-            scale_file = f'{dir_path}/imu_scale_params_allvall.csv'
+            # scale_file = f'{dir_path}/imu_scale_params_allvall.csv'
+            scale_file = f'{dir_path}/imu_scale_params_ava_allclassesincl.csv'
             CATEGORIES = COMPLEX_BOX_ACTIONS
     elif args.classifier_type == 'one':
         if args.task_type == 'assemble_box':
             CATEGORIES = SIMPLE_BOX_ACTIONS
         elif args.task_type == 'assemble_complex_box':
-            scale_file = f'{dir_path}/imu_scale_params_1v1.csv'
+            # scale_file = f'{dir_path}/imu_scale_params_1v1_2.csv'
+            scale_file = f'{dir_path}/imu_scale_params_1v1_allclassesincl.csv'
             CATEGORIES = COMPLEX_BOX_ACTIONS
 
     with open(scale_file, newline='') as f:
@@ -584,18 +586,25 @@ def IMUsensorsMain():
                 classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
             elif args.task_type == 'assemble_complex_box':
                 class_count = 5
-                model_file = 'complex_box_classifier_allvall_1.h5'
+                # model_file = 'complex_box_classifier_allvall_1.h5'
+                model_file = 'complex_box_classifier_allvall_2_allclassesincl.h5'
                 classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
         elif args.classifier_type == 'one':
             if args.task_type == 'assemble_box':
                 pass
             elif args.task_type == 'assemble_complex_box':
                 class_count = 4
-                classifier_screw = imu_classifier('data_screw_in_x_classifier_TrainOnAll_1_acc_[0.0030045127496123314, 0.9993076920509338].h5', ['null', 'screw_in'], WIN_LEN)
-                classifier_allen = imu_classifier('data_allen_in_x_classifier_TrainOnAll_1_acc_[0.003038098569959402, 0.9987289309501648].h5', ['null', 'allen_in'], WIN_LEN)
-                classifier_hand = imu_classifier('data_handscrew_in_x_classifier_TrainOnAll_1_acc_[0.07151676714420319, 0.9735816121101379].h5', ['null', 'hand_screw_in'], WIN_LEN)
-                classifier_hammer = imu_classifier('data_hammer_x_classifier_TrainOnAll_1_acc_[0.0007419306202791631, 1.0].h5', ['null', 'hammer'], WIN_LEN)      
+                # classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_2.h5', ['null', 'screw_in'], WIN_LEN)
+                # classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_2.h5', ['null', 'allen_in'], WIN_LEN)
+                # classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_2.h5', ['null', 'hand_screw_in'], WIN_LEN)
+                # classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_2.h5', ['null', 'hammer'], WIN_LEN)      
+                
+                classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'screw_in'], WIN_LEN)
+                classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'allen_in'], WIN_LEN)
+                classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'hand_screw_in'], WIN_LEN)
+                classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'hammer'], WIN_LEN)      
             
+
         act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
         
         prediction = np.zeros(class_count)
@@ -654,7 +663,7 @@ def IMUsensorsMain():
                     if args.task_type == 'assemble_box':
                         prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
                     elif args.task_type == 'assemble_complex_box':
-                        pass
+                        prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
                 elif args.classifier_type == 'one':
                     if args.task_type == 'assemble_box':
                         pass
@@ -664,8 +673,8 @@ def IMUsensorsMain():
                         prediction.append(classifier_allen.classify_data(new_data, args.bar)[1])
                         prediction.append(classifier_hammer.classify_data(new_data, args.bar)[1])
                         prediction.append(classifier_hand.classify_data(new_data, args.bar)[1])
-                        print(prediction)
-
+                
+                #print(prediction)
                 class_pred = CATEGORIES[np.argmax(prediction)]
 
         else:

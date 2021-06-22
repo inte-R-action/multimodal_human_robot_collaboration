@@ -34,7 +34,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
                     choices=['assemble_box', 'assemble_complex_box'],
-                    default='assemble_box')
+                    default='assemble_complex_box')
 parser.add_argument('--classifier_type', '-C',
                     help='Either 1v1 (one) or allvall (all) classifier',
                     choices=['one', 'all'],
@@ -46,7 +46,7 @@ if args.task_type == 'assemble_box':
     CATEGORIES = SIMPLE_BOX_ACTIONS    
 elif args.task_type == 'assemble_complex_box':
     CATEGORIES = COMPLEX_BOX_ACTIONS
-
+print(f"GUI settings: {args.task_type} {args.classifier_type}")
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()
