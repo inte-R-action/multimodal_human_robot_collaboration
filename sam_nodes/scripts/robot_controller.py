@@ -70,18 +70,21 @@ class future_predictor():
                     
                     # sum est time until robot action required
                     #row['start_time'] = row['start_time'].astimezone(pytz.timezone("UTC"))
-                    t_diff = min(max(datetime.datetime.now(tz=pytz.UTC)-row['start_time'], datetime.timedelta()), tasks_left.iloc[0]['default_time'])
+                    try:
+                        t_diff = min(max(datetime.datetime.now(tz=pytz.UTC)-row['start_time'], datetime.timedelta()), tasks_left.iloc[0]['default_time'])
 
-                    time_to_robo = max(tasks_left.loc[:next_robo_action]['default_time'].sum() - t_diff - tasks_left.loc[next_robo_action]['default_time'], datetime.timedelta())
-                    time_to_robo = (datetime.datetime.min + time_to_robo).time()
+                        time_to_robo = max(tasks_left.loc[:next_robo_action]['default_time'].sum() - t_diff - tasks_left.loc[next_robo_action]['default_time'], datetime.timedelta())
+                        time_to_robo = (datetime.datetime.min + time_to_robo).time()
+                    except TypeError:
+                        time_to_robo = datetime.datetime.max.time()
                     
                     i = self.future_estimates.loc[self.future_estimates['user_id'] == row['user_id']].first_valid_index()
-
-                    # Need to wait until task com
-                    if tasks_left.loc[next_robo_action]['prev_dependent']:
-                        if next_robo_action == self.future_estimates.loc[i, 'current_action_no']:
-                            if next_robo_action > real_action_no:
-                                time_to_robo = datetime.datetime.max.time()
+                    # Need to wait until task complete for dependent actions
+                    if i is not None:
+                        if tasks_left.loc[next_robo_action]['prev_dependent']:
+                            if next_robo_action == self.future_estimates.loc[i, 'current_action_no']:
+                                if next_robo_action > real_action_no:
+                                    time_to_robo = datetime.datetime.max.time()
 
                     print(f"\nUser {row['user_name']} Tasks Left:")
                     print(tasks_left,"\n")

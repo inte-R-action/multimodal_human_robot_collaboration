@@ -11,7 +11,7 @@ from pub_classes import diag_class
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'stack_tower', 'current_actions', 'robot_future_estimates']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'current_actions', 'robot_future_estimates']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
         ['actions', ["action_id SERIAL PRIMARY KEY",
@@ -38,6 +38,12 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "user_type VARCHAR(5)",
                     "prev_dependent BOOL"]],
         ['assemble_complex_box', ["action_no SERIAL PRIMARY KEY",
+                    "action_id INTEGER REFERENCES actions(action_id)",
+                    "action_name VARCHAR(255) REFERENCES actions(action_name)",
+                    "default_time INTERVAL",
+                    "user_type VARCHAR(5)",
+                    "prev_dependent BOOL"]],
+        ['assemble_complex_box_manual', ["action_no SERIAL PRIMARY KEY",
                     "action_id INTEGER REFERENCES actions(action_id)",
                     "action_name VARCHAR(255) REFERENCES actions(action_name)",
                     "default_time INTERVAL",
@@ -98,7 +104,7 @@ def load_tables(db):
         try:
             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
 
-            if (name == 'assemble_box') or (name == 'stack_tower') or (name == 'assemble_complex_box'):
+            if (name == 'assemble_box') or (name == 'stack_tower') or (name == 'assemble_complex_box') or (name == 'assemble_complex_box_manual'):
                 # Update times and action ids from actions table
                 sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
                 db.gen_cmd(sql)

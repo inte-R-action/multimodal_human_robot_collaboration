@@ -61,6 +61,13 @@ class User:
             self._imu_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
             self._final_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
 
+        elif self.task == 'assemble_complex_box_manual':
+            self.ACTION_CATEGORIES = COMPLEX_BOX_ACTIONS
+            self._imu_pred = np.zeros(6) #class confs, t 
+            self._imu_pred_hist = np.empty(6) #class confs, t 
+            self._imu_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
+            self._final_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
+
         col_names, actions_list = self.db.query_table(self.task, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["completed"] = False

@@ -22,7 +22,7 @@ import os
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/user_trial_data_recording/videos/"))
 
-test_mode = True
+test_mode = False
 file = f"hrc_output_{time.time()}.avi"
 
 image = None
@@ -33,8 +33,6 @@ class image_converter:
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/camera/rgb/image_color",Image,self.callback)
     #self.image_sub = rospy.Subscriber("/camera/depth/image",Image,self.callback)
-    self.last_t = time.time()
-
 
   def callback(self,data):
     global image
@@ -45,9 +43,6 @@ class image_converter:
       print(e)
 
     image = cv_image
-    print(1/(time.time()-self.last_t))
-    self.last_t = time.time()
-
 
 camera_info = None
 def image_info_cb(data):

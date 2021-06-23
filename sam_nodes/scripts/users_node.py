@@ -25,7 +25,7 @@ parser.add_argument('--user_names', '-N',
                     type=lambda s: [str(item) for item in s.split(',')])
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-                    choices=['assemble_box', 'assemble_complex_box'],
+                    choices=['assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual'],
                     default='assemble_box')
 parser.add_argument('--classifier_type', '-C',
                     help='Either 1v1 (one) or allvall (all) classifier',
