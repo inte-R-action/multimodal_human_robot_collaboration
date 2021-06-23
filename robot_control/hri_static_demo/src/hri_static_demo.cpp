@@ -93,10 +93,10 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["stack_red_small_block"] = {-110.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["stack_blue_small_block"] = {-130.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["stack_green_small_block"] = {-150.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["stack_yellow_small_block"] = {-40.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["stack_yellow_small_block"] = {-90.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["final_stack"] = {-20.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["remove_stack"] = {-170.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["bring_hand_screw_parts"] = {-70.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_hand_screw_parts"] = {-65.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     return joint_positions;
 };
 
@@ -428,13 +428,13 @@ void take_hand_screw_parts(string bring_cmd, std::map<std::string, double> &targ
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     // Move down, pick side up, move up
-    pick_up_object(Robot, 0.10);
+    pick_up_object(Robot, 0.065);
 
     // Move to user delivery position
     Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
 
     // Move down, set down side, move up
-    set_down_object(Robot, 0.06, 0.5);
+    set_down_object(Robot, 0.03, 0.5);
 
     // Return to home position
     //home(targetJoints, Robot);
@@ -472,8 +472,12 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
     Robot.move_robot(targetJoints, bring_cmd, string("final_stack"));
 
     // Move down, set down block, move up
-    double z_move = 0.11 - (stack_height*0.019);
-    set_down_object(Robot, z_move, 0.05);
+    double block_heght = 0.019;
+    double z_move = 0.11 - (stack_height*block_heght);
+    Robot.z_move(-(z_move-block_heght), 0.05);
+    Robot.z_move(-block_heght, 0.01);
+    Robot.open_gripper();
+    Robot.z_move(z_move, 1.0);
 
     // Return to home position
     //home(targetJoints, Robot);
