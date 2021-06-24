@@ -9,11 +9,11 @@ action_id,action_name,std_dur_s,user_type
 7,bring_side_4,00:00:22,robot
 8,take_box,00:00:01,robot
 9,null,00:00:00,human
-10,stack_red_small_block,00:00:16,robot
-11,stack_blue_small_block,00:00:16,robot
-12,stack_yellow_small_block,00:00:16,robot
-13,stack_green_small_block,00:00:16,robot
-14,stack_orange_small_block,00:00:16,robot
+10,stack_red_small_block,00:00:18,robot
+11,stack_blue_small_block,00:00:18,robot
+12,stack_yellow_small_block,00:00:18,robot
+13,stack_green_small_block,00:00:18,robot
+14,stack_orange_small_block,00:00:18,robot
 15,remove_stack,00:00:25,robot
 16,home,00:00:05,robot
 17,deliver_box,00:00:00,robot

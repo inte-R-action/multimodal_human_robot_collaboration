@@ -32,6 +32,8 @@ parser.add_argument('--classifier_type', '-C',
                     choices=['one', 'all'],
                     default='all')
 
+use_vision = False
+
 args = parser.parse_known_args()[0]
 print(f"Users node settings: {args.task_type} {args.classifier_type}")
 database_stat = 1
@@ -159,7 +161,7 @@ def users_node():
         time.sleep(0.5)
 
     task = args.task_type #'assemble_box'
-    use_vision = False
+    global use_vision
     if use_vision:
         global imrecog_stat
         # Wait for postgresql node to be ready

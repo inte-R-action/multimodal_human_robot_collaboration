@@ -67,6 +67,10 @@ class future_predictor():
                     if fake_action_no != real_action_no:
                         # get real list of actions left incl current action
                         tasks_left = task_data.drop(task_data.index[:task_data.loc[task_data[(task_data['action_no']==real_action_no)].first_valid_index()].name])
+                        
+                        if tasks_left.iloc[0]['user_type'] == 'robot':
+                            tasks_left = tasks_left.drop(tasks_left.index[0])
+                            print(tasks_left.iloc[0]['user_type'])
                     
                     # sum est time until robot action required
                     #row['start_time'] = row['start_time'].astimezone(pytz.timezone("UTC"))

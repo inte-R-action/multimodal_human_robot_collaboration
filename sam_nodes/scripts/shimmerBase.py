@@ -640,7 +640,7 @@ def IMUsensorsMain():
             keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[s]} {SHIM_IDs[s]}', value = IMU_MSGS[status[s]])]
 
         out_str = f"Sensors Ready:{ready} Threads:{alive} Connections:{conn} Shutdowns:{s_down} " \
-                  f"Total Threads:{threading.active_count()} Quit:{quit_IMU} Prediction:{class_pred}"
+                  f"Total Threads:{threading.active_count()} Quit:{quit_IMU} Prediction:{prediction} {class_pred}"
         #out_str = threading.enumerate()
         print(out_str)
         class_pred = 'null'#CATEGORIES[-1]

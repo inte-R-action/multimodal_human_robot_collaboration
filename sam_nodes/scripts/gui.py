@@ -230,11 +230,12 @@ class user_frame:
         self.ax.cla()
         bars = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
 
-        try:
-            bars[CATEGORIES.index('null')].set_color('r')
-            bars[CATEGORIES.index(self.current_action_type)].set_color('r')
-        except ValueError:
-            pass
+        if args.classifier_type == 'one':
+            try:
+                bars[CATEGORIES.index('null')].set_color('r')
+                bars[CATEGORIES.index(self.current_action_type)].set_color('r')
+            except ValueError:
+                pass
 
         self.ax.set_xticks(pos)
         self.ax.set_xticklabels(CATEGORIES)
