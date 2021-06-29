@@ -75,7 +75,7 @@ parser.add_argument('--classifier_type', '-C',
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
-                    default=False,
+                    default=True,
                     action="store_true")
 
 parser.add_argument('--user_name', '-N',
@@ -132,7 +132,7 @@ if args.classifier_type != 'none':
             CATEGORIES = SIMPLE_BOX_ACTIONS
         elif args.task_type == 'assemble_complex_box':
             # scale_file = f'{dir_path}/imu_scale_params_1v1_2.csv'
-            scale_file = f'{dir_path}/imu_scale_params_1v1_allclassesincl.csv'
+            scale_file = f'{dir_path}/imu_scale_params_1v1_4.csv'
             CATEGORIES = COMPLEX_BOX_ACTIONS
 
     with open(scale_file, newline='') as f:
@@ -141,11 +141,25 @@ if args.classifier_type != 'none':
         means = data[1:, 1].astype(float)#np.float)
         scales = data[1:, -1].astype(float)#np.float)
 
-pos = np.arange(len(CATEGORIES))
+pos = np.arange(len(CATEGORIES)-1)
 
 if args.disp:
     plt.ion()
     fig, axs = plt.subplots(numsensors, 2)
+
+def plot_prediction(prediction):
+    prediction = np.reshape(prediction, (-1))
+    global pos, CATEGORIES
+    plt.figure(2)
+    ax = plt.gca()
+    ax.cla()
+    print(pos)
+    print(prediction)
+    ax.bar(pos, prediction, align='center', alpha=0.5)
+    plt.xticks(pos, CATEGORIES[1:])
+    plt.ylabel('Confidence')
+    ax.set_ylim([0, 1])
+    plt.pause(0.0001)
 
 def shutdown_imu():
     global quit_IMU
@@ -599,10 +613,10 @@ def IMUsensorsMain():
                 # classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_2.h5', ['null', 'hand_screw_in'], WIN_LEN)
                 # classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_2.h5', ['null', 'hammer'], WIN_LEN)      
                 
-                classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'screw_in'], WIN_LEN)
-                classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'allen_in'], WIN_LEN)
-                classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'hand_screw_in'], WIN_LEN)
-                classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_3_allclassesincl.h5', ['null', 'hammer'], WIN_LEN)      
+                classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_4_allclassesincl.h5', ['screw_in'], WIN_LEN)
+                classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_4_allclassesincl.h5', ['allen_in'], WIN_LEN)
+                classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_4_allclassesincl.h5', ['hand_screw_in'], WIN_LEN)
+                classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_4_allclassesincl.h5', ['hammer'], WIN_LEN)      
             
 
         act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
@@ -669,10 +683,13 @@ def IMUsensorsMain():
                         pass
                     elif args.task_type == 'assemble_complex_box':
                         prediction = []
-                        prediction.append(classifier_screw.classify_data(new_data, args.bar)[1])
-                        prediction.append(classifier_allen.classify_data(new_data, args.bar)[1])
-                        prediction.append(classifier_hammer.classify_data(new_data, args.bar)[1])
-                        prediction.append(classifier_hand.classify_data(new_data, args.bar)[1])
+                        prediction.append(classifier_screw.classify_data(new_data, False))#[1])
+                        prediction.append(classifier_allen.classify_data(new_data, False))#[1])
+                        prediction.append(classifier_hammer.classify_data(new_data, False))#[1])
+                        prediction.append(classifier_hand.classify_data(new_data, False))#[1])
+
+                        if args.bar:
+                            plot_prediction(prediction)
                 
                 #print(prediction)
                 class_pred = CATEGORIES[np.argmax(prediction)]
