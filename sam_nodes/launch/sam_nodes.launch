@@ -2,8 +2,8 @@
 
   <!-- By default, we are not in debug mode -->
   <arg name="test_mode" default="false" />
-  <arg name="task" default="assemble_complex_box" />
-  <arg name="classifier" default="one" />
+  <arg name="task" default="assemble_complex_box_manual" />
+  <arg name="classifier" default="all" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
   <arg if="$(arg test_mode)" name="postgresql" default="true" />
