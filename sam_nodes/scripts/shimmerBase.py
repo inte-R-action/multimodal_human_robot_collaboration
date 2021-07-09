@@ -66,7 +66,7 @@ parser.add_argument('--task_type', '-T',
 parser.add_argument('--classifier_type', '-C',
                     help='Either 1v1 (one) or allvall (all) classifier',
                     choices=['none', 'one', 'all'],
-                    default='all')
+                    default='one')
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
