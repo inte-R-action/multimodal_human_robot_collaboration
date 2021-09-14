@@ -271,4 +271,5 @@ link_directories(${catkin_LIBRARY_DIRS})
 #add_subdirectory(interactivity)
 add_subdirectory(hri_static_demo)
 add_subdirectory(robotiq_gripper_control)
+add_subdirectory(ik_testing_package)
 

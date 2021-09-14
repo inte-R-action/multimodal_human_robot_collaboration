@@ -164,7 +164,7 @@ class moveit_robot {
 moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PLANNING_GROUP("manipulator"), visual_tools("world"), move_group(moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP)) {
 
     // Raw pointers are frequently used to refer to the planning group for improved performance.
-    const robot_state::JointModelGroup* joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
+    joint_model_group = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
 
     visual_tools.deleteAllMarkers();
 
