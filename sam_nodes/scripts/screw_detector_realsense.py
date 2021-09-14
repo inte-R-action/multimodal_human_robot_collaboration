@@ -94,7 +94,7 @@ def realsense_run():
             if args.depth:
                 disp_im = np.hstack((im_with_keypoints, depth_colormap))
             else:
-                disp_im = color_image
+                disp_im = im_with_keypoints#color_image
             
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
@@ -121,7 +121,7 @@ if __name__ == "__main__":
                         action="store")
     parser.add_argument('--depth', '-D',
                         help='Depth active',
-                        default=True,
+                        default=False,
                         action="store_true")
     parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',

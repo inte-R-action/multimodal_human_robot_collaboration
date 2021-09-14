@@ -30,9 +30,9 @@ parser.add_argument('--task_type', '-T',
 parser.add_argument('--classifier_type', '-C',
                     help='Either 1v1 (one) or allvall (all) classifier',
                     choices=['one', 'all'],
-                    default='all')
+                    default='one')
 
-use_vision = False
+use_vision = True
 
 args = parser.parse_known_args()[0]
 print(f"Users node settings: {args.task_type} {args.classifier_type}")
