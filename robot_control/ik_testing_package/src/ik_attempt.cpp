@@ -50,6 +50,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
+#include "sam_custom_messages/object_state.h"
+
 namespace rvt = rviz_visual_tools;
 
 class ik_robot {
@@ -373,6 +375,10 @@ int main(int argc, char** argv)
 
     ik_robot Robot(&node_handle);
 
+    sam_custom_messages::object_state block_state
+    block_state = ros::topic::waitForMessage<sam_custom_messages::object_state>("/ObjectStates", ros::Duration(1));
+    geometry_msgs::Pose pose_base_obj = Robot.transform_pose(block_state.Pose);
+
     geometry_msgs::Pose pose_cam_obj;
     pose_cam_obj.orientation.w = 1.0;
     pose_cam_obj.position.x = 0.3;
@@ -382,7 +388,10 @@ int main(int argc, char** argv)
     geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
 
     geometry_msgs::Pose target_pose1;
-    target_pose1.orientation.w = 1.0;
+    target_pose1.orientation.x = pose_base_obj.orientation.x;
+    target_pose1.orientation.y = pose_base_obj.orientation.y;
+    target_pose1.orientation.z = pose_base_obj.orientation.z;
+    target_pose1.orientation.w = pose_base_obj.orientation.w;
     target_pose1.position.x = pose_base_obj.position.x;
     target_pose1.position.y = pose_base_obj.position.y;
     target_pose1.position.z = 0.11;
