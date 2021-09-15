@@ -75,6 +75,7 @@ def realsense_run():
 
             if args.classify:
                 try:
+                    # Run YOLOv3 classifier on image
                     if args.depth:
                         color_image, det = im_classifier.detect(color_image_raw, depth_image, depth_histogram=False)
                     else:

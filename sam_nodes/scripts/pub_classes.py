@@ -45,7 +45,7 @@ class obj_class:
         self.obj_msg.Header.seq = None
         self.obj_msg.Header.frame_id = frame_id
         self.obj_msg.Object.Id = None
-        self.obj_msg.Object.Type = None
+        self.obj_msg.Object.Obj_type = None
         self.obj_msg.Object.Info = None
         self.obj_msg.Pose.orientation.x = None
         self.obj_msg.Pose.orientation.y = None
@@ -58,24 +58,41 @@ class obj_class:
 
         self.publisher = rospy.Publisher('ObjectStates', object_state, queue_size=queue)
 
-    def publish(self, det):
-        # det=object for items in image?
-        if self.obj_msg.Header.seq is None:
-            self.obj_msg.Header.seq = 0
-        else:
-            self.obj_msg.Header.seq += 1
-        
-        for *xyxy, conf, cls, dist in det:
+    def publish(self, det, msg_type):
+        if msg_type == "classifier":
+            # cnn classifier method type
+            # det=object for items in image?
+            if self.obj_msg.Header.seq is None:
+                self.obj_msg.Header.seq = 0
+            else:
+                self.obj_msg.Header.seq += 1
+            
+            for *xyxy, conf, cls, dist in det:
+                self.obj_msg.Object.Id = 0
+                self.obj_msg.Object.Obj_type = int(cls)
+                self.obj_msg.Object.Info = [self.names[int(cls)]]
+                self.obj_msg.Pose.orientation.x = xyxy[0]
+                self.obj_msg.Pose.orientation.y = xyxy[1]
+                self.obj_msg.Pose.orientation.z = xyxy[2]
+                self.obj_msg.Pose.orientation.w = xyxy[3]
+                self.obj_msg.Pose.position.x = (xyxy[0]+xyxy[2])/2
+                self.obj_msg.Pose.position.y = (xyxy[1]+xyxy[3])/2
+                self.obj_msg.Pose.position.z = dist
+                self.obj_msg.Header.stamp = rospy.get_rostime()
+
+                self.publisher.publish(self.obj_msg)
+
+        elif msg_type == "dip":
+            #Digital impage processing method type
+            if self.obj_msg.Header.seq is None:
+                self.obj_msg.Header.seq = 0
+            else:
+                self.obj_msg.Header.seq += 1
+            
             self.obj_msg.Object.Id = 0
-            self.obj_msg.Object.Type = int(cls)
-            self.obj_msg.Object.Info = [self.names[int(cls)]]
-            self.obj_msg.Pose.orientation.x = xyxy[0]
-            self.obj_msg.Pose.orientation.y = xyxy[1]
-            self.obj_msg.Pose.orientation.z = xyxy[2]
-            self.obj_msg.Pose.orientation.w = xyxy[3]
-            self.obj_msg.Pose.position.x = (xyxy[0]+xyxy[2])/2
-            self.obj_msg.Pose.position.y = (xyxy[1]+xyxy[3])/2
-            self.obj_msg.Pose.position.z = dist
+            self.obj_msg.Object.Obj_type = int(det[1])
+            self.obj_msg.Object.Info = [self.names[int(det[1])]]
+            self.obj_msg.Pose = det[0]
             self.obj_msg.Header.stamp = rospy.get_rostime()
 
             self.publisher.publish(self.obj_msg)

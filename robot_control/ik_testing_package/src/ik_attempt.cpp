@@ -49,7 +49,7 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-
+#include "sam_custom_messages/Object.h"
 #include "sam_custom_messages/object_state.h"
 
 namespace rvt = rviz_visual_tools;
@@ -351,9 +351,9 @@ bool setup_camera_transform(){
   static_transformStamped.header.stamp = ros::Time::now();
   static_transformStamped.header.frame_id = "ee_link";
   static_transformStamped.child_frame_id = "camera_frame";
-  static_transformStamped.transform.translation.x = atof(5);
-  static_transformStamped.transform.translation.y = atof(10);
-  static_transformStamped.transform.translation.z = atof(15);
+  static_transformStamped.transform.translation.x = 5;
+  static_transformStamped.transform.translation.y = 10;
+  static_transformStamped.transform.translation.z = 15;
   //tf2::Quaternion quat;
   //quat.setRPY(atof(argv[5]), atof(argv[6]), atof(argv[7]));
   static_transformStamped.transform.rotation.x = 0;//quat.x();
@@ -375,9 +375,9 @@ int main(int argc, char** argv)
 
     ik_robot Robot(&node_handle);
 
-    sam_custom_messages::object_state block_state
-    block_state = ros::topic::waitForMessage<sam_custom_messages::object_state>("/ObjectStates", ros::Duration(1));
-    geometry_msgs::Pose pose_base_obj = Robot.transform_pose(block_state.Pose);
+    //sam_custom_messages::object_state block_state;
+    //block_state = ros::topic::waitForMessage<sam_custom_messages::object_state>("/ObjectStates", ros::Duration(1));
+    //geometry_msgs::Pose pose_base_obj = Robot.transform_pose(block_state.Pose);
 
     geometry_msgs::Pose pose_cam_obj;
     pose_cam_obj.orientation.w = 1.0;

@@ -4,7 +4,7 @@
 int8 Id
 #
 # Type of object ID
-int8 Type
+int8 Obj_type
 #
 # Additional information on object
 string[] Info
