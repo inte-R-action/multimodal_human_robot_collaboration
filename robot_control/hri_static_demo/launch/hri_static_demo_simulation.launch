@@ -24,4 +24,10 @@
     <arg name="config" value="true" />
   </include>
 
+  <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="0.1 0 0.05 0 0 0 1 ee_link camera_frame 100" />
+
+  <node pkg="tf" type="static_transform_publisher" name="object_frame_broadcaster" args="0.05 0.1 -0.1 0 0 0 1 camera_frame object_frame 100" />
+
+  <node pkg="tf" type="static_transform_publisher" name="output_frame_broadcaster" args="0.465 0.115 0.475 0.018 0.169 -0.106 0.98 world output_pose 100" />
+
 </launch>

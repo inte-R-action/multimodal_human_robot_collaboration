@@ -32,7 +32,11 @@
 #include "robotiq_ft_sensor/ft_sensor.h"
 #include "robotiq_ft_sensor/sensor_accessor.h"
 #include <ros/ros.h>
- #include <moveit_msgs/ExecuteTrajectoryActionResult.h>
+#include <moveit_msgs/ExecuteTrajectoryActionResult.h>
+#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 using namespace std;
 
@@ -94,6 +98,7 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["stack_blue_small_block"] = {-130.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["stack_green_small_block"] = {-150.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["stack_yellow_small_block"] = {-90.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["look_for_objects"] = {-110.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["final_stack"] = {-20.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["remove_stack"] = {-170.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["bring_hand_screw_parts"] = {-65.0, -75.9, 49.1, -61.2, -91.1, 0.0};
@@ -155,6 +160,8 @@ class moveit_robot {
         void open_gripper();
         void close_gripper();
         void z_move(double dist, double max_velocity_scale_factor);
+        bool plan_to_pose(geometry_msgs::Pose pose);
+        geometry_msgs::Pose transform_pose(geometry_msgs::Pose input_pose);
     
     private:
         ros::NodeHandle nh_; // we will need this, to pass between "main" and constructor
@@ -226,6 +233,202 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
 
     ft_client = nh_.serviceClient<robotiq_ft_sensor::sensor_accessor>("robotiq_ft_sensor_acc");
     ft_sub1 = nh_.subscribe("robotiq_ft_sensor",100,ftSensorCallback);
+
+    // Add collision objects
+    // ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    ros::Publisher planning_scene_diff_publisher = nh_.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
+    ros::WallDuration sleep_t(0.5);
+    while (planning_scene_diff_publisher.getNumSubscribers() < 1)
+    {
+        sleep_t.sleep();
+    }
+
+    moveit_msgs::PlanningScene planning_scene;
+    //planning_scene.robot_state.attached_collision_objects.clear();
+    //planning_scene.world.collision_objects.clear();
+    //planning_scene_diff_publisher.publish(planning_scene);
+    std::vector<std::string> object_ids;
+    object_ids.push_back("gripper");
+    object_ids.push_back("camera");
+    object_ids.push_back("ground");
+    planning_scene_interface.removeCollisionObjects(object_ids);
+
+    std::vector<moveit_msgs::CollisionObject> collision_objects;
+    //geometry_msgs::PoseStamped current_pose = move_group.getCurrentPose();
+
+    // Add gripper object to robot
+    moveit_msgs::AttachedCollisionObject gripper_object;
+    gripper_object.link_name = "ee_link";
+    gripper_object.object.header.frame_id = "ee_link";
+    gripper_object.object.id = "gripper";
+    shape_msgs::SolidPrimitive gripper_primitive;
+    gripper_primitive.type = gripper_primitive.BOX;
+    gripper_primitive.dimensions.resize(3);
+    gripper_primitive.dimensions[0] = 0.17;
+    gripper_primitive.dimensions[1] = 0.12;
+    gripper_primitive.dimensions[2] = 0.1;
+
+    geometry_msgs::Pose gripper_pose;
+    gripper_pose.orientation.w = 0.0;
+    gripper_pose.position.x = gripper_primitive.dimensions[0]/2;
+    gripper_pose.position.y = 0.0;
+    gripper_pose.position.z = 0.0;
+
+    gripper_object.object.primitives.push_back(gripper_primitive);
+    gripper_object.object.primitive_poses.push_back(gripper_pose);
+    gripper_object.object.operation = gripper_object.object.ADD;
+
+    //gripper_object.touch_links = std::vector<std::string>{ "ee_link"};
+    
+    //planning_scene.world.collision_objects.push_back(gripper_object.object);
+    planning_scene.is_diff = true;
+    //planning_scene_diff_publisher.publish(planning_scene);
+
+    /* First, define the REMOVE object message*/
+    //moveit_msgs::CollisionObject remove_gripper;
+    //remove_gripper.id = "gripper";
+    //remove_gripper.header.frame_id = "base_link";
+    //remove_gripper.operation = remove_gripper.REMOVE;
+
+    /* Carry out the REMOVE + ATTACH operation */
+    ROS_INFO("Attaching the gripper to the robot");
+    //planning_scene.world.collision_objects.clear();
+    //planning_scene.world.collision_objects.push_back(remove_gripper);
+    planning_scene.robot_state.attached_collision_objects.push_back(gripper_object);
+    //planning_scene_diff_publisher.publish(planning_scene);
+    
+    // Add camera object to robot
+    moveit_msgs::AttachedCollisionObject camera_object;
+    camera_object.link_name = "ee_link";
+    camera_object.object.header.frame_id = "ee_link";
+    camera_object.object.id = "camera";
+    shape_msgs::SolidPrimitive camera_primitive;
+    camera_primitive.type = camera_primitive.BOX;
+    camera_primitive.dimensions.resize(3);
+    camera_primitive.dimensions[0] = 0.02;
+    camera_primitive.dimensions[1] = 0.15;
+    camera_primitive.dimensions[2] = 0.07;
+
+    geometry_msgs::Pose camera_pose;
+    camera_pose.orientation.w = 0.0;
+    camera_pose.position.x = 0.07;
+    camera_pose.position.y = 0.0;
+    camera_pose.position.z = (camera_primitive.dimensions[2]+gripper_primitive.dimensions[2])/2;
+
+    camera_object.object.primitives.push_back(camera_primitive);
+    camera_object.object.primitive_poses.push_back(camera_pose);
+    camera_object.object.operation = camera_object.object.ADD;
+
+    //camera_object.touch_links = std::vector<std::string>{ "ee_link", "gripper"};
+    
+    //planning_scene.world.collision_objects.push_back(camera_object.object);
+    planning_scene.is_diff = true;
+    //planning_scene_diff_publisher.publish(planning_scene);
+
+    /* First, define the REMOVE object message*/
+    //moveit_msgs::CollisionObject remove_camera;
+    //remove_camera.id = "camera";
+    //remove_camera.header.frame_id = "base_link";
+    //remove_camera.operation = remove_camera.REMOVE;
+
+    /* Carry out the REMOVE + ATTACH operation */
+    ROS_INFO("Attaching the camera to the robot");
+    //planning_scene.world.collision_objects.clear();
+    //planning_scene.world.collision_objects.push_back(remove_camera);
+    planning_scene.robot_state.attached_collision_objects.push_back(camera_object);
+    planning_scene_diff_publisher.publish(planning_scene);
+    //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to once the collision object appears in RViz");
+
+    //collision_objects.push_back(camera_object);
+
+    //ROS_INFO_NAMED("tutorial", "Attach the camera to the robot");
+    //move_group.attachObject(camera_object.id);
+
+    // Add ground plane object to robot
+    moveit_msgs::CollisionObject ground_object;
+    ground_object.header.frame_id = move_group.getPlanningFrame();
+    ground_object.id = "ground";
+    shape_msgs::SolidPrimitive ground_primitive;
+    ground_primitive.type = ground_primitive.BOX;
+    ground_primitive.dimensions.resize(3);
+    ground_primitive.dimensions[0] = 2;
+    ground_primitive.dimensions[1] = 2;
+    ground_primitive.dimensions[2] = 0.01;
+
+    geometry_msgs::Pose ground_pose;
+    ground_pose.orientation.w = 1.0;
+    ground_pose.position.x = 0.0;
+    ground_pose.position.y = 0.0;
+    ground_pose.position.z = -ground_primitive.dimensions[2];
+
+    ground_object.primitives.push_back(ground_primitive);
+    ground_object.primitive_poses.push_back(ground_pose);
+    ground_object.operation = ground_object.ADD;
+
+    collision_objects.push_back(ground_object);
+
+    ROS_INFO_NAMED("tutorial", "Add ground into the world");
+    planning_scene_interface.addCollisionObjects(collision_objects);
+    visual_tools.publishText(text_pose, "Add object", rvt::WHITE, rvt::XLARGE);
+    visual_tools.trigger();
+}
+
+bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
+    bool success = false;
+    move_group.setPoseTarget(pose);
+
+    success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+    ROS_INFO_NAMED("IK Robot", "Visualizing plan 1 (pose goal) %s", success ? "" : "FAILED");
+
+    // Visualizing plans
+    // ^^^^^^^^^^^^^^^^^
+    // We can also visualize the plan as a line with markers in RViz.
+    ROS_INFO_NAMED("IK Robot", "Visualizing plan 1 as trajectory line");
+    visual_tools.publishAxisLabeled(pose, "pose1");
+    visual_tools.publishText(text_pose, "Pose Goal", rvt::WHITE, rvt::XLARGE);
+    visual_tools.publishTrajectoryLine(plan.trajectory_, joint_model_group);
+    visual_tools.trigger();
+    if (success){
+        visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
+        move_group.move();
+    }
+    return success;
+}
+
+geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose){
+  tf2_ros::Buffer tfBuffer;
+  tf2_ros::TransformListener tfListener(tfBuffer);
+  geometry_msgs::Pose output_pose;
+  geometry_msgs::TransformStamped transform;
+
+  while (true){
+    try{
+      transform = tfBuffer.lookupTransform("world", "camera_frame",
+                                 ros::Time(0));
+    
+      ROS_INFO("%s", transform.child_frame_id.c_str());
+      ROS_INFO("%f", transform.transform.translation.x);
+      ROS_INFO("%f", transform.transform.translation.y);
+      ROS_INFO("%f", transform.transform.translation.z);
+      ROS_INFO("%f", transform.transform.rotation.x);
+      ROS_INFO("%f", transform.transform.rotation.y);
+      ROS_INFO("%f", transform.transform.rotation.z);
+      ROS_INFO("%f", transform.transform.rotation.w);
+
+      tf2::doTransform(input_pose, output_pose, transform);
+
+      ROS_INFO_STREAM("Input pose: \n" << input_pose);
+      ROS_INFO_STREAM("Output pose: \n" << output_pose);
+
+      return output_pose;
+    }
+    catch (tf2::TransformException &ex) {
+      //ROS_ERROR("%s",ex.what());
+      ros::Duration(0.1).sleep();
+    }
+  }
 }
 
 void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name){
@@ -460,26 +663,59 @@ void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
     //home(targetJoints, Robot);
 }
 
+geometry_msgs::Pose look_for_objects(string bring_cmd)
+{
+    // wait for message received?
+    geometry_msgs::Pose object_pose;
+    object_pose.orientation.w = 1.0;
+    object_pose.position.x = 0.05;
+    object_pose.position.y = 0.1;
+    object_pose.position.z = -0.1;
+    return object_pose;
+}
+
 void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
 {
     // Move to position above block
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
-    // Move down, pick block up, move up
-    pick_up_object(Robot, 0.11);
+    // Look for block
+    geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
+    // Transform to world frame
+    geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
+    // Move to new position above object
+    geometry_msgs::Pose target_pose1;
+    target_pose1.orientation.x = pose_base_obj.orientation.x;
+    target_pose1.orientation.y = pose_base_obj.orientation.y;
+    target_pose1.orientation.z = pose_base_obj.orientation.z;
+    target_pose1.orientation.w = pose_base_obj.orientation.w;
+    target_pose1.position.x = pose_base_obj.position.x;
+    target_pose1.position.y = pose_base_obj.position.y;
+    target_pose1.position.z = 0.4;
+    bool success = Robot.plan_to_pose(target_pose1);
 
-    // Move to stack position
-    Robot.move_robot(targetJoints, bring_cmd, string("final_stack"));
+    if (success){
+        //Robot.move_group.execute();
+        //Robot.move_group.move();
 
-    // Move down, set down block, move up
-    double block_heght = 0.019;
-    double z_move = 0.11 - (stack_height*block_heght);
-    Robot.z_move(-(z_move-block_heght), 0.05);
-    Robot.z_move(-block_heght, 0.01);
-    Robot.open_gripper();
-    Robot.z_move(z_move, 1.0);
+        // Move down, pick block up, move up
+        pick_up_object(Robot, 0.11);
 
-    // Return to home position
+        // Move to stack position
+        Robot.move_robot(targetJoints, bring_cmd, string("final_stack"));
+
+        // Move down, set down block, move up
+        double block_heght = 0.019;
+        double z_move = 0.11 - (stack_height*block_heght);
+        Robot.z_move(-(z_move-block_heght), 0.05);
+        Robot.z_move(-block_heght, 0.01);
+        Robot.open_gripper();
+        Robot.z_move(z_move, 1.0);
+    }
+    else {
+        cout << "Failed to perform IK plan" << endl;
+    }
+  // Return to home position
     //home(targetJoints, Robot);
 }
 
