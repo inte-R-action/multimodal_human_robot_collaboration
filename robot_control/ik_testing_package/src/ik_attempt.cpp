@@ -49,6 +49,9 @@
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/static_transform_broadcaster.h>
+#include "sam_custom_messages/Object.h"
+#include "sam_custom_messages/object_state.h"
+#include "std_msgs/String.h"
 
 namespace rvt = rviz_visual_tools;
 
@@ -308,6 +311,7 @@ bool ik_robot::plan_to_pose(geometry_msgs::Pose pose){
 }
 
 geometry_msgs::Pose ik_robot::transform_pose(geometry_msgs::Pose input_pose){
+  visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to once the collision object appears in RViz");
 
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
@@ -316,7 +320,7 @@ geometry_msgs::Pose ik_robot::transform_pose(geometry_msgs::Pose input_pose){
 
   while (true){
     try{
-      transform = tfBuffer.lookupTransform("camera_frame", "world",
+      transform = tfBuffer.lookupTransform("world", "camera_frame",
                                  ros::Time(0));
     
       ROS_INFO("%s", transform.child_frame_id.c_str());
@@ -336,8 +340,8 @@ geometry_msgs::Pose ik_robot::transform_pose(geometry_msgs::Pose input_pose){
       return output_pose;
     }
     catch (tf2::TransformException &ex) {
-      ROS_ERROR("%s",ex.what());
-      ros::Duration(1.0).sleep();
+      //ROS_ERROR("%s",ex.what());
+      ros::Duration(0.1).sleep();
     }
   }
 }
@@ -349,12 +353,12 @@ bool setup_camera_transform(){
   static_transformStamped.header.stamp = ros::Time::now();
   static_transformStamped.header.frame_id = "ee_link";
   static_transformStamped.child_frame_id = "camera_frame";
-  static_transformStamped.transform.translation.x = atof(5);
-  static_transformStamped.transform.translation.y = atof(10);
-  static_transformStamped.transform.translation.z = atof(15);
+  static_transformStamped.transform.translation.x = 5;
+  static_transformStamped.transform.translation.y = 10;
+  static_transformStamped.transform.translation.z = 15;
   //tf2::Quaternion quat;
   //quat.setRPY(atof(argv[5]), atof(argv[6]), atof(argv[7]));
-  static_transformStamped.transform.rotation.x = 0;//quat.x();
+  static_transformStamped.transform.rotation.x = 1;//quat.x();
   static_transformStamped.transform.rotation.y = 0;//quat.y();
   static_transformStamped.transform.rotation.z = 0;//quat.z();
   static_transformStamped.transform.rotation.w = 0;//quat.w();
@@ -369,23 +373,37 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    setup_camera_transform();
+    ros::Publisher robot_cmds_pub = node_handle.advertise<std_msgs::String>("RobotMove", 1000);
+    std_msgs::String msg;
+    msg.data = "home";
+    robot_cmds_pub.publish(msg);
+
+    //setup_camera_transform();
 
     ik_robot Robot(&node_handle);
 
+    //sam_custom_messages::object_state block_state;
+    //block_state = ros::topic::waitForMessage<sam_custom_messages::object_state>("/ObjectStates", ros::Duration(1));
+    //geometry_msgs::Pose pose_base_obj = Robot.transform_pose(block_state.Pose);
+    msg.data = "look_for_objects";
+    robot_cmds_pub.publish(msg);
+
     geometry_msgs::Pose pose_cam_obj;
     pose_cam_obj.orientation.w = 1.0;
-    pose_cam_obj.position.x = 0.3;
-    pose_cam_obj.position.y = 0.2;
-    pose_cam_obj.position.z = 0.6;
+    pose_cam_obj.position.x = 0.05;
+    pose_cam_obj.position.y = 0.1;
+    pose_cam_obj.position.z = -0.1;
 
     geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
 
     geometry_msgs::Pose target_pose1;
-    target_pose1.orientation.w = 1.0;
+    target_pose1.orientation.x = pose_base_obj.orientation.x;
+    target_pose1.orientation.y = pose_base_obj.orientation.y;
+    target_pose1.orientation.z = pose_base_obj.orientation.z;
+    target_pose1.orientation.w = pose_base_obj.orientation.w;
     target_pose1.position.x = pose_base_obj.position.x;
     target_pose1.position.y = pose_base_obj.position.y;
-    target_pose1.position.z = 0.11;
+    target_pose1.position.z = pose_base_obj.position.z;//0.5;
     bool success = Robot.plan_to_pose(target_pose1);
 
   // Moving to a pose goal
