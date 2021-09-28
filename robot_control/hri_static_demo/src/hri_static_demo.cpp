@@ -265,9 +265,9 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     shape_msgs::SolidPrimitive gripper_primitive;
     gripper_primitive.type = gripper_primitive.BOX;
     gripper_primitive.dimensions.resize(3);
-    gripper_primitive.dimensions[0] = 0.17;
-    gripper_primitive.dimensions[1] = 0.12;
-    gripper_primitive.dimensions[2] = 0.1;
+    gripper_primitive.dimensions[0] = 0.3;
+    gripper_primitive.dimensions[1] = 0.21;
+    gripper_primitive.dimensions[2] = 0.08;
 
     geometry_msgs::Pose gripper_pose;
     gripper_pose.orientation.w = 0.0;
@@ -306,9 +306,9 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     shape_msgs::SolidPrimitive camera_primitive;
     camera_primitive.type = camera_primitive.BOX;
     camera_primitive.dimensions.resize(3);
-    camera_primitive.dimensions[0] = 0.02;
-    camera_primitive.dimensions[1] = 0.15;
-    camera_primitive.dimensions[2] = 0.07;
+    camera_primitive.dimensions[0] = 0.04;
+    camera_primitive.dimensions[1] = 0.09;
+    camera_primitive.dimensions[2] = 0.06;
 
     geometry_msgs::Pose camera_pose;
     camera_pose.orientation.w = 0.0;
