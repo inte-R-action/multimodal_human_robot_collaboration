@@ -7,4 +7,4 @@ int8 Id
 int8 Obj_type
 #
 # Additional information on object
-string[] Info
+string Info

@@ -16,7 +16,7 @@ Header Header
 # Information on object type and further details
 # int8 id
 # int8 type 
-# string[] info
+# string info
 Object Object
 #
 # geometry_msgs/Pose.msg

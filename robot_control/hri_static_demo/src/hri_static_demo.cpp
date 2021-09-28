@@ -29,6 +29,7 @@
 #include <map>
 #include <sstream>
 #include "sam_custom_messages/diagnostics.h"
+#include "sam_custom_messages/object_state.h"
 #include "robotiq_ft_sensor/ft_sensor.h"
 #include "robotiq_ft_sensor/sensor_accessor.h"
 #include <ros/ros.h>
@@ -41,11 +42,13 @@
 using namespace std;
 
 string objectString = "";
+sam_custom_messages::object_state object_state_msg;
 bool robotMove = false;
 string gripper_state = "";
 namespace rvt = rviz_visual_tools;
 int robot_execute_code;
 double ft_readings [6];
+
 void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
 {
     double data [] = {msg.Fx,msg.Fy,msg.Fz,msg.Mx,msg.My,msg.Mz};
@@ -79,6 +82,13 @@ void gripperStatusCallback(const std_msgs::String::ConstPtr& msg)
 void robotExecuteCallback(const moveit_msgs::ExecuteTrajectoryActionResult::ConstPtr& msg)
 {
     robot_execute_code = msg->result.error_code.val;
+}
+
+void objectDetectionCallback(const sam_custom_messages::object_state::ConstPtr &msg)
+{
+    object_state_msg.Object = msg->Object;
+    object_state_msg.Pose = msg->Pose;
+    object_state_msg.Header = msg->Header;
 }
 
 // Map high level position to joint angles as seen on teach pendant
@@ -667,11 +677,26 @@ geometry_msgs::Pose look_for_objects(string bring_cmd)
 {
     // wait for message received?
     geometry_msgs::Pose object_pose;
-    object_pose.orientation.w = 1.0;
-    object_pose.position.x = 0.05;
-    object_pose.position.y = 0.1;
-    object_pose.position.z = -0.1;
-    return object_pose;
+
+    std::string block = bring_cmd.substr(6);
+    cout << "Looking for: " << block << endl;
+    while(true){
+        cout << "detected: " << object_state_msg.Object.Info << endl;
+        if (block == object_state_msg.Object.Info){
+           object_pose = object_state_msg.Pose;
+           return object_pose;
+        }
+        else{
+            ros::Duration(0.1).sleep();
+        }
+    }
+    // wait for message received?
+    //geometry_msgs::Pose object_pose;
+    //object_pose.orientation.w = 1.0;
+    //object_pose.position.x = 0.05;
+    //object_pose.position.y = 0.1;
+    //object_pose.position.z = -0.1;
+    //return object_pose;
 }
 
 void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
@@ -681,6 +706,7 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
 
     // Look for block
     geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
+    cout << "Found: " << pose_cam_obj << endl;
     // Transform to world frame
     geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
     // Move to new position above object

@@ -17,6 +17,8 @@ import imutils
 from sam_custom_messages.msg import object_state
 from geometry_msgs.msg import Pose 
 from math import sin, cos
+from collections import OrderedDict
+from scipy.spatial import distance as dist
 
 try:
     from pub_classes import diag_class, obj_class
@@ -35,11 +37,22 @@ def nothing(x):
     pass
 class block_detector:
     # https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
+    # https://www.pyimagesearch.com/2016/02/15/determining-object-color-with-opencv/
     def __init__(self, test, frame_id):
         # setup object message publisher
         self.test = test
         if not self.test:
             self.obj_obj = obj_class(frame_id=frame_id, names=['block'], queue=1)
+
+        # initialize the colors dictionary, containing the color
+        # name as the key and the RGB tuple as the value
+        self.colours = {
+            "red_1": (0, 7),
+            "red_2": (165, 180),
+            "green": (45, 75),
+            "blue": (90, 150),
+            "yellow": (15, 28),
+            "orange": (7, 15)}
 
     def detect(self, c):
         # initialize the shape name and approximate the contour
@@ -57,7 +70,7 @@ class block_detector:
             ar = w / float(h)
             # a square will have an aspect ratio that is approximately
             # equal to one, otherwise, the shape is a rectangle
-            shape = "square" if ar >= 0.95 and ar <= 1.05 else None
+            shape = "square" #if ar >= 0.95 and ar <= 1.05 else None
 
         return x, y, angle, shape
 
@@ -74,6 +87,42 @@ class block_detector:
 
         return p
 
+    def get_colour(self, hsv_image, c):
+        try:
+            # Create mask for shape contour
+            mask1 = np.ones(hsv_image.shape[:2], dtype="uint8")*255
+            cv2.drawContours(mask1, [c], -1, 0, -1)
+            mask1 = cv2.erode(mask1, None, iterations=2)
+            # mask_im = cv2.bitwise_and(hsv_image, hsv_image, mask=mask1)
+            # cv2.imshow('mask1', mask1)
+
+            # Create mask for high saturation reflections
+            lower = np.array([0, 50, 0])
+            upper = np.array([255, 255, 255])
+            mask2 = cv2.bitwise_not(cv2.inRange(hsv_image, lower, upper))
+            # s_filtered = cv2.bitwise_and(mask_im, mask_im, mask=mask2)
+            # cv2.imshow('mask2', mask2)
+
+            # Combine masks
+            mask = cv2.bitwise_or(mask1, mask2)
+            # cv2.imshow('masktotal', mask)
+
+            hsv_arr = np.asarray(hsv_image)[:, :, 0]
+            mask_im = np.ma.MaskedArray(hsv_arr, mask=mask)
+            
+            mean = int(mask_im.mean())
+
+            for colour in self.colours:
+                if mean in range(self.colours[colour][0], self.colours[colour][1]):
+                    if (colour == "red_1") or (colour == "red_2"):
+                        colour = "red"
+                    return colour, mean
+                    
+        except Exception as e:
+            print(e)
+
+        return "unknown", mean
+
     def process_img(self, image):
         # load the image and resize it to a smaller factor so that
         # the shapes can be approximated better
@@ -82,11 +131,12 @@ class block_detector:
 
         # Convert to HSV format and color threshold
         # Set minimum and maximum HSV values to display
-        lower = np.array([0, 170, 0])
+        lower = np.array([0, 50, 0])
         upper = np.array([255, 255, 255])
         hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, lower, upper)
         col_filtered = cv2.bitwise_and(resized, resized, mask=mask)
+        cv2.imshow("col_filtered", col_filtered)
         # convert the resized image to grayscale, blur it slightly,
         # and threshold it
         gray = cv2.cvtColor(col_filtered, cv2.COLOR_BGR2GRAY)
@@ -107,35 +157,50 @@ class block_detector:
                 #M = cv2.moments(c)
                 #cX = int((M["m10"] / M["m00"]) * ratio)
                 #cY = int((M["m01"] / M["m00"]) * ratio)
-                x, y, angle, shape = self.detect(c)
-                if shape is not None:
-                    x = int(x*ratio)
-                    y = int(y*ratio)
-                    cv2.putText(image, str(int(angle)), (x+50, y+50), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5, (255, 255, 255), 2)
-                    image = cv2.circle(image, (x,y), radius=0, color=(0, 255, 0), thickness=5)
+                
+                # Filter out small artefacts
+                area = cv2.contourArea(c)
+                if area > 90:
+                    x, y, angle, shape = self.detect(c)
+                    if shape is not None:
 
-                    # multiply the contour (x, y)-coordinates by the resize ratio,
-                    # then draw the contours and the name of the shape on the image
-                    c = c.astype("float")
-                    c *= ratio
-                    c = c.astype("int")
-                    cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
+                        colour, mean = self.get_colour(hsv, c)
+                        obj_name = f"{colour}_small_block"
 
-                    dist = 1.0
-                    p = self.create_pose(x, y, angle, dist)
+                        x = int(x*ratio)
+                        y = int(y*ratio)
 
-                    if not self.test:
-                        # data to pass to publisher: pose, class
-                        det = [p, 0]
-                        self.obj_obj.publish(det, 'dip')
+                        # multiply the contour (x, y)-coordinates by the resize ratio,
+                        # then draw the contours and the name of the shape on the image
+                        c = c.astype("float")
+                        c *= ratio
+                        c = c.astype("int")
+                    
+                        cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
+    
+                        cv2.putText(image, str(int(angle)), (x+50, y+50), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, (255, 255, 255), 2)
+                        image = cv2.circle(image, (x,y), radius=0, color=(0, 255, 0), thickness=5)
+                    
+                        cv2.putText(image, colour+": "+str(mean)+" area: "+str(area), (x+50, y+100), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, (255, 255, 255), 2)
 
-                # show the output image
-                cv2.namedWindow('detector viewer', cv2.WINDOW_AUTOSIZE)
-                cv2.imshow("detector viewer", image)
+                        dist = 1.0
+                        p = self.create_pose(x, y, angle, dist)
+
+                        if not self.test:
+                            # data to pass to publisher: pose, class
+                            det = [p, 0, obj_name]
+                            self.obj_obj.publish(det, 'dip')
+
+                # # show the output image
+                # cv2.namedWindow('detector viewer', cv2.WINDOW_AUTOSIZE)
+                # cv2.imshow("detector viewer", image)
                 #cv2.waitKey(0)
             except ZeroDivisionError:
                 pass
+            except Exception as e:
+            	print(e)
 
 def realsense_run():
     # ROS node setup
@@ -205,9 +270,9 @@ def realsense_run():
                 pvMax = vMax
 
             # Display result image
-            cv2.imshow('image', result)
-            if cv2.waitKey(10) & 0xFF == ord('q'):
-                break
+            # cv2.imshow('image', result)
+            # if cv2.waitKey(10) & 0xFF == ord('q'):
+                # break
 
         cv2.destroyAllWindows()
 
