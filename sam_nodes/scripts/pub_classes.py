@@ -91,7 +91,7 @@ class obj_class:
             
             self.obj_msg.Object.Id = 0
             self.obj_msg.Object.Obj_type = int(det[1])
-            self.obj_msg.Object.Info = [det[2]]
+            self.obj_msg.Object.Info = det[2]
             self.obj_msg.Pose = det[0]
             self.obj_msg.Header.stamp = rospy.get_rostime()
 

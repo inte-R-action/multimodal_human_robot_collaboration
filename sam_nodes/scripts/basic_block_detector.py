@@ -16,9 +16,9 @@ from vision_recognition.rs_cam import rs_cam
 import imutils
 from sam_custom_messages.msg import object_state
 from geometry_msgs.msg import Pose 
-from math import sin, cos
+from math import sin, cos, radians
 from collections import OrderedDict
-from scipy.spatial import distance as dist
+# from scipy.spatial import distance as dist
 
 try:
     from pub_classes import diag_class, obj_class
@@ -70,19 +70,34 @@ class block_detector:
             ar = w / float(h)
             # a square will have an aspect ratio that is approximately
             # equal to one, otherwise, the shape is a rectangle
-            shape = "square" #if ar >= 0.95 and ar <= 1.05 else None
+            shape = "square" if ar >= 0.8 and ar <= 1.2 else None
 
         return x, y, angle, shape
 
     def create_pose(self, x, y, angle, dist):
+
+        cameraInfo = cam.depth_intrinsics
+        _intrinsics = rs.intrinsics()
+        _intrinsics.width = cameraInfo.width
+        _intrinsics.height = cameraInfo.height
+        _intrinsics.ppx = cameraInfo.ppx
+        _intrinsics.ppy = cameraInfo.ppy
+        _intrinsics.fx = cameraInfo.fx
+        _intrinsics.fy = cameraInfo.fy
+        ###_intrinsics.model = cameraInfo.distortion_model
+        #_intrinsics.model  = rs.distortion.none
+        #_intrinsics.coeffs = [i for i in cameraInfo.D]
+        result = rs.rs2_deproject_pixel_to_point(cameraInfo, [x, y], dist)
+
         p = Pose()
-        p.position.x = x
-        p.position.y = y
-        p.position.z = dist
+        p.position.x = result[2]
+        p.position.y = -result[0]
+        p.position.z = -result[1]
         # Make sure the quaternion is valid and normalized
-        p.orientation.x = sin(angle/2) * 0
+        angle = radians(angle+45)
+        p.orientation.x = sin(angle/2) * 1
         p.orientation.y = sin(angle/2) * 0
-        p.orientation.z = sin(angle/2) * 1
+        p.orientation.z = sin(angle/2) * 0
         p.orientation.w = cos(angle/2)
 
         return p
@@ -123,7 +138,7 @@ class block_detector:
 
         return "unknown", mean
 
-    def process_img(self, image):
+    def process_img(self, image, depth_image):
         # load the image and resize it to a smaller factor so that
         # the shapes can be approximated better
         resized = imutils.resize(image, width=300)
@@ -178,15 +193,15 @@ class block_detector:
                     
                         cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
     
-                        cv2.putText(image, str(int(angle)), (x+50, y+50), cv2.FONT_HERSHEY_SIMPLEX,
-                            0.5, (255, 255, 255), 2)
                         image = cv2.circle(image, (x,y), radius=0, color=(0, 255, 0), thickness=5)
                     
                         cv2.putText(image, colour+": "+str(mean)+" area: "+str(area), (x+50, y+100), cv2.FONT_HERSHEY_SIMPLEX,
                             0.5, (255, 255, 255), 2)
 
-                        dist = 1.0
+                        dist = depth_image[x, y]
                         p = self.create_pose(x, y, angle, dist)
+                        cv2.putText(image, f"{int(angle)} x:{p.position.x} y:{p.position.y} z:{p.position.z}", (x+50, y+50), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5, (255, 255, 255), 2)
 
                         if not self.test:
                             # data to pass to publisher: pose, class
@@ -283,7 +298,7 @@ def realsense_run():
             frames = cam.pipeline.wait_for_frames()
             color_image, depth_colormap, depth_image = cam.depth_frames(frames)
 
-            detector.process_img(color_image)
+            detector.process_img(color_image, depth_image)
 
             if (time.time()-diag_timer) > 1:
                 if not test:

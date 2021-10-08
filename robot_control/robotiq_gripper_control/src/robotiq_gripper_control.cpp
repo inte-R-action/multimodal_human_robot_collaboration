@@ -137,7 +137,7 @@ int main(int argc, char** argv)
     // wait until the activation action is completed to continue with the next action
     while( gripperStatus.gOBJ != 3 && gripperStatus.gOBJ != 2 && ros::ok() )
     {
-        printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+        //printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
         usleep(100000);
     }
     printf("COMPLETED: gOBJ [%d]\n", gripperStatus.gOBJ);
@@ -158,7 +158,7 @@ int main(int argc, char** argv)
     // wait until the activation action is completed to continue with the next action
     while( gripperStatus.gOBJ != 3 && ros::ok() )
     {
-        printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+        //printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
         usleep(100000);
     }
 
@@ -198,7 +198,7 @@ int main(int argc, char** argv)
             // wait until the activation action is completed to continue with the next action
             while( gripperStatus.gOBJ != 3 && gripperStatus.gOBJ != 2 )
             {
-                printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+                //printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
                 usleep(100000);
             }
 
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
             // wait until the activation action is completed to continue with the next action
             while( gripperStatus.gOBJ != 3 )
             {
-                printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
+                //printf("IN PROGRESS: gOBJ [%d]\n", gripperStatus.gOBJ);
                 usleep(100000);
             }
 

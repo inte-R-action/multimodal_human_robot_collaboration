@@ -410,33 +410,35 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
 geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose){
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
-  geometry_msgs::Pose output_pose;
-  geometry_msgs::TransformStamped transform;
+  geometry_msgs::Pose output_pose1;
+  geometry_msgs::Pose output_pose2;
+  geometry_msgs::TransformStamped transform1;
+  geometry_msgs::TransformStamped transform2;
 
   while (true){
     try{
-      transform = tfBuffer.lookupTransform("world", "camera_frame",
+      transform1 = tfBuffer.lookupTransform("world", "camera_frame",
                                  ros::Time(0));
     
-      ROS_INFO("%s", transform.child_frame_id.c_str());
-      ROS_INFO("%f", transform.transform.translation.x);
-      ROS_INFO("%f", transform.transform.translation.y);
-      ROS_INFO("%f", transform.transform.translation.z);
-      ROS_INFO("%f", transform.transform.rotation.x);
-      ROS_INFO("%f", transform.transform.rotation.y);
-      ROS_INFO("%f", transform.transform.rotation.z);
-      ROS_INFO("%f", transform.transform.rotation.w);
+      ROS_INFO("%s", transform1.child_frame_id.c_str());
+      ROS_INFO("%f", transform1.transform.translation.x);
+      ROS_INFO("%f", transform1.transform.translation.y);
+      ROS_INFO("%f", transform1.transform.translation.z);
+      ROS_INFO("%f", transform1.transform.rotation.x);
+      ROS_INFO("%f", transform1.transform.rotation.y);
+      ROS_INFO("%f", transform1.transform.rotation.z);
+      ROS_INFO("%f", transform1.transform.rotation.w);
 
-      tf2::doTransform(input_pose, output_pose, transform);
+      tf2::doTransform(input_pose, output_pose1, transform1);
 
       ROS_INFO_STREAM("Input pose: \n" << input_pose);
-      ROS_INFO_STREAM("Output pose: \n" << output_pose);
+      ROS_INFO_STREAM("Output pose1: \n" << output_pose1);
 
-      return output_pose;
+      return output_pose1;
     }
     catch (tf2::TransformException &ex) {
-      //ROS_ERROR("%s",ex.what());
-      ros::Duration(0.1).sleep();
+      ROS_ERROR("%s",ex.what());
+      ros::Duration(1).sleep();
     }
   }
 }
@@ -681,13 +683,13 @@ geometry_msgs::Pose look_for_objects(string bring_cmd)
     std::string block = bring_cmd.substr(6);
     cout << "Looking for: " << block << endl;
     while(true){
-        cout << "detected: " << object_state_msg.Object.Info << endl;
+        cout << "Looking for: " << block << " detected: " << object_state_msg.Object.Info << endl;
         if (block == object_state_msg.Object.Info){
            object_pose = object_state_msg.Pose;
            return object_pose;
         }
         else{
-            ros::Duration(0.1).sleep();
+            ros::Duration(1).sleep();
         }
     }
     // wait for message received?
@@ -718,6 +720,7 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
     target_pose1.position.x = pose_base_obj.position.x;
     target_pose1.position.y = pose_base_obj.position.y;
     target_pose1.position.z = 0.4;
+    ROS_INFO_STREAM("Target pose: \n" << target_pose1);
     bool success = Robot.plan_to_pose(target_pose1);
 
     if (success){
@@ -797,6 +800,9 @@ int main(int argc, char** argv)
 
     // High level move commands subscriber
 	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 1000, robotMoveCallback);
+
+    // Object recognition subscriber
+    ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 1000, objectDetectionCallback);
 
     // Robot object
     moveit_robot Robot(&node_handle);
