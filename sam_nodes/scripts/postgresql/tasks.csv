@@ -3,3 +3,4 @@ task_id,task_name
 1,stack_tower
 2,assemble_complex_box
 3,assemble_complex_box_manual
+4,assemble_chair
