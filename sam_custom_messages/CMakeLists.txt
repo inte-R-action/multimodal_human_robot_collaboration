@@ -63,6 +63,8 @@ add_message_files(
   user_prediction.msg
   robot_move.msg
   screw_count.msg
+  threeIMUs.msg
+  skeleton.msg
 )
 
 ## Generate services in the 'srv' folder

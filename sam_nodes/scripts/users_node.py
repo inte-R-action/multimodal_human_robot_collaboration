@@ -4,7 +4,7 @@ import rospy
 import numpy as np
 from std_msgs.msg import String
 from user import User
-from sam_custom_messages.msg import hand_pos, capability, current_action, diagnostics
+from sam_custom_messages.msg import hand_pos, capability, current_action, diagnostics, threeIMUs
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, capability_class
 import argparse
@@ -27,25 +27,25 @@ parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
                     choices=['assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual'],
                     default='assemble_box')
-parser.add_argument('--classifier_type', '-C',
-                    help='Either 1v1 (one) or allvall (all) classifier',
-                    choices=['one', 'all'],
-                    default='one')
+# parser.add_argument('--classifier_type', '-C',
+#                     help='Either 1v1 (one) or allvall (all) classifier',
+#                     choices=['one', 'all'],
+#                     default='one')
 
 use_vision = True
 
 args = parser.parse_known_args()[0]
-print(f"Users node settings: {args.task_type} {args.classifier_type}")
+print(f"Users node settings: {args.task_type}")# {args.classifier_type}")
 database_stat = 1
-shimmer_stat = 1
+SHIMMER_STAT = 1
 imrecog_stat = 1
 
-def setup_user(users, frame_id, task, name=None, use_vision=True):
 
+def setup_user(users, frame_id, task, name=None, use_vision=True):
     id = len(users)+1
     if name is None:
         name = "unknown"
-    
+
     users.append(User(name, id, frame_id, use_vision))
 
     db = database()
@@ -71,12 +71,22 @@ def hand_pos_callback(data, users):
             self.right_h_rot = [Pose.Orientation.X, Pose.Orientation.Y, Pose.Orientation.Z, Pose.Orientation.W]
         else:
             print(f"ERROR: hand_pos.hand msg is {data.Hand} but should be 0 (left) or 1 (right)")
+    return
 
+
+def imu_data_callback(data, users):
+    i = [idx for idx, user in enumerate(users) if data.UserId == user.id]
+    if i:
+        i = i[0]
+        if users[i].name != data.UserName:
+            print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
+        else:
+            time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
+            users[i].perception.add_imu_data(data, time)
     return
 
 
 def current_action_callback(data, users):
-
     i = [idx for idx, user in enumerate(users) if data.UserId == user.id]
     if i:
         i = i[0]
@@ -113,12 +123,10 @@ def current_action_callback(data, users):
 
             #users[i]._imu_state_hist, users[i]._imu_pred_hist = collate_imu_seq(users[i]._imu_state_hist, users[i]._imu_pred_hist)
             users[i].collate_imu_seq()
-    return
+
 
 def sys_stat_callback(data, users):
-    global database_stat
-    global shimmer_stat
-    global imrecog_stat
+    global database_stat, SHIMMER_STAT, imrecog_stat
 
     if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
@@ -132,8 +140,8 @@ def sys_stat_callback(data, users):
                 users[i].shimmer_ready = data.DiagnosticStatus.level
             elif data.Header.frame_id == f'fakeIMUpub_node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
-        
-        shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
+
+        SHIMMER_STAT = max(users[i].shimmer_ready for i in range(len(users)))
 
 def next_action_override_callback(msg, users):
     data = msg.data
@@ -143,17 +151,17 @@ def next_action_override_callback(msg, users):
                 users[i].next_action_override()
     pass
 
+
 def users_node():
-    
+    global database_stat, use_vision, imrecog_stat, SHIMMER_STAT
     frame_id = "users_node"
     rospy.init_node(frame_id, anonymous=True)
     keyvalues = []
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
-    users = []
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback, (users))
     rospy.Subscriber("NextActionOverride", String, next_action_override_callback, (users))
-    global database_stat
+    
     # Wait for postgresql node to be ready
     while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
@@ -161,30 +169,28 @@ def users_node():
         time.sleep(0.5)
 
     task = args.task_type #'assemble_box'
-    global use_vision
     if use_vision:
-        global imrecog_stat
-        # Wait for postgresql node to be ready
+        # Wait for imrecog node to be ready
         while imrecog_stat != 0 and not rospy.is_shutdown():
             print(f"Waiting for imrecog_stat node status, currently {imrecog_stat}")
             diag_obj.publish(1, "Waiting for imrecog_stat node")
             time.sleep(0.5)
 
+    users = []
     for name in args.user_names:
         users = setup_user(users, frame_id, task, name, use_vision)
 
     timer = time.time()
 
-    global shimmer_stat
-    # Wait for postgresql node to be ready
-    while shimmer_stat != 0 and not rospy.is_shutdown():
-        print(f"Waiting for shimmer node status, currently {shimmer_stat}")
+    # Wait for shimmer node to be ready
+    while SHIMMER_STAT != 0 and not rospy.is_shutdown():
+        print(f"Waiting for shimmer node status, currently {SHIMMER_STAT}")
         diag_obj.publish(1, "Waiting for shimmer node")
         time.sleep(0.5)
 
-    
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
+    rospy.Subscriber("IMUdata", threeIMUs, imu_data_callback, (users))
 
     if use_vision:
         # Get first reading for screw counters, need to wait for good readings
@@ -193,10 +199,13 @@ def users_node():
         for user in users:
             user.screw_counter.next_screw()
 
-    rate = rospy.Rate(1) # 1hz
+    rate = rospy.Rate(2) # 2hz, update predictions every 0.5 s
     while not rospy.is_shutdown():
         rospy.loginfo(f"{frame_id} active")
 
+        for user in users:
+            user.perception.predict_actions()
+        
         diag_obj.publish(0, "Running")
         rate.sleep()
 

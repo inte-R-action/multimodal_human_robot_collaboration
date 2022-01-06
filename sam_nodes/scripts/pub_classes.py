@@ -1,8 +1,9 @@
 #!/usr/bin/env python3.7
 
 import rospy
-from std_msgs.msg import String 
-from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability, screw_count
+from std_msgs.msg import String
+from geometry_msgs.msg import Accel, Vector3
+from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability, screw_count, threeIMUs
 from diagnostic_msgs.msg import KeyValue
 
 class diag_class:
@@ -99,7 +100,7 @@ class obj_class:
 
 class act_class:
     def __init__(self, frame_id, class_count, user_id=1, user_name="unknown", queue=1):
-        # frame_id=str, user_id=int, user_name=str, queue=int
+        # frame_id=str, class_count=int, user_id=int, user_name=str, queue=int
         # Current action message definitions
         self.act_msg = current_action()
         self.act_msg.Header.stamp = rospy.get_rostime()
@@ -209,6 +210,45 @@ class capability_class:
         self.capability_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.capability_msg)
+
+class threeIMUs_class:
+    def __init__(self, frame_id, user_id=1, queue=1):
+        # frame_id=str, queue=int
+        # Current IMU data message definitions
+        self.IMUs_msg = threeIMUs()
+        self.IMUs_msg.Header.stamp = rospy.get_rostime()
+        self.IMUs_msg.Header.seq = None
+        self.IMUs_msg.Header.frame_id = frame_id
+        self.IMUs_msg.UserId = user_id
+        self.accel_msg = Accel()
+        self.positions = ['Hand', 'Wrist', 'Arm']
+
+        for p in range(len(self.positions)):
+            self.accel_msg.linear = Vector3(0,0,0)
+            self.accel_msg.angular = Vector3(0,0,0)
+            setattr(self.accel_msg, self.positions[p], self.accel_msg)
+
+        self.publisher = rospy.Publisher('IMUdata', threeIMUs, queue_size=queue)
+
+    def publish(self, IMU_data):
+    #     IMU_data: [hand accel_x, hand accel_y, hand accel_z,
+    #               hand gyro_x, hand gyro_y, hand gyro_z,
+    #               wrist accel_x, wrist accel_y, wrist accel_z,
+    #               wrist gyro_x, wrist gyro_y, wrist gyro_z,
+    #               arm accel_x, arm accel_y, arm accel_z,
+    #               arm gyro_x, arm gyro_y, arm gyro_z]
+        if self.IMUs_msg.Header.seq is None:
+            self.IMUs_msg.Header.seq = 0
+        else:
+            self.IMUs_msg.Header.seq += 1
+
+        for p in range(len(self.positions)):
+            self.accel_msg.linear = Vector3(IMU_data[p*6:(p*6)+3])
+            self.accel_msg.angular = Vector3(IMU_data[(p*6)+3:(p*6)+6])
+            setattr(self.accel_msg, self.positions[p], self.accel_msg)
+
+        self.IMUs_msg.Header.stamp = rospy.get_rostime()
+        self.publisher.publish(self.IMUs_msg)
 
 class screw_count_class:
     def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1):

@@ -20,7 +20,7 @@ import io
 import shlex
 from imu_classifier import imu_classifier
 from diagnostic_msgs.msg import KeyValue
-from pub_classes import diag_class, act_class
+from pub_classes import diag_class, act_class, threeIMUs_class
 import csv
 # from getpass import getpasss
 import tkinter
@@ -63,10 +63,10 @@ parser.add_argument('--task_type', '-T',
                     choices=['assemble_box', 'assemble_complex_box'],
                     default='assemble_complex_box')
 
-parser.add_argument('--classifier_type', '-C',
-                    help='Either 1v1 (one) or allvall (all) classifier',
-                    choices=['none', 'one', 'all'],
-                    default='one')
+# parser.add_argument('--classifier_type', '-C',
+#                     help='Either 1v1 (one) or allvall (all) classifier',
+#                     choices=['none', 'one', 'all'],
+#                     default='one')
 
 parser.add_argument('--bar', '-B',
                     help='Enable displaying of live prediction bar plot',
@@ -84,7 +84,7 @@ parser.add_argument('--user_id', '-I',
                     action="store_true")
 
 args = parser.parse_known_args()[0]
-print(f"Shimmer settings: {args.task_type} {args.classifier_type}")
+print(f"Shimmer settings: {args.task_type}")# {args.classifier_type}")
 frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
 
 # Shimmer sensor connection params
@@ -94,9 +94,9 @@ SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
 
 #CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
-Fs = 51.2  # Sampling frequency, Hz
-WIN_TIME = 3  # Window length, s
-WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples
+#Fs = 51.2  # Sampling frequency, Hz
+#WIN_TIME = 3  # Window length, s
+#WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples
 
 gyro_offset = [[0], [0], [0]]
 gyro_sens = [[65.5, 0, 0], [0, 65.5, 0], [0, 0, 65.5]]
@@ -112,49 +112,49 @@ passkey = "1234"  # passkey of shimmers
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-if args.classifier_type != 'none':
+# if args.classifier_type != 'none':
 
-    if args.classifier_type == 'all':
-        if args.task_type == 'assemble_box':
-            scale_file = f'{dir_path}/scale_params.csv'
-            CATEGORIES = SIMPLE_BOX_ACTIONS
-        elif args.task_type == 'assemble_complex_box':
-            # scale_file = f'{dir_path}/imu_scale_params_allvall.csv'
-            scale_file = f'{dir_path}/imu_scale_params_ava_allclassesincl.csv'
-            CATEGORIES = COMPLEX_BOX_ACTIONS
-    elif args.classifier_type == 'one':
-        if args.task_type == 'assemble_box':
-            CATEGORIES = SIMPLE_BOX_ACTIONS
-        elif args.task_type == 'assemble_complex_box':
-            # scale_file = f'{dir_path}/imu_scale_params_1v1_2.csv'
-            scale_file = f'{dir_path}/imu_scale_params_1v1_4.csv'
-            CATEGORIES = COMPLEX_BOX_ACTIONS
+#     if args.classifier_type == 'all':
+#         if args.task_type == 'assemble_box':
+#             scale_file = f'{dir_path}/scale_params.csv'
+#             CATEGORIES = SIMPLE_BOX_ACTIONS
+#         elif args.task_type == 'assemble_complex_box':
+#             # scale_file = f'{dir_path}/imu_scale_params_allvall.csv'
+#             scale_file = f'{dir_path}/imu_scale_params_ava_allclassesincl.csv'
+#             CATEGORIES = COMPLEX_BOX_ACTIONS
+#     elif args.classifier_type == 'one':
+#         if args.task_type == 'assemble_box':
+#             CATEGORIES = SIMPLE_BOX_ACTIONS
+#         elif args.task_type == 'assemble_complex_box':
+#             # scale_file = f'{dir_path}/imu_scale_params_1v1_2.csv'
+#             scale_file = f'{dir_path}/imu_scale_params_1v1_4.csv'
+#             CATEGORIES = COMPLEX_BOX_ACTIONS
 
-    with open(scale_file, newline='') as f:
-        reader = csv.reader(f)
-        data = np.array(list(reader))
-        means = data[1:, 1].astype(float)#np.float)
-        scales = data[1:, -1].astype(float)#np.float)
+with open(scale_file, newline='') as f:
+    reader = csv.reader(f)
+    data = np.array(list(reader))
+    means = data[1:, 1].astype(float)#np.float)
+    scales = data[1:, -1].astype(float)#np.float)
 
-pos = np.arange(len(CATEGORIES)-1)
+#pos = np.arange(len(CATEGORIES)-1)
 
 if args.disp:
     plt.ion()
     fig, axs = plt.subplots(numsensors, 2)
 
-def plot_prediction(prediction):
-    prediction = np.reshape(prediction, (-1))
-    global pos, CATEGORIES
-    plt.figure(2)
-    ax = plt.gca()
-    ax.cla()
-    print(pos)
-    print(prediction)
-    ax.bar(pos, prediction, align='center', alpha=0.5)
-    plt.xticks(pos, CATEGORIES[1:])
-    plt.ylabel('Confidence')
-    ax.set_ylim([0, 1])
-    plt.pause(0.0001)
+# def plot_prediction(prediction):
+#     prediction = np.reshape(prediction, (-1))
+#     global pos, CATEGORIES
+#     plt.figure(2)
+#     ax = plt.gca()
+#     ax.cla()
+#     print(pos)
+#     print(prediction)
+#     ax.bar(pos, prediction, align='center', alpha=0.5)
+#     plt.xticks(pos, CATEGORIES[1:])
+#     plt.ylabel('Confidence')
+#     ax.set_ylim([0, 1])
+#     plt.pause(0.0001)
 
 def shutdown_imu():
     global quit_IMU
@@ -199,7 +199,7 @@ def plot_func(plotdata):
 def scale_data(new_data):
     new_data = (new_data-means)/scales
     return new_data
-    
+
 
 class shimmer():
     def __init__(self, q):
@@ -474,8 +474,9 @@ class shimmer():
         self._numbytes = len(self._ddata)
 
         accel = self.calibrate_data(np.array(struct.unpack('HHH', data[4:10]), ndmin=2), 'a')
-        self._accel = np.vstack((self._accel, accel))
-        self._accel = self._accel[-WIN_LEN:, :]
+        self._accel = accel
+        #self._accel = np.vstack((self._accel, accel))
+        #self._accel = self._accel[-WIN_LEN:, :]
         self._accel = np.nan_to_num(self._accel)
 
         batt_now = struct.unpack('H', data[10:12])[0] * 6 / 4095
@@ -490,8 +491,9 @@ class shimmer():
             self._batt_time = time.time()
 
         gyro = self.calibrate_data(np.array(struct.unpack('>hhh', data[12:framesize]), ndmin=2), 'g')
-        self._gyro = np.vstack((self._gyro, gyro))
-        self._gyro = self._gyro[-WIN_LEN:, :]
+        self._gyro = gyro
+        #self._gyro = np.vstack((self._gyro, gyro))
+        #self._gyro = self._gyro[-WIN_LEN:, :]
         self._gyro = np.nan_to_num(self._gyro)
         self._status = 1 # ready
         return True
@@ -578,45 +580,38 @@ def shimmer_thread(num):
 def IMUsensorsMain():
     print("-----Here we go-----")
     rospy.init_node(f'shimmerBase_{args.user_name}_{args.user_id}', anonymous=True)
-    rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
+    #rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
+    rate = rospy.Rate(50)  # Message publication rate, Hz => should be 2
     
     keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
                 KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
                 KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]
     diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1, keyvalues=keyvalues)
+    IMU_pub_obj = threeIMUs_class(frame_id, user_id=args.user_id, queue=1)
 
-
-    if args.classifier_type != 'none':
-        if args.classifier_type == 'all':
-            if args.task_type == 'assemble_box':
-                class_count = 5
-                model_file = 'basic_box_classifier.h5'
-                classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
-            elif args.task_type == 'assemble_complex_box':
-                class_count = 5
-                # model_file = 'complex_box_classifier_allvall_1.h5'
-                model_file = 'complex_box_classifier_allvall_2_allclassesincl.h5'
-                classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
-        elif args.classifier_type == 'one':
-            if args.task_type == 'assemble_box':
-                pass
-            elif args.task_type == 'assemble_complex_box':
-                class_count = 4
-                # classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_2.h5', ['null', 'screw_in'], WIN_LEN)
-                # classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_2.h5', ['null', 'allen_in'], WIN_LEN)
-                # classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_2.h5', ['null', 'hand_screw_in'], WIN_LEN)
-                # classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_2.h5', ['null', 'hammer'], WIN_LEN)      
-                
-                classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_4_allclassesincl.h5', ['screw_in'], WIN_LEN)
-                classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_4_allclassesincl.h5', ['allen_in'], WIN_LEN)
-                classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_4_allclassesincl.h5', ['hand_screw_in'], WIN_LEN)
-                classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_4_allclassesincl.h5', ['hammer'], WIN_LEN)      
-            
-
-        act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
-        
-        prediction = np.zeros(class_count)
+    # if args.classifier_type != 'none':
+    #     if args.classifier_type == 'all':
+    #         if args.task_type == 'assemble_box':
+    #             class_count = 5
+    #             model_file = 'basic_box_classifier.h5'
+    #             classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
+    #         elif args.task_type == 'assemble_complex_box':
+    #             class_count = 5
+    #             # model_file = 'complex_box_classifier_allvall_1.h5'
+    #             model_file = 'complex_box_classifier_allvall_2_allclassesincl.h5'
+    #             classifier = imu_classifier(model_file, CATEGORIES, WIN_LEN)
+    #     elif args.classifier_type == 'one':
+    #         if args.task_type == 'assemble_box':
+    #             pass
+    #         elif args.task_type == 'assemble_complex_box':
+    #             class_count = 4
+    #             classifier_screw = imu_classifier('Screw In_classifier_TrainOnAll_4_allclassesincl.h5', ['screw_in'], WIN_LEN)
+    #             classifier_allen = imu_classifier('Allen In_classifier_TrainOnAll_4_allclassesincl.h5', ['allen_in'], WIN_LEN)
+    #             classifier_hand = imu_classifier('Hand Screw In_classifier_TrainOnAll_4_allclassesincl.h5', ['hand_screw_in'], WIN_LEN)
+    #             classifier_hammer = imu_classifier('Hammer_classifier_TrainOnAll_4_allclassesincl.h5', ['hammer'], WIN_LEN)
+    #     act_obj = act_class(frame_id=frame_id, class_count=class_count, user_id=args.user_id, user_name=args.user_name, queue=10)
+    #     prediction = np.zeros(class_count)
 
     # Start separate thread for collecting data from each Shimmer
     for shimthread in range(0, numsensors):
@@ -635,7 +630,7 @@ def IMUsensorsMain():
 
     print("Starting main loop")
     
-    class_pred = 'null'#CATEGORIES[-1]
+    # class_pred = 'null'#CATEGORIES[-1]
     status = [2, 2, 2, 2] # [unknown, unknown, unknown, setting up]
     diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
     while not quit_IMU:
@@ -649,11 +644,12 @@ def IMUsensorsMain():
             keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[s]} {SHIM_IDs[s]}', value = IMU_MSGS[status[s]])]
 
         out_str = f"Sensors Ready:{ready} Threads:{alive} Connections:{conn} Shutdowns:{s_down} " \
-                  f"Total Threads:{threading.active_count()} Quit:{quit_IMU} Prediction:{class_pred}"
+                  f"Total Threads:{threading.active_count()} Quit:{quit_IMU}" #Prediction:{class_pred}"
         #out_str = threading.enumerate()
         print(out_str)
-        class_pred = 'null'#CATEGORIES[-1]
-        new_data = np.empty((WIN_LEN, 0), dtype=np.float64)
+        # class_pred = 'null'#CATEGORIES[-1]
+        #new_data = np.empty((WIN_LEN, 0), dtype=np.float64)
+        new_data = np.empty((1, 0), dtype=np.float64)
         if all(ready) & all(conn) & all(alive):
             for p in shimmers:
                 new_data = np.hstack((new_data, shimmers[p]._accel, shimmers[p]._gyro))
@@ -667,27 +663,27 @@ def IMUsensorsMain():
             status[3] = 1 # Ready
             diag_level = 0 # ok
             
-            if args.classifier_type != 'none':
-                if args.classifier_type == 'all':
-                    if args.task_type == 'assemble_box':
-                        prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
-                    elif args.task_type == 'assemble_complex_box':
-                        prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
-                elif args.classifier_type == 'one':
-                    if args.task_type == 'assemble_box':
-                        pass
-                    elif args.task_type == 'assemble_complex_box':
-                        prediction = []
-                        prediction.append(classifier_screw.classify_data(new_data, False))#[1])
-                        prediction.append(classifier_allen.classify_data(new_data, False))#[1])
-                        prediction.append(classifier_hammer.classify_data(new_data, False))#[1])
-                        prediction.append(classifier_hand.classify_data(new_data, False))#[1])
+            # if args.classifier_type != 'none':
+            #     if args.classifier_type == 'all':
+            #         if args.task_type == 'assemble_box':
+            #             prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
+            #         elif args.task_type == 'assemble_complex_box':
+            #             prediction = np.reshape(classifier.classify_data(new_data, args.bar), (-1)).tolist()
+            #     elif args.classifier_type == 'one':
+            #         if args.task_type == 'assemble_box':
+            #             pass
+            #         elif args.task_type == 'assemble_complex_box':
+            #             prediction = []
+            #             prediction.append(classifier_screw.classify_data(new_data, False))#[1])
+            #             prediction.append(classifier_allen.classify_data(new_data, False))#[1])
+            #             prediction.append(classifier_hammer.classify_data(new_data, False))#[1])
+            #             prediction.append(classifier_hand.classify_data(new_data, False))#[1])
 
-                        if args.bar:
-                            plot_prediction(prediction)
+            #             if args.bar:
+            #                 plot_prediction(prediction)
                 
                 #print(prediction)
-                class_pred = CATEGORIES[np.argmax(prediction)]
+            #    class_pred = CATEGORIES[np.argmax(prediction)]
 
         else:
             diag_level = 1 # warning
@@ -707,13 +703,13 @@ def IMUsensorsMain():
                 KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[status[2]]),
                 KeyValue(key = f'Overall', value = IMU_SYS_MSGS[status[3]])]
 
-        if args.classifier_type != 'none':
-            try:
-                act_obj.publish(prediction)
-            except Exception as e:
-                print(e)
-                print(prediction)
-        
+        # if args.classifier_type != 'none':
+        #     try:
+        #         act_obj.publish(prediction)
+        #     except Exception as e:
+        #         print(e)
+        #         print(prediction)
+        IMU_pub_obj.publish(new_data)
         diag_obj.publish(diag_level, diag_msg, keyvalues)
 
         rate.sleep()

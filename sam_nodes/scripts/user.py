@@ -12,13 +12,15 @@ import pandas as pd
 from vision_recognition.count_screws_table import screw_counter
 import argparse
 from global_data import SIMPLE_BOX_ACTIONS, COMPLEX_BOX_ACTIONS
-#ACTION_CATEGORIES = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
+from user_perception_module import perception_module
+
 
 class User:
     def __init__(self, name, id, frame_id, use_vision=True):
         # self._imu_pred = np.zeros(6) #class confs, t 
         # self._imu_pred_hist = np.empty(6) #class confs, t 
         # self._imu_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
+        
         self.left_h_pos = [None, None, None]
         self.left_h_rot = [None, None, None, None]
         self.right_h_pos = [None, None, None]
@@ -36,6 +38,8 @@ class User:
         self.use_vision = use_vision
         if self.use_vision:
             self.screw_counter = screw_counter(self.frame_id, self.id, self.name, type='raw_count')
+
+        self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
 
         # self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_action_no = 0
@@ -68,6 +72,8 @@ class User:
             self._imu_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min]) #class, conf, tStart, tEnd
             self._final_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
 
+        self.perception.actions = self.ACTION_CATEGORIES
+        
         col_names, actions_list = self.db.query_table(self.task, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["completed"] = False
@@ -76,7 +82,6 @@ class User:
         self.curr_action_no = 0
         self.curr_action_type = self.task_data.iloc[0]["action_name"]
         self.update_current_action_output()
-
 
     def collate_episode(self):
         self._final_state_hist = np.vstack((self._final_state_hist, self._imu_state_hist[-3, :]))
@@ -92,7 +97,6 @@ class User:
         ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
         [(date, start_t, end_t, dur, self.id, "R", self.task, action_name, int(self.task_data.loc[self.curr_action_no]['action_no']))])
 
-        
     def update_robot_progress(self):
         action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
 
@@ -167,7 +171,6 @@ class User:
         if self.use_vision:
             self.screw_counter.next_screw()
         self.update_current_action_output()
-
 
     def update_current_action_output(self):
         try:
