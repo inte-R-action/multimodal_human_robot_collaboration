@@ -4,12 +4,13 @@ import rospy
 import numpy as np
 import matplotlib.pyplot as plt
 from pub_classes import act_class
+from process_skel_data import process_skel_data
+from global_data import PCA_COMPS
 plt.ion()
 
 Fs = 50  # Sampling frequency, Hz
 WIN_TIME = 3  # Window length, s
 WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples
-skel_pca_comps = 20
 
 
 class perception_module:
@@ -20,7 +21,7 @@ class perception_module:
         self.actions = ACTION_CATEGORIES
         self.imu_data = np.zeros((WIN_LEN, 18))
         self.imu_update_t = None
-        self.skel_data = np.zeros((WIN_LEN, skel_pca_comps))
+        self.skel_data = np.zeros((WIN_LEN, PCA_COMPS))
         self.skel_update_t = None
 
         self.screw_classifier = None
@@ -37,12 +38,13 @@ class perception_module:
         self.act_obj = act_class(frame_id=self.frame_id, class_count=4, user_id=self.id, user_name=self.name, queue=10)
 
     def predict_actions(self):
-        predict_data = [self.imu_data, self.skel_data]
+        new_skel_data = process_skel_data(self.skel_data)
+        predict_data = [self.imu_data[np.newaxis, ...], new_skel_data[np.newaxis, ...]]
 
-        self.screw_pred = self.screw_classifier.predict(predict_data)
-        self.allen_pred = self.allen_classifier.predict(predict_data)
-        self.hammer_pred = self.hammer_classifier.predict(predict_data)
-        self.hand_pred = self.hand_classifier.predict(predict_data)
+        self.screw_pred = self.screw_classifier.predict(predict_data)[0][0]
+        self.allen_pred = self.allen_classifier.predict(predict_data)[0][0]
+        self.hammer_pred = self.hammer_classifier.predict(predict_data)[0][0]
+        self.hand_pred = self.hand_classifier.predict(predict_data)[0][0]
 
         prediction = [self.screw_pred, self.allen_pred, self.hammer_pred, self.hand_pred]
         self.act_obj.publish(prediction)
@@ -57,12 +59,8 @@ class perception_module:
 
     def add_skel_data(self, data, time):
         self.skel_update_t = time
-        data = self.process_skel_data(data)
         self.skel_data = np.vstack((self.skel_data, data))
         self.skel_data = self.skel_data[-WIN_LEN:, :]
-
-    def process_skel_data(self, data):
-        return data
 
     def plot_prediction(self, prediction):
         pos = np.arange(len(self.actions)-1)

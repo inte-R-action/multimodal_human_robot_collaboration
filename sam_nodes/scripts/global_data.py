@@ -3,3 +3,40 @@ ALL_ACTIONS = ["Null", "Screw In", "Screw Out", "Allen In", "Allen Out", "Hammer
 SIMPLE_BOX_ACTIONS = ['allen_in', 'allen_out', 'screw_in', 'screw_out', 'null']
 
 COMPLEX_BOX_ACTIONS = ["null", "screw_in", "allen_in", "hammer", "hand_screw_in"]
+
+SKELETON_FRAMES = [
+    'head',
+    'neck',
+    'torso',
+    'left_shoulder',
+    'left_elbow',
+    'left_hand',
+    'left_hip',
+    'left_knee',
+    'left_foot',
+    'right_shoulder',
+    'right_elbow',
+    'right_hand',
+    'right_hip',
+    'right_knee',
+    'right_foot',
+]
+
+JOINTS_U = [
+    'head',
+    'neck',
+    'torso',
+    'left_shoulder',
+    'left_elbow',
+    'left_hand',
+    'left_hip',
+    'right_shoulder',
+    'right_elbow',
+    'right_hand',
+    'right_hip',
+    ]
+
+JOINT_LINKS = [[0, 1, 1, 3, 3, 4, 2, 2, 2, 7, 8],
+               [1, 3, 7, 2, 4, 5, 6, 7, 10, 8, 9]]
+
+PCA_COMPS = 20

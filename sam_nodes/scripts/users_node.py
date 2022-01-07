@@ -4,13 +4,14 @@ import rospy
 import numpy as np
 from std_msgs.msg import String
 from user import User
-from sam_custom_messages.msg import hand_pos, capability, current_action, diagnostics, threeIMUs
+from sam_custom_messages.msg import hand_pos, capability, current_action, diagnostics, threeIMUs, skeleton
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, capability_class
 import argparse
 import datetime, time
 import pandas as pd
 from postgresql.database_funcs import database
+from global_data import SKELETON_FRAMES
 import os
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
@@ -83,7 +84,27 @@ def imu_data_callback(data, users):
         else:
             time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
             users[i].perception.add_imu_data(data, time)
-    return
+
+
+def skeleton_callback(data, users):
+    skeleton_data = []
+    i = [idx for idx, user in enumerate(users) if data.UserId == user.id]
+    if i:
+        i = i[0]
+        if users[i].name != data.UserName:
+            print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
+        else:
+            for frame in SKELETON_FRAMES:
+                pose = getattr(data, frame)
+                skeleton_data.append(pose.position.x)
+                skeleton_data.append(pose.position.y)
+                skeleton_data.append(pose.position.z)
+                skeleton_data.append(pose.orientation.x)
+                skeleton_data.append(pose.orientation.y)
+                skeleton_data.append(pose.orientation.z)
+                skeleton_data.append(pose.orientation.w)
+            time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
+            users[i].add_skel_data(skeleton_data, time)
 
 
 def current_action_callback(data, users):
@@ -191,6 +212,7 @@ def users_node():
     rospy.Subscriber("HandStates", hand_pos, hand_pos_callback, (users))
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
     rospy.Subscriber("IMUdata", threeIMUs, imu_data_callback, (users))
+    rospy.Subscriber('SkeletonJoints', skeleton, skeleton_callback, (users))
 
     if use_vision:
         # Get first reading for screw counters, need to wait for good readings
