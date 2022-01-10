@@ -13,6 +13,7 @@ from vision_recognition.count_screws_table import screw_counter
 import argparse
 from global_data import SIMPLE_BOX_ACTIONS, COMPLEX_BOX_ACTIONS
 from user_perception_module import perception_module
+from user_reasoning_module import reasoning_module
 
 
 class User:
@@ -40,6 +41,7 @@ class User:
             self.screw_counter = screw_counter(self.frame_id, self.id, self.name, type='raw_count')
 
         self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
+        self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
 
         # self._final_state_hist = np.array([4, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
         self.curr_action_no = 0
@@ -73,6 +75,7 @@ class User:
             self._final_state_hist = np.array([0, 1, datetime.datetime.min, datetime.datetime.min], ndmin=2) #class, conf, tStart, tEnd
 
         self.perception.actions = self.ACTION_CATEGORIES
+        self.task_reasoning.update_task(self.task)
         
         col_names, actions_list = self.db.query_table(self.task, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
