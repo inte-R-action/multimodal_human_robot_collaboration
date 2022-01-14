@@ -11,7 +11,7 @@ from pub_classes import diag_class
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'future_action_predictions', 'robot_future_estimates']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'future_action_predictions', 'robot_completed_actions']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
         ['actions', ["action_id SERIAL PRIMARY KEY",
@@ -69,14 +69,20 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "started FLOAT",
                     "done FLOAT"
                     "time_left INTERVAL"]],
-        ['robot_future_estimates', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
+        # ['robot_future_estimates', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
+        #             "user_name VARCHAR(255) REFERENCES users(user_name)",
+        #             "task_name VARCHAR(255) REFERENCES tasks(task_name)",
+        #             "current_action_no INTEGER",
+        #             "est_t_remain INTERVAL",
+        #             "robo_task_t INTERVAL",
+        #             "robot_start_t INTERVAL",
+        #             "done BOOL"]],
+        ['robot_completed_actions', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
                     "user_name VARCHAR(255) REFERENCES users(user_name)",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
-                    "current_action_no INTEGER",
-                    "est_t_remain INTERVAL",
-                    "robo_task_t INTERVAL",
-                    "robot_start_t INTERVAL",
-                    "done BOOL"]]]
+                    "last_completed_action_no INTEGER",
+                    "next_action_no INTEGER"
+                    "robot_start_t INTERVAL"]]]
 
 def make_tables(db, del_tab = True):
 

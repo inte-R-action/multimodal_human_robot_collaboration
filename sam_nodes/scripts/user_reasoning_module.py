@@ -29,7 +29,6 @@ class reasoning_module:
             if row['user_type'] == 'human':
                 self.models.append(load_model(MODEL_FILE))
                 self.human_row_idxs.append(index)
-        pass
 
     def predict_action_statuses(self):
         for i in range(len(self.models)):
@@ -45,9 +44,11 @@ class reasoning_module:
         time = datetime.datetime.utcnow()
         separator = ', '
 
+        # Delete old rows for user
         sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {self.id};"""
         self.db.gen_cmd(sql_cmd)
 
+        # Insert new rows for user for each action prediciton status
         sql_cmd = f"""INSERT INTO future_action_predictions ({separator.join(self.fut_act_pred_col_names)})
         VALUES """
         for i in range(len(self.models)):
