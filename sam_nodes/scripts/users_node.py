@@ -25,24 +25,24 @@ parser.add_argument('--user_names', '-N',
                     default='unknown',
                     type=lambda s: [str(item) for item in s.split(',')])
 parser.add_argument('--task_type', '-T',
-                    help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-                    choices=['assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual'],
-                    default='assemble_box')
+                    help='Task for users to perform, options: assemble_complex_box (default)',
+                    choices=['assemble_complex_box', 'assemble_complex_box_manual'],
+                    default='assemble_complex_box')
 # parser.add_argument('--classifier_type', '-C',
 #                     help='Either 1v1 (one) or allvall (all) classifier',
 #                     choices=['one', 'all'],
 #                     default='one')
 
-use_vision = True
+use_vision = False
 
 args = parser.parse_known_args()[0]
 print(f"Users node settings: {args.task_type}")# {args.classifier_type}")
 database_stat = 1
-SHIMMER_STAT = 1
+shimmer_stat = 1
 imrecog_stat = 1
 
 
-def setup_user(users, frame_id, task, name=None, use_vision=True):
+def setup_user(users, frame_id, task, name=None):
     id = len(users)+1
     if name is None:
         name = "unknown"
@@ -59,6 +59,7 @@ def setup_user(users, frame_id, task, name=None, use_vision=True):
 
     users[id-1].update_task(task)
     return users
+
 
 def hand_pos_callback(data, users):
     if users[data.UserId-1].name != data.UserName:
@@ -92,7 +93,7 @@ def skeleton_callback(data, users):
     if i:
         i = i[0]
         if users[i].name != data.UserName:
-            print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
+            print(f"ERROR: users list name {users[i].name} does not match skeleton msg name {data.UserName}")
         else:
             for frame in SKELETON_FRAMES:
                 pose = getattr(data, frame)
@@ -114,98 +115,92 @@ def current_action_callback(data, users):
         if users[i].name != data.UserName:
             print(f"ERROR: users list name {users[i].name} does not match current_action msg name {data.UserName}")
         else:
-            #users[i].actions.extend([data.action_probs, data.Header.stamp])
             time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
-            #users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
 
-            if args.classifier_type == 'all':
-                users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
-                users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
-            elif args.classifier_type == 'one':
-                # Only select relevant classifier output
-                try:
-                    action_idx = users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)-1
-                    null_probs = 1-data.ActionProbs[action_idx]
+            # if args.classifier_type == 'all':
+            #     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
+            #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
+            # elif args.classifier_type == 'one':
+                # # Only select relevant classifier output
+                # try:
+                #     action_idx = users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)-1
+                #     null_probs = 1-data.ActionProbs[action_idx]
 
-                    if data.ActionProbs[action_idx] > null_probs:
-                        users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)), 0, time, time]))
-                    else:
-                        users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
+                #     if data.ActionProbs[action_idx] > null_probs:
+                #         users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)), 0, time, time]))
+                #     else:
+                #         users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
 
-                except ValueError as e:
-                    # When action is robot action so not found in user action list
-                    users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
-                    null_probs = 1
+                # except ValueError as e:
+                #     # When action is robot action so not found in user action list
+                #     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
+                #     null_probs = 1
 
-                if users[i].ACTION_CATEGORIES.index('null') == 0:
-                    users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((null_probs, data.ActionProbs, time)))))
-                else:
-                    users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, null_probs, time)))))
+                # if users[i].ACTION_CATEGORIES.index('null') == 0:
+                #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((null_probs, data.ActionProbs, time)))))
+                # else:
+                #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, null_probs, time)))))
 
-            #users[i]._imu_state_hist, users[i]._imu_pred_hist = collate_imu_seq(users[i]._imu_state_hist, users[i]._imu_pred_hist)
-            users[i].collate_imu_seq()
+            users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, time)))))
+            users[i].collate_har_seq()
 
 
 def sys_stat_callback(data, users):
-    global database_stat, SHIMMER_STAT, imrecog_stat
+    global database_stat, shimmer_stat, imrecog_stat
 
     if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
 
-    if data.Header.frame_id == f'Realsense_node':
+    if data.Header.frame_id == 'Realsense_node':
         imrecog_stat = data.DiagnosticStatus.level
 
     if users:
         for i in range(len(users)):
             if data.Header.frame_id == f'shimmerBase {users[i].name} {users[i].id} node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
-            elif data.Header.frame_id == f'fakeIMUpub_node':
+            elif data.Header.frame_id == 'fakeIMUpub_node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
 
-        SHIMMER_STAT = max(users[i].shimmer_ready for i in range(len(users)))
+        shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
+
 
 def next_action_override_callback(msg, users):
-    data = msg.data
     if users:
         for i in range(len(users)):
-            if data == users[i].name:
+            if msg.data == users[i].name:
                 users[i].next_action_override()
-    pass
 
 
 def users_node():
-    global database_stat, use_vision, imrecog_stat, SHIMMER_STAT
+    global database_stat, use_vision, imrecog_stat, shimmer_stat
     frame_id = "users_node"
     rospy.init_node(frame_id, anonymous=True)
     keyvalues = []
+    users = []
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback, (users))
     rospy.Subscriber("NextActionOverride", String, next_action_override_callback, (users))
-    
+
     # Wait for postgresql node to be ready
     while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
         diag_obj.publish(1, "Waiting for postgresql node")
         time.sleep(0.5)
 
-    task = args.task_type #'assemble_box'
-    if use_vision:
-        # Wait for imrecog node to be ready
-        while imrecog_stat != 0 and not rospy.is_shutdown():
-            print(f"Waiting for imrecog_stat node status, currently {imrecog_stat}")
-            diag_obj.publish(1, "Waiting for imrecog_stat node")
-            time.sleep(0.5)
+    # if use_vision:
+    #     # Wait for imrecog node to be ready
+    #     while imrecog_stat != 0 and not rospy.is_shutdown():
+    #         print(f"Waiting for imrecog_stat node status, currently {imrecog_stat}")
+    #         diag_obj.publish(1, "Waiting for imrecog_stat node")
+    #         time.sleep(0.5)
 
-    users = []
     for name in args.user_names:
-        users = setup_user(users, frame_id, task, name, use_vision)
-
-    timer = time.time()
+        users = setup_user(users, frame_id, args.task_type, name)
 
     # Wait for shimmer node to be ready
-    while SHIMMER_STAT != 0 and not rospy.is_shutdown():
-        print(f"Waiting for shimmer node status, currently {SHIMMER_STAT}")
+    while shimmer_stat != 0 and not rospy.is_shutdown():
+        print(f"Waiting for shimmer node status, currently {shimmer_stat}")
         diag_obj.publish(1, "Waiting for shimmer node")
         time.sleep(0.5)
 
@@ -214,22 +209,24 @@ def users_node():
     rospy.Subscriber("IMUdata", threeIMUs, imu_data_callback, (users))
     rospy.Subscriber('SkeletonJoints', skeleton, skeleton_callback, (users))
 
-    if use_vision:
-        # Get first reading for screw counters, need to wait for good readings
-        while time.time() - timer < 5:
-            time.sleep(0.5)
-        for user in users:
-            user.screw_counter.next_screw()
+    # timer = time.time()
+    # if use_vision:
+    #     # Get first reading for screw counters, need to wait for good readings
+    #     while time.time() - timer < 5:
+    #         time.sleep(0.5)
+    #     for user in users:
+    #         user.screw_counter.next_screw()
 
-    rate = rospy.Rate(2) # 2hz, update predictions every 0.5 s
+    rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     while not rospy.is_shutdown():
         rospy.loginfo(f"{frame_id} active")
 
         for user in users:
             user.perception.predict_actions()
-        
+
         diag_obj.publish(0, "Running")
         rate.sleep()
+
 
 if __name__ == '__main__':
     try:

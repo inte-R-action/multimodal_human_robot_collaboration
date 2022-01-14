@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from postgresql.database_funcs import database
 from tensorflow.keras.models import load_model
+import datetime
 plt.ion()
 
 MODEL_FILE = ""
@@ -20,9 +21,8 @@ class reasoning_module:
         self.task = None
         self.models = []
         self.human_row_idxs = []
+        self.fut_act_pred_col_names = None
         self.db = database()
-
-        pass
 
     def setup_prediction_networks(self):
         for index, row in self.task_data.iterrows():
@@ -37,20 +37,29 @@ class reasoning_module:
             self.task_data.loc[self.human_row_idxs[i], 'started'] = started
             self.task_data.loc[self.human_row_idxs[i], 'done'] = done
             self.task_data.loc[self.human_row_idxs[i], 'time_left'] = time
-        
+
         self.publish_to_database()
-        pass
 
     def publish_to_database(self):
         # Update user current action in sql table
         time = datetime.datetime.utcnow()
-        #data_ins = "%s" + (", %s"*(len(self.col_names)-1))
         separator = ', '
-        sql_cmd = f"""INSERT INTO current_actions ({separator.join(self.col_names)})
-        VALUES ({self.id}, '{self.name}', '{time}', '{self.task}', {int(self.task_data.loc[self.curr_action_no]['action_no'])}, '{time}') 
-        ON CONFLICT (user_id) DO UPDATE SET updated_t='{time}', task_name='{self.task}', current_action_no={int(self.task_data.loc[self.curr_action_no]['action_no'])}, start_time='{time}';"""
+
+        sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {self.id};"""
         self.db.gen_cmd(sql_cmd)
-        pass
+
+        sql_cmd = f"""INSERT INTO future_action_predictions ({separator.join(self.fut_act_pred_col_names)})
+        VALUES """
+        for i in range(len(self.models)):
+            if i != 0:
+                sql_cmd += ", "
+            sql_cmd += f"""({self.id}, '{self.name}', '{time}', '{self.task}',
+            {int(self.task_data.loc[self.human_row_idxs[i], 'action_no'])},
+            '{self.task_data.loc[self.human_row_idxs[i], 'started']}',
+            '{self.task_data.loc[self.human_row_idxs[i], 'done']}',
+            '{self.task_data.loc[self.human_row_idxs[i], 'time_left']}')"""
+        sql_cmd += ";"
+        self.db.gen_cmd(sql_cmd)
 
     def update_task(self, task):
         self.task = task
@@ -59,6 +68,10 @@ class reasoning_module:
         self.task_data["started"] = 0
         self.task_data["done"] = 0
         self.task_data["time_left"] = 0
-        
-        self.setup_prediction_networks()
 
+        self.fut_act_pred_col_names, act_data = self.db.query_table('future_action_predictions',rows=0)
+
+        sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {self.id};"""
+        self.db.gen_cmd(sql_cmd)
+
+        self.setup_prediction_networks()

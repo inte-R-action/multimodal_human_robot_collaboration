@@ -11,7 +11,7 @@ from pub_classes import diag_class
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'current_actions', 'robot_future_estimates']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'future_action_predictions', 'robot_future_estimates']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
         ['actions', ["action_id SERIAL PRIMARY KEY",
@@ -61,7 +61,7 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
         #             "task_name VARCHAR(255) REFERENCES tasks(task_name)",
         #             "current_action_no INTEGER",
         #             "start_time TIMESTAMPTZ"]],
-        ['current_actions', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
+        ['future_action_predictions', ["user_id INTEGER REFERENCES users(user_id)",
                     "user_name VARCHAR(255) REFERENCES users(user_name)",
                     "updated_t TIMESTAMPTZ",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
