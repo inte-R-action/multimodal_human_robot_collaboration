@@ -45,7 +45,7 @@ if args.task_type == 'assemble_complex_box':
     CATEGORIES = COMPLEX_BOX_ACTIONS
 elif args.task_type == 'assemble_complex_box_manual':
     CATEGORIES = COMPLEX_BOX_ACTIONS
-print(f"GUI settings: {args.task_type} {args.classifier_type}")
+print(f"GUI settings: {args.task_type}")
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()
@@ -64,11 +64,11 @@ class user_frame:
         self.task_name = args.task_type
         self.task_data = None
         self.status = "unknown"
-        self.current_action_no = None
-        self.screw_counts = [None, None]
+        #self.current_action_no = None
+        #self.screw_counts = [None, None]
         self.shimmer = [None, None, None]
         self.shimmer_info = []
-        self.current_action_type = None
+        #self.current_action_type = None
 
         self.next_action_pub = rospy.Publisher('NextActionOverride', String, queue_size=10)
 
@@ -108,11 +108,11 @@ class user_frame:
         self.shimmer_frame.grid_rowconfigure(1, weight=1)
         self.shimmer_frame.grid_rowconfigure(2, weight=1)
 
-        # Screw counter
-        self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
-        self.screw_count_txt.tag_configure("center", justify='center')
-        self.screw_count_txt.grid(row=0, column=2, sticky="nsew")
-        self.update_screw_count_txt()
+        # # Screw counter
+        # self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
+        # self.screw_count_txt.tag_configure("center", justify='center')
+        # self.screw_count_txt.grid(row=0, column=2, sticky="nsew")
+        # self.update_screw_count_txt()
 
         # Graph area for current predictions
         # A tk.DrawingArea.
@@ -168,7 +168,6 @@ class user_frame:
     def remove_user(self):
         self.user_frame.quit()     # stops mainloop
         self.user_frame.destroy()  # this is necessary on Windows to prevent
-        # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 
     def next_action(self):
         self.next_action_pub.publish(self.name)
@@ -197,14 +196,14 @@ class user_frame:
             self.shimmer[i].insert(Tk.INSERT, self.shimmer_info[i][0])
             self.shimmer[i].tag_add("center", "1.0", "end")
 
-    def update_screw_count_txt(self):
-        text = f"\nScrew Counts \n" \
-               f"  Now: {self.screw_counts[0]} \n" \
-               f"  Last: {self.screw_counts[1]} \n"
+    # def update_screw_count_txt(self):
+    #     text = f"\nScrew Counts \n" \
+    #            f"  Now: {self.screw_counts[0]} \n" \
+    #            f"  Last: {self.screw_counts[1]} \n"
 
-        self.screw_count_txt.delete("1.0", Tk.END)
-        self.screw_count_txt.insert(Tk.INSERT, text)
-        #self.screw_count_txt.tag_add("center", "1.0", "end")
+    #     self.screw_count_txt.delete("1.0", Tk.END)
+    #     self.screw_count_txt.insert(Tk.INSERT, text)
+    #     #self.screw_count_txt.tag_add("center", "1.0", "end")
 
     def update_user_deets(self):
         text = f" Name: {self.name} \n" \
@@ -219,8 +218,10 @@ class user_frame:
     def load_task_data(self):
         self.col_names, actions_list = self.db.query_table(self.task_name, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=self.col_names)
-        self.task_data["completed"] = False
-        self.col_names.append("completed")
+        self.task_data["started"] = 0
+        self.task_data["done"] = 0
+        self.task_data["t_left"] = 0
+        self.col_names.extend(("started", "done", "t_left"))
 
     def update_action_plot(self):
         self.ax.cla()
@@ -240,6 +241,7 @@ class user_frame:
         self.ax.set_title('Current IMU Prediction')
 
         plt.pause(0.00001)
+
 
 class node_indicator:
     def __init__(self, node_name, master, i):
@@ -307,6 +309,9 @@ class GUI:
         self.root.wm_title("HRC Interaction System")
         self.root.resizable(True, True)
 
+        self.fig = Figure()
+        #self.ax = self.fig.subplots(1, 1)
+
         self.create_system_frame()
 
         self.users = []
@@ -326,14 +331,12 @@ class GUI:
         imsize = 100
         resized = load.resize((imsize, imsize), Image.ANTIALIAS)
         render = ImageTk.PhotoImage(resized)
-        # , height=imsize+10)
         self.img = Tk.Label(self.sys_frame, image=render)
         self.img.image = render
         self.img.grid(row=0, column=0, columnspan=2)
 
-        # Nodes Stats
-        #self.nodes_stat_levels = []
-        self.node_stats = Tk.Frame(master=self.sys_frame)  # , height=40)
+        # Nodes Stats Indicators
+        self.node_stats = Tk.Frame(master=self.sys_frame)
         self.node_stats.grid(row=1, column=0, columnspan=2, sticky="nsew")
         self.nodes_list = [['Database_node', None],
                            ['users_node', None],
@@ -341,12 +344,8 @@ class GUI:
                            ['robot_control_node', None],
                            ['hri_static_demo', None],
                            ['rq_gripper_2F140', None]]
-        #self.nodes_indicators = []
         i = 0
         for node in self.nodes_list:
-            #self.nodes_indicators.append(Tk.Label(master=self.node_stats, bg="grey", text=node, width=1, padx=10, pady=3, borderwidth=2, relief="ridge"))
-            #self.nodes_indicators[i].grid(row=i%2, column=int(i/2), sticky="nsew")
-            #self.nodes_stat_levels.append([None, None])
             node[1] = node_indicator(node[0], self.node_stats, i)
             i += 1
 
@@ -354,20 +353,20 @@ class GUI:
         self.node_stats.grid_columnconfigure((0, 1, 2), weight=1)
         self.node_stats.grid_rowconfigure((0, 1), weight=1)
 
-        # Robot Status
+        # Robot Status Text
         self.robot_stat_text = "Robot status: unknown"
         self.robot_stats = Tk.Text(master=self.sys_frame, height=2)
         self.robot_stats.grid(row=2, column=0, columnspan=2, sticky="nsew")
         self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
 
-        # Robot Move Command
+        # Robot Move Command Text
         self.robot_move_text = f"Robot Move Cmd: unknown"
         self.robot_move = Tk.Text(master=self.sys_frame, height=2)
         self.robot_move.grid(row=3, column=0, columnspan=2, sticky="nsew")
         self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
         # Tasks List
-        self.load_task_data()
+        self.load_robot_actions_data()
         self.tasks = ttk.Treeview(self.sys_frame, show=[
                                   "headings"], height=18, displaycolumns="#all")
         self.tasks.grid(row=4, column=0, columnspan=2, sticky="nsew")
@@ -381,13 +380,20 @@ class GUI:
             self.tasks.insert("", index=index, values=list(
                 row), tags=(row['user_id'],))
 
+        # Timing Predictions Graph
+        # A tk.DrawingArea.
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.sys_frame)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2,
+                                         sticky="nsew")
+
         # New User button
         self.new_user_button = Tk.Button(master=self.sys_frame, text="New User", command=self._new_user, bg="green", padx=50, pady=20)
-        self.new_user_button.grid(row=5, column=0, sticky="nsew")
+        self.new_user_button.grid(row=6, column=0, sticky="nsew")
 
         # Quit button
         self.quit_button = Tk.Button(master=self.sys_frame, text="Quit", command=self._quit, bg="red", padx=50, pady=20)
-        self.quit_button.grid(row=5, column=1, sticky="nsew")
+        self.quit_button.grid(row=6, column=1, sticky="nsew")
 
         # Adjust spacing of objects
         self.sys_frame.grid_columnconfigure(0, weight=1)
@@ -398,6 +404,7 @@ class GUI:
         self.sys_frame.grid_rowconfigure(2, weight=0)
         self.sys_frame.grid_rowconfigure(3, weight=0)
         self.sys_frame.grid_rowconfigure(4, weight=1)
+        self.sys_frame.grid_rowconfigure(5, weight=1)
         self.sys_frame.grid_rowconfigure(5, weight=0)
 
     def _quit(self):
@@ -414,8 +421,8 @@ class GUI:
             user = eval(user)
             self.users.append(user_frame(len(self.users)+1, user[0], user[1], self.root))
 
-    def load_task_data(self):
-        self.col_names, actions_list = self.db.query_table('robot_future_estimates', 'all')
+    def load_robot_actions_data(self):
+        self.col_names, actions_list = self.db.query_table('robot_completed_actions', 'all')
         self.task_data = pd.DataFrame(actions_list, columns=self.col_names)
 
     def update_gui(self):
@@ -464,21 +471,21 @@ class GUI:
                         self.users[user_i].current_action_type = self.users[user_i].task_data.loc[self.users[user_i].current_action_no]['action_name']
             
             # Update robot actions
-            self.load_task_data()
+            self.load_robot_actions_data()
             self.tasks.delete(*self.tasks.get_children())
             for index, row in self.task_data.iterrows():
                 self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
         # Update user screw counts
-        for user in self.users:
-            user.update_screw_count_txt()
-            user.update_shimmer_text()
-            try:
-                user.canvas.draw()
-            except:
-                pass
-            # user.user_frame.update_idletasks()
-            # user.user_frame.update()
+        # for user in self.users:
+        #     user.update_screw_count_txt()
+        #     user.update_shimmer_text()
+        #     try:
+        #         user.canvas.draw()
+        #     except:
+        #         pass
+        #     # user.user_frame.update_idletasks()
+        #     # user.user_frame.update()
 
         # Update robot status text
         self.robot_stats.delete("1.0", Tk.END)
@@ -487,6 +494,9 @@ class GUI:
         self.robot_move.delete("1.0", Tk.END)
         self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
+        # Update future timings plot
+        self.update_timings_plot()
+        
         self.root.grid_columnconfigure(0, weight=1)
         for i in range(len(self.users)):
             self.root.grid_columnconfigure(i+1, weight=1)
@@ -501,27 +511,27 @@ class GUI:
                 if user.name != data.UserName:
                     print(f"ERROR: users list name {self.users[data.UserId].name} does not match current_action msg name {data.UserName}")
                 else:
-                    if args.classifier_type == 'one':
-                        if CATEGORIES.index('null') == 0:
-                            try:
-                                null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)-1]
-                                user.imu_pred = np.hstack((null_prob, data.ActionProbs))
-                            except ValueError as e:
-                                print(f"GUI value error: {e}")
-                                null_prob = 1
-                                user.imu_pred = np.hstack((null_prob, data.ActionProbs))
-                        else:
-                            try:
-                                null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)]
-                                user.imu_pred = np.hstack((data.ActionProbs, null_prob))
-                            except ValueError as e:
-                                print(f"GUI value error: {e}")
-                                null_prob = 1
-                                user.imu_pred = np.hstack((data.ActionProbs, null_prob))
+                    # if args.classifier_type == 'one':
+                    #     if CATEGORIES.index('null') == 0:
+                    #         try:
+                    #             null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)-1]
+                    #             user.imu_pred = np.hstack((null_prob, data.ActionProbs))
+                    #         except ValueError as e:
+                    #             print(f"GUI value error: {e}")
+                    #             null_prob = 1
+                    #             user.imu_pred = np.hstack((null_prob, data.ActionProbs))
+                    #     else:
+                    #         try:
+                    #             null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)]
+                    #             user.imu_pred = np.hstack((data.ActionProbs, null_prob))
+                    #         except ValueError as e:
+                    #             print(f"GUI value error: {e}")
+                    #             null_prob = 1
+                    #             user.imu_pred = np.hstack((data.ActionProbs, null_prob))
+                    # else:
+                    #     user.imu_pred = data.ActionProbs
 
-                    else:
-                        user.imu_pred = data.ActionProbs
-                    
+                    user.imu_pred = data.ActionProbs
                     user.update_action_plot()
 
     def update_sys_stat(self, data):
@@ -547,13 +557,39 @@ class GUI:
     def update_robot_move(self, data):
         self.robot_move_text = f"Robot Move Cmd: {data.data}"
 
-    def update_screw_count(self, data):
-        for user in self.users:
-            if data.UserId == user.id:
-                if user.name != data.UserName:
-                    print(f"ERROR: users list name {user.name} does not match screw_count msg name {data.UserName}")
-                else:
-                    user.screw_counts = [data.ScrewCount, data.LastScrewCount]
+    # def update_screw_count(self, data):
+    #     for user in self.users:
+    #         if data.UserId == user.id:
+    #             if user.name != data.UserName:
+    #                 print(f"ERROR: users list name {user.name} does not match screw_count msg name {data.UserName}")
+    #             else:
+    #                 user.screw_counts = [data.ScrewCount, data.LastScrewCount]
+
+    def update_timings_plot(self):
+        col_names, predictions_list = self.db.query_table('future_action_predictions', 'all')
+        predictions_data = pd.DataFrame(predictions_list, columns=col_names)
+
+        active_users = [1, 2]#pd.unique(predictions_data["user_id"])
+        axs = self.fig.subplots(len(active_users)+1, 1, sharex='col')  # subplot for each user plus robot
+
+        for u in range(len(active_users)):
+            time_predictions = [1, 2, 3]#predictions_data.loc[predictions_data["user_id"]==active_users[u]]["time_left"]
+            for t in time_predictions:
+                axs[u].axvline(x=t)
+            axs[u].get_yaxis().set_ticks([])
+            axs[u].set_ylabel(f"User: {u}")
+
+        # Plot robot solo action times
+        time_predictions = [1, 2, 3]
+        for t in time_predictions:
+            axs[-1].axvline(x=t)
+        axs[-1].get_yaxis().set_ticks([])
+        axs[-1].set_ylabel("Robot Solo")
+
+        self.fig.text(0.5, 0.02, 'Time into future, s', ha='center')
+        self.fig.suptitle('Current IMU Prediction')
+
+        plt.pause(0.00001)
 
 
 def run_gui():
@@ -564,7 +600,7 @@ def run_gui():
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
     rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)
     rospy.Subscriber('RobotMove', String, gui.update_robot_move)
-    rospy.Subscriber('ScrewCounts', screw_count, gui.update_screw_count)
+    #rospy.Subscriber('ScrewCounts', screw_count, gui.update_screw_count)
 
     #fake_pub = act_class(frame_id='gui', class_count=4)
 

@@ -67,7 +67,7 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
                     "action_no INTEGER",
                     "started FLOAT",
-                    "done FLOAT"
+                    "done FLOAT",
                     "time_left INTERVAL"]],
         # ['robot_future_estimates', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
         #             "user_name VARCHAR(255) REFERENCES users(user_name)",
@@ -81,7 +81,7 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) REFERENCES users(user_name)",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
                     "last_completed_action_no INTEGER",
-                    "next_action_no INTEGER"
+                    "next_action_no INTEGER",
                     "robot_start_t INTERVAL"]]]
 
 def make_tables(db, del_tab = True):
