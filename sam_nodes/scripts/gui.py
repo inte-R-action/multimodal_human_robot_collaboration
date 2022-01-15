@@ -20,7 +20,7 @@ from postgresql.database_funcs import database
 import os
 import pandas as pd
 from tkinter import ttk
-from global_data import COMPLEX_BOX_ACTIONS, SIMPLE_BOX_ACTIONS
+from global_data import COMPLEX_BOX_ACTIONS
 import argparse
 
 
@@ -33,18 +33,15 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-                    choices=['assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual'],
+                    choices=['assemble_complex_box', 'assemble_complex_box_manual'],
                     default='assemble_complex_box')
-parser.add_argument('--classifier_type', '-C',
-                    help='Either 1v1 (one) or allvall (all) classifier',
-                    choices=['one', 'all'],
-                    default='all')
-
+# parser.add_argument('--classifier_type', '-C',
+#                     help='Either 1v1 (one) or allvall (all) classifier',
+#                     choices=['one', 'all'],
+#                     default='all')
 args = parser.parse_known_args()[0]
 
-if args.task_type == 'assemble_box':
-    CATEGORIES = SIMPLE_BOX_ACTIONS    
-elif args.task_type == 'assemble_complex_box':
+if args.task_type == 'assemble_complex_box':
     CATEGORIES = COMPLEX_BOX_ACTIONS
 elif args.task_type == 'assemble_complex_box_manual':
     CATEGORIES = COMPLEX_BOX_ACTIONS
@@ -53,7 +50,7 @@ pos = np.arange(len(CATEGORIES))
 
 plt.ion()
 
-k = 0
+#k = 0
 QUIT = False
 
 
@@ -63,7 +60,7 @@ class user_frame:
         self.id = id
         self.name = name
         self.root = root
-        self.imu_pred = np.zeros(5)
+        self.imu_pred = np.zeros(4)
         self.task_name = args.task_type
         self.task_data = None
         self.status = "unknown"
@@ -81,7 +78,6 @@ class user_frame:
         self.db = database()
 
         self.create_user_frame()
-
         self.update_action_plot()
 
     def create_user_frame(self):
@@ -411,7 +407,6 @@ class GUI:
         rospy.signal_shutdown('Quit Button')
         self.root.quit()     # stops mainloop
         self.root.destroy()  # this is necessary on Windows to prevent
-        # Fatal Python Error: PyEval_RestoreThread: NULL tstate
 
     def _new_user(self):
         user = new_user_dialogue(self.root).show()
@@ -546,7 +541,6 @@ class GUI:
                     user.shimmer_info[i] = [text, keyval.value]
                     i += 1
 
-
     def update_robot_stat(self, data):
         self.robot_stat_text = f"Robot status: {data.data}"
 
@@ -561,8 +555,9 @@ class GUI:
                 else:
                     user.screw_counts = [data.ScrewCount, data.LastScrewCount]
 
+
 def run_gui():
-    # Run GUI
+    # Run ROS node
     gui = GUI()
     rospy.init_node('gui', anonymous=True)
     rospy.Subscriber('CurrentAction', current_action, gui.update_actions)
@@ -580,5 +575,5 @@ def run_gui():
 
 
 if __name__ == '__main__':
-    # Run ROS node
+    # Run GUI
     run_gui()
