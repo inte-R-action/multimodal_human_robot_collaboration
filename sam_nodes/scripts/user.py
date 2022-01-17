@@ -13,16 +13,17 @@ import pandas as pd
 from vision_recognition.count_screws_table import screw_counter
 import argparse
 from global_data import COMPLEX_BOX_ACTIONS
-from user_perception_module import perception_module
+#from user_perception_module import perception_module
 from user_reasoning_module import reasoning_module
 
 
 class User:
-    def __init__(self, name, id, frame_id, use_vision=True):
+    def __init__(self, name, id, frame_id, test, use_vision=False):
         # self.left_h_pos = [None, None, None]
         # self.left_h_rot = [None, None, None, None]
         # self.right_h_pos = [None, None, None]
         # self.right_h_rot = [None, None, None, None]
+        self.test = test
         self.status = None
         self.name = name
         self.id = id
@@ -37,8 +38,9 @@ class User:
         # if self.use_vision:
         #     self.screw_counter = screw_counter(self.frame_id, self.id, self.name, type='raw_count')
 
-        self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
-        self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
+        if not self.test:
+            self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
+        self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES, self.test)
 
         # self.curr_action_no = 0
         # self.curr_action_type = None
@@ -49,15 +51,18 @@ class User:
         self.task = task
         self.ACTION_CATEGORIES = COMPLEX_BOX_ACTIONS
 
-        self._har_pred_hist = np.empty(len(self.ACTION_CATEGORIES))  # class confs, t
-        #self._imu_state_hist = [np.array([[0, 1, datetime.min]])]*len(self.ACTION_CATEGORIES)  # [class, conf, t]*num_classes
-        #self._final_state_hist = [np.array([[0, 1, datetime.min, datetime.min]])]*len(self.ACTION_CATEGORIES)  # [class, conf, tStart, tEnd]*num_classes
+        self._har_pred_hist = np.array([0, 0, 0, 0, datetime.min])  # class confs, t
+        self._har_state_hist = [np.array([0, 1, datetime.min], ndmin=2)]*(len(self.ACTION_CATEGORIES)-1)  # [class, conf, t]*num_classes
+        self._final_state_hist = [np.array([0, 1, datetime.min, datetime.min], ndmin=2)]*(len(self.ACTION_CATEGORIES)-1)  # [class, conf, tStart, tEnd]*num_classes
 
-        self._har_state_hist = [np.empty((3))]*len(self.ACTION_CATEGORIES)  # [class, conf, t]*num_classes
-        self._final_state_hist = [np.empty((4))]*len(self.ACTION_CATEGORIES)  # [class, conf, tStart, tEnd]*num_classes
+        #self._har_state_hist = [np.empty((1, 3))]*len(self.ACTION_CATEGORIES)  # [class, conf, t]*num_classes
+        #self._final_state_hist = [np.empty((1, 4))]*len(self.ACTION_CATEGORIES)  # [class, conf, tStart, tEnd]*num_classes
 
-        self.perception.actions = self.ACTION_CATEGORIES
+        if not self.test:
+            self.perception.actions = self.ACTION_CATEGORIES
         self.task_reasoning.update_task(self.task)
+
+        print(f"Updated task for user {self.name} to task {self.task}")
 
         # col_names, actions_list = self.db.query_table(self.task, 'all')
         # self.task_data = pd.DataFrame(actions_list, columns=col_names)
@@ -215,14 +220,17 @@ class User:
                 self._final_state_hist[a][-1, 1] = np.mean(self._har_state_hist[a][:, 1])  # update final confidence
                 self._final_state_hist[a][-1, -1] = self._har_pred_hist[-1, -1]  # update finish time
             else:
-                self._har_state_hist[a] = np.array((action, prob, self._har_pred_hist[-1, -1]))
-
                 # Can publish new episode to sql if not null action
-                if int(self._final_state_hist[-1, 0]) != 0:
-                    start_t = self._final_state_hist[-1, 2]
-                    end_t = self._final_state_hist[-1, 3]
+                if int(self._final_state_hist[a][-1, 0]) != 0:
+                    start_t = self._final_state_hist[a][-1, 2]
+                    end_t = self._final_state_hist[a][-1, 3]
                     dur = end_t - start_t
-                    action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[-1, 0])]
+                    action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[a][-1, 0])]
                     self.db.insert_data_list("Episodes", 
                     ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
-                    [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, int(self.task_data.loc[self.curr_action_no]['action_no']))])
+                    [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
+                
+                # Update state history objects
+                new_start_t = self._har_pred_hist[-1, -1]
+                self._har_state_hist[a] = np.array((action, prob, new_start_t), ndmin=2)
+                self._final_state_hist[a] = np.vstack((self._final_state_hist[a], [action, prob, new_start_t, new_start_t]))

@@ -11,7 +11,6 @@ from std_msgs.msg import Int8, Float64
 from pub_classes import diag_class, act_class
 import csv
 
-CATEGORIES = ['AllenKeyIn', 'AllenKeyOut', 'ScrewingIn', 'ScrewingOut', 'Null']
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/"))
 
 # Argument parsing
@@ -37,13 +36,12 @@ def fakeIMUmain():
     rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
 
     diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=1)
-    act_obj = act_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=1)
+    act_obj = act_class(frame_id=frame_id, class_count=4, user_id=1, user_name='unknown', queue=1)
     
-    prediction = np.zeros(5)
+    prediction = np.zeros(4)
 
     print("Starting main loop")
     
-    class_pred = CATEGORIES[-1]
     diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
 
     with open ('fake_imu_data.csv', newline='') as csvfile:
@@ -52,12 +50,12 @@ def fakeIMUmain():
         for row in csvreader:
             if not rospy.is_shutdown():
 
-                prediction = [float(i) for i in row[0:5]]
+                prediction = [float(i) for i in row[0:4]]
                 prediction = np.reshape(prediction, (-1))
-                class_pred = CATEGORIES[np.argmax(prediction)]
 
                 try:
                     act_obj.publish(prediction.tolist())
+                    print(prediction)
                     diag_msg = "fake_imu_pub all good"
                     diag_level = 0 # ok
                 except Exception as e:

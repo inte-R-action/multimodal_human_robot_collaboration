@@ -28,12 +28,16 @@ parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_complex_box (default)',
                     choices=['assemble_complex_box', 'assemble_complex_box_manual'],
                     default='assemble_complex_box')
+parser.add_argument('--test',
+                    help='Test mode without sensors',
+                    choices=[True, False],
+                    default=True)
 # parser.add_argument('--classifier_type', '-C',
 #                     help='Either 1v1 (one) or allvall (all) classifier',
 #                     choices=['one', 'all'],
 #                     default='one')
 
-use_vision = False
+# use_vision = False
 
 args = parser.parse_known_args()[0]
 print(f"Users node settings: {args.task_type}")# {args.classifier_type}")
@@ -47,11 +51,11 @@ def setup_user(users, frame_id, task, name=None):
     if name is None:
         name = "unknown"
 
-    users.append(User(name, id, frame_id, use_vision))
+    users.append(User(name, id, frame_id, args.test))
 
     db = database()
     time = datetime.datetime.utcnow()
-    sql_cmd = f"""DELETE FROM current_actions WHERE user_id = {id};"""
+    sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {id};"""
     db.gen_cmd(sql_cmd)
     sql_cmd = f"""DELETE FROM users WHERE user_id = {id};"""
     db.gen_cmd(sql_cmd)
@@ -144,6 +148,8 @@ def current_action_callback(data, users):
             users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, time)))))
             users[i].collate_har_seq()
 
+            users[i].task_reasoning.predict_action_statuses()
+
 
 def sys_stat_callback(data, users):
     global database_stat, shimmer_stat, imrecog_stat
@@ -228,8 +234,43 @@ def users_node():
         rate.sleep()
 
 
+def users_test_node():
+    global database_stat
+    frame_id = "users_node"
+    rospy.init_node(frame_id, anonymous=True)
+    keyvalues = []
+    users = []
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
+
+    rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback, (users))
+
+    # Wait for postgresql node to be ready
+    while database_stat != 0 and not rospy.is_shutdown():
+        print(f"Waiting for postgresql node status, currently {database_stat}")
+        diag_obj.publish(1, "Waiting for postgresql node")
+        time.sleep(0.5)
+
+    for name in args.user_names:
+        users = setup_user(users, frame_id, args.task_type, name)
+
+    rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
+
+    rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
+    while not rospy.is_shutdown():
+        rospy.loginfo(f"{frame_id} active")
+
+        # for user in users:
+        #     user.perception.predict_actions()
+
+        diag_obj.publish(0, "Running")
+        rate.sleep()
+
+
 if __name__ == '__main__':
     try:
-        users_node()
+        if not args.test:
+            users_node()
+        else:
+            users_test_node()
     except rospy.ROSInterruptException:
         pass

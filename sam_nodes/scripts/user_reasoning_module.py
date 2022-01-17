@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.7
 
-#import rospy
+import rospy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,7 +13,8 @@ MODEL_FILE = ""
 
 
 class reasoning_module:
-    def __init__(self, name, id, frame_id, ACTION_CATEGORIES):
+    def __init__(self, name, id, frame_id, ACTION_CATEGORIES, test):
+        self.test = test
         self.name = name
         self.id = id
         self.frame_id = frame_id
@@ -27,12 +28,18 @@ class reasoning_module:
     def setup_prediction_networks(self):
         for index, row in self.task_data.iterrows():
             if row['user_type'] == 'human':
-                self.models.append(load_model(MODEL_FILE))
+                if not self.test:
+                    self.models.append(load_model(MODEL_FILE))
+                else:
+                    self.models.append("fake model")
                 self.human_row_idxs.append(index)
 
     def predict_action_statuses(self):
         for i in range(len(self.models)):
-            [time, started, done] = self.models[i].predict()
+            if not self.test:
+                [time, started, done] = self.models[i].predict()
+            else:
+                [time, started, done] = [datetime.datetime.now().time(), 0, 0]
             self.task_data.loc[self.human_row_idxs[i], 'started'] = started
             self.task_data.loc[self.human_row_idxs[i], 'done'] = done
             self.task_data.loc[self.human_row_idxs[i], 'time_left'] = time
@@ -68,7 +75,7 @@ class reasoning_module:
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["started"] = 0
         self.task_data["done"] = 0
-        self.task_data["time_left"] = 0
+        self.task_data["time_left"] = datetime.datetime.now().time()
 
         self.fut_act_pred_col_names, act_data = self.db.query_table('future_action_predictions',rows=0)
 

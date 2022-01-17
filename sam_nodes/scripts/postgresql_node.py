@@ -81,7 +81,7 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) REFERENCES users(user_name)",
                     "task_name VARCHAR(255) REFERENCES tasks(task_name)",
                     "last_completed_action_no INTEGER",
-                    "next_action_no INTEGER",
+                    "next_r_action_no INTEGER",
                     "robot_start_t INTERVAL"]]]
 
 def make_tables(db, del_tab = True):
