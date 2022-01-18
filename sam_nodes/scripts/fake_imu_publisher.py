@@ -13,25 +13,9 @@ import csv
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/"))
 
-# Argument parsing
-parser = argparse.ArgumentParser(
-    description='Base structure for connecting and streaming data from Shimmer 3 IMU sensor')
-
-parser.add_argument('--disp', '-V',
-                    help='Enable displaying of live graphs',
-                    default=False,
-                    action="store_true")
-
-parser.add_argument('--bar', '-B',
-                    help='Enable displaying of live prediction bar plot',
-                    default=False,
-                    action="store_true")
-
-args = parser.parse_known_args()[0]
-
 def fakeIMUmain():
     print("-----Here we go-----")
-    frame_id = f'fakeIMUpub_node'
+    frame_id = 'fakeIMUpub_node'
     rospy.init_node(frame_id, anonymous=True)
     rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
 
@@ -55,14 +39,13 @@ def fakeIMUmain():
 
                 try:
                     act_obj.publish(prediction.tolist())
-                    print(prediction)
                     diag_msg = "fake_imu_pub all good"
                     diag_level = 0 # ok
                 except Exception as e:
                     print(f"Error: {e}")
                     diag_msg = "fake_imu_pub not so good"
                     diag_level = 1 # warning
-                
+
                 diag_obj.publish(diag_level, diag_msg)
                 #print(f"Action: {class_pred} Probs: {prediction}")
                 rate.sleep()
@@ -73,10 +56,5 @@ if __name__ == "__main__":
         fakeIMUmain()
     except rospy.ROSInterruptException:
         print("Keyboard Interrupt")
-        plt.close('all')
-    finally:
-        if args.disp:
-            plt.show()
-        quit_IMU = True
 
-        print("All done")
+    print("All done")

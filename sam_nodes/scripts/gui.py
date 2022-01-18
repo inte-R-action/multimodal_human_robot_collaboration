@@ -42,15 +42,14 @@ parser.add_argument('--task_type', '-T',
 args = parser.parse_known_args()[0]
 
 if args.task_type == 'assemble_complex_box':
-    CATEGORIES = COMPLEX_BOX_ACTIONS
+    CATEGORIES = COMPLEX_BOX_ACTIONS[1:]
 elif args.task_type == 'assemble_complex_box_manual':
-    CATEGORIES = COMPLEX_BOX_ACTIONS
+    CATEGORIES = COMPLEX_BOX_ACTIONS[1:]
 print(f"GUI settings: {args.task_type}")
 pos = np.arange(len(CATEGORIES))
 
 plt.ion()
 
-#k = 0
 QUIT = False
 
 
@@ -60,10 +59,11 @@ class user_frame:
         self.id = id
         self.name = name
         self.root = root
-        self.imu_pred = np.zeros(4)
+        self.imu_pred = np.ones(4)
         self.task_name = args.task_type
         self.task_data = None
         self.status = "unknown"
+        self.destroy = False
         #self.current_action_no = None
         #self.screw_counts = [None, None]
         self.shimmer = [None, None, None]
@@ -168,6 +168,7 @@ class user_frame:
     def remove_user(self):
         self.user_frame.quit()     # stops mainloop
         self.user_frame.destroy()  # this is necessary on Windows to prevent
+        self.destroy = True
 
     def next_action(self):
         self.next_action_pub.publish(self.name)
@@ -227,12 +228,12 @@ class user_frame:
         self.ax.cla()
         bars = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
 
-        if args.classifier_type == 'one':
-            try:
-                bars[CATEGORIES.index('null')].set_color('r')
-                bars[CATEGORIES.index(self.current_action_type)].set_color('r')
-            except ValueError:
-                pass
+        # if args.classifier_type == 'one':
+        #     try:
+        #         bars[CATEGORIES.index('null')].set_color('r')
+        #         bars[CATEGORIES.index(self.current_action_type)].set_color('r')
+        #     except ValueError:
+        #         pass
 
         self.ax.set_xticks(pos)
         self.ax.set_xticklabels(CATEGORIES)
@@ -310,7 +311,7 @@ class GUI:
         self.root.resizable(True, True)
 
         self.fig = Figure()
-        #self.ax = self.fig.subplots(1, 1)
+        self.axs = np.reshape(self.fig.subplots(1, 1), (-1, 1))
 
         self.create_system_frame()
 
@@ -331,7 +332,7 @@ class GUI:
         imsize = 100
         resized = load.resize((imsize, imsize), Image.ANTIALIAS)
         render = ImageTk.PhotoImage(resized)
-        self.img = Tk.Label(self.sys_frame, image=render)
+        self.img = Tk.Label(master=self.sys_frame, image=render)
         self.img.image = render
         self.img.grid(row=0, column=0, columnspan=2)
 
@@ -376,16 +377,20 @@ class GUI:
             self.tasks.column(i, anchor="center", stretch=True, width=20)
             self.tasks.heading(i, text=i, anchor='center')
 
-        for index, row in self.task_data.iterrows():
+        for index, row in self.robot_tasks_data.iterrows():
             self.tasks.insert("", index=index, values=list(
                 row), tags=(row['user_id'],))
 
         # Timing Predictions Graph
         # A tk.DrawingArea.
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.sys_frame)
-        self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2,
+        canvasframe = Tk.Frame(self.sys_frame)
+        canvasframe.grid(row=5, column=0, columnspan=2,
                                          sticky="nsew")
+        self.canvas = FigureCanvasTkAgg(self.fig, master=canvasframe)
+        self.canvas.draw()
+        #self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2,
+        #                                 sticky="nsew")
+        self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
         # New User button
         self.new_user_button = Tk.Button(master=self.sys_frame, text="New User", command=self._new_user, bg="green", padx=50, pady=20)
@@ -405,7 +410,7 @@ class GUI:
         self.sys_frame.grid_rowconfigure(3, weight=0)
         self.sys_frame.grid_rowconfigure(4, weight=1)
         self.sys_frame.grid_rowconfigure(5, weight=1)
-        self.sys_frame.grid_rowconfigure(5, weight=0)
+        self.sys_frame.grid_rowconfigure(6, weight=0)
 
     def _quit(self):
         global QUIT
@@ -420,12 +425,24 @@ class GUI:
         if user is not None:
             user = eval(user)
             self.users.append(user_frame(len(self.users)+1, user[0], user[1], self.root))
+            self.fig.clf()
+            self.axs = np.reshape(self.fig.subplots(len(self.users)+1, 1, sharex='col'), (-1,1))  # subplot for each user plus robot
 
     def load_robot_actions_data(self):
-        self.col_names, actions_list = self.db.query_table('robot_completed_actions', 'all')
-        self.task_data = pd.DataFrame(actions_list, columns=self.col_names)
+        self.col_names, actions_list = self.db.query_table('robot_action_timings', 'all')
+        self.robot_tasks_data = pd.DataFrame(actions_list, columns=self.col_names)
 
     def update_gui(self):
+
+        # destroy any removed users
+        for i in range(len(self.users)):
+            try:
+                if self.users[i].destroy == True:
+                    del self.users[i]
+                    self.fig.clf()
+                    self.axs = np.reshape(self.fig.subplots(len(self.users)+1, 1, sharex='col'), (-1,1))  # subplot for each user plus robot
+            except IndexError:
+                pass
 
         # Update node status indicators
         i = 0
@@ -451,29 +468,29 @@ class GUI:
 
         
         if [node[1].status for node in self.nodes_list if node[1].name == 'Database_node'][0] == 0:
-            # Update user action tasks
-            col_names, actions_list = self.db.query_table('current_actions', 'all')
-            current_data = pd.DataFrame(actions_list, columns=col_names)
-            for _, row in current_data.iterrows():
-                user_id = row['user_id']
-                user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
+        #     # Update user action tasks
+        #     col_names, actions_list = self.db.query_table('current_actions', 'all')
+        #     current_data = pd.DataFrame(actions_list, columns=col_names)
+        #     for _, row in current_data.iterrows():
+        #         user_id = row['user_id']
+        #         user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
 
-                if user_i:
-                    user_i = user_i[0]
-                    if self.users[user_i].current_action_no != row['current_action_no']:
-                        self.users[user_i].tasks.tag_configure(
-                            row['current_action_no'], background='green')
-                        if self.users[user_i].current_action_no is not None:
-                            self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
+        #         if user_i:
+        #             user_i = user_i[0]
+        #             if self.users[user_i].current_action_no != row['current_action_no']:
+        #                 self.users[user_i].tasks.tag_configure(
+        #                     row['current_action_no'], background='green')
+        #                 if self.users[user_i].current_action_no is not None:
+        #                     self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
                         
-                        self.users[user_i].current_action_no = row['current_action_no']
+        #                 self.users[user_i].current_action_no = row['current_action_no']
 
-                        self.users[user_i].current_action_type = self.users[user_i].task_data.loc[self.users[user_i].current_action_no]['action_name']
+        #                 self.users[user_i].current_action_type = self.users[user_i].task_data.loc[self.users[user_i].current_action_no]['action_name']
             
             # Update robot actions
             self.load_robot_actions_data()
             self.tasks.delete(*self.tasks.get_children())
-            for index, row in self.task_data.iterrows():
+            for index, row in self.robot_tasks_data.iterrows():
                 self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
         # Update user screw counts
@@ -490,6 +507,7 @@ class GUI:
         # Update robot status text
         self.robot_stats.delete("1.0", Tk.END)
         self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
+
         # Update robot move cmd text
         self.robot_move.delete("1.0", Tk.END)
         self.robot_move.insert(Tk.INSERT, self.robot_move_text)
@@ -500,6 +518,7 @@ class GUI:
         self.root.grid_columnconfigure(0, weight=1)
         for i in range(len(self.users)):
             self.root.grid_columnconfigure(i+1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
 
         # Update gui
         # self.root.update_idletasks()
@@ -569,25 +588,32 @@ class GUI:
         col_names, predictions_list = self.db.query_table('future_action_predictions', 'all')
         predictions_data = pd.DataFrame(predictions_list, columns=col_names)
 
-        active_users = [1, 2]#pd.unique(predictions_data["user_id"])
-        axs = self.fig.subplots(len(active_users)+1, 1, sharex='col')  # subplot for each user plus robot
+        active_users = self.users#pd.unique(predictions_data["user_id"])
+        [ax[0].cla() for ax in self.axs]
+        #self.axs = self.fig.subplots(len(active_users)+1, 1, sharex='col')  # subplot for each user plus robot
 
-        for u in range(len(active_users)):
+        for u in range(self.axs.shape[0]-1):
             time_predictions = [1, 2, 3]#predictions_data.loc[predictions_data["user_id"]==active_users[u]]["time_left"]
             for t in time_predictions:
-                axs[u].axvline(x=t)
-            axs[u].get_yaxis().set_ticks([])
-            axs[u].set_ylabel(f"User: {u}")
+                self.axs[u, 0].axvline(x=t)
+            self.axs[u, 0].get_yaxis().set_ticks([])
+            self.axs[u, 0].set_ylabel(f"User: {u}")
 
         # Plot robot solo action times
-        time_predictions = [1, 2, 3]
-        for t in time_predictions:
-            axs[-1].axvline(x=t)
-        axs[-1].get_yaxis().set_ticks([])
-        axs[-1].set_ylabel("Robot Solo")
+        #time_predictions = [1, 2, 3]
+        try:
+            time_predictions = self.robot_tasks_data.loc[self.robot_tasks_data["user_name"]=="robot"]["robot_start_t"][0].total_seconds()
+            #for t in time_predictions:
+            self.axs[-1, 0].axvline(x=time_predictions)
+        except (KeyError, IndexError) as e:
+            print("robot solo action time error")
+            pass
+
+        self.axs[-1, 0].get_yaxis().set_ticks([])
+        self.axs[-1, 0].set_ylabel("Robot Solo")
 
         self.fig.text(0.5, 0.02, 'Time into future, s', ha='center')
-        self.fig.suptitle('Current IMU Prediction')
+        self.fig.suptitle('Future Timing Predictions')
 
         plt.pause(0.00001)
 

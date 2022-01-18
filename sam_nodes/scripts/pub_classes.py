@@ -123,7 +123,6 @@ class act_class:
         self.act_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.act_msg)
-        print(f"act msg sent: {self.act_msg}")
 
 class move_class:
     def __init__(self, frame_id, queue=10):
@@ -142,7 +141,7 @@ class move_class:
         #     self.move_msg.Header.seq = 0
         # else:
         #     self.move_msg.Header.seq += 1
-        
+
         #self.move_msg.Command = commands
         #self.move_msg.Header.stamp = rospy.get_rostime()
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.7
 
+from re import T
 import sys, os
 import rospy
 import argparse
@@ -10,7 +11,8 @@ from sam_custom_messages.msg import user_prediction, capability, diagnostics
 from std_msgs.msg import String
 from postgresql.database_funcs import database
 import pandas as pd
-import datetime, time
+import time
+from datetime import datetime, date, timedelta
 import pytz
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
@@ -36,7 +38,7 @@ class future_predictor():
         self.future_estimates = pd.DataFrame(columns=self.fut_cols)
         self.task_overview = None
         self.robot_status = None
-        self.robot_start_t = datetime.datetime.now().time()
+        self.robot_start_t = datetime.now().time()
         self.update_predictions()
         self.task_now = None
         self.action_no_now = None
@@ -49,7 +51,7 @@ class future_predictor():
         self.current_data = pd.DataFrame(actions_list, columns=col_names)
 
         # Get last updated robot actions
-        col_names, robot_actions = self.db.query_table('robot_completed_actions', 'all')
+        col_names, robot_actions = self.db.query_table('robot_action_timings', 'all')
         last_robot_stats = pd.DataFrame(robot_actions, columns=col_names)
 
         active_users = pd.unique(self.current_data["user_id"])
@@ -66,7 +68,7 @@ class future_predictor():
             try:
                 last_robot_action_no = last_robot_stats.loc[last_robot_stats["user_id"]==user_id]["last_completed_action_no"][0]
                 print(f"last_robot_action_no: {last_robot_action_no}")
-            except IndexError:
+            except (KeyError, IndexError):
                 # user hasn't been entered into table yet
                 last_robot_action_no = -1
 
@@ -78,8 +80,6 @@ class future_predictor():
 
             # find index of next task for robot
             next_robot_action_idx = int(tasks_left[tasks_left['user_type']=='robot'].first_valid_index())
-            print(tasks_left)
-            print(tasks_left.iloc[next_robot_action_idx])
             next_robot_action_no = int(tasks_left.iloc[next_robot_action_idx]['action_no'])
 
             # If first action robot should start immediately
@@ -96,7 +96,7 @@ class future_predictor():
                 Time2UserNeedRobot = prev_user_action_pred["time_left"]
                 print(f"prev user action no: {prev_user_action_no}, next robot action no: {next_robot_action_no}")
             else:
-                Time2UserNeedRobot = datetime.timedelta()
+                Time2UserNeedRobot = timedelta()
 
             RobotActionTime = tasks_left.iloc[next_robot_action_idx]['default_time']
             if tasks_left.iloc[next_robot_action_idx]['prev_dependent']:
@@ -212,11 +212,11 @@ class future_predictor():
     def update_robot_completed_actions_table(self):
         # Update future prediction in sql table
         for _, row in self.future_estimates.iterrows():
-            sql_cmd = f"""DELETE FROM robot_completed_actions WHERE user_id = {row['user_id']};"""
+            sql_cmd = f"""DELETE FROM robot_action_timings WHERE user_id = {row['user_id']};"""
             self.db.gen_cmd(sql_cmd)
             cols = ["user_id", "user_name", "task_name", "last_completed_action_no", "next_r_action_no", "robot_start_t"]
             data = [int(row["user_id"]), row["user_name"], row["task_name"], int(row["last_r_action_no"]), int(row["next_r_action_no"]), row["robot_start_t"]]
-            self.db.insert_data_list("robot_completed_actions", cols, [data])
+            self.db.insert_data_list("robot_action_timings", cols, [data])
 
     def robot_stat_callback(self, msg):
         """Callback for updates to robot status"""
@@ -229,14 +229,14 @@ class future_predictor():
 
     def update_episodic(self):
         """Add completed robot actions to episodic memory"""
-        date = datetime.date.today()
-        end_t = datetime.datetime.now().time()
-        dur = datetime.datetime.combine(date.min, end_t) - datetime.datetime.combine(date.min, self.robot_start_t)
+        date_now = date.today()
+        end_t = datetime.now().time()
+        dur = datetime.combine(date.min, end_t) - datetime.combine(date.min, self.robot_start_t)
 
         if (self.robot_status != "Done") and (self.robot_status != "Waiting") and (self.robot_status is not None):
             # Can publish new episode to sql
             epi_cols = ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"]
-            epi_data = [(date, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)]
+            epi_data = [(date_now, self.robot_start_t, end_t, dur, 0, '-', self.task_now, str(self.robot_status), self.action_no_now)]
             self.db.insert_data_list("Episodes", epi_cols, epi_data)
             self.task_now = None
             self.action_no_now = None
@@ -249,7 +249,7 @@ class robot_solo_task():
         self.task_overview = None
         self.next_action_id = 0
         self.next_action = None
-        self.next_task_time = None
+        self.next_action_time = None
         self.finished = False
         self.update_task_data()
 
@@ -260,19 +260,30 @@ class robot_solo_task():
         self.next_action_id = 0
         self.next_action = self.task_overview.loc[
             self.task_overview['action_no'] == self.next_action_id, ['action_name']].values[0][0]
-        self.next_task_time = pd.Timedelta(self.task_overview.loc[
+        self.next_action_time = pd.Timedelta(self.task_overview.loc[
             self.task_overview['action_no'] == self.next_action_id, ['default_time']].values[0][0])
+
+        self.update_actions_table()
 
     def update_progress(self):
         try:
             self.next_action_id += 1
             self.next_action = self.task_overview.loc[
                 self.task_overview['action_no'] == self.next_action_id, ['action_name']].values[0][0]
-            self.next_task_time = pd.Timedelta(self.task_overview.loc[
+            self.next_action_time = pd.Timedelta(self.task_overview.loc[
                 self.task_overview['action_no'] == self.next_action_id, ['default_time']].values[0][0])
         except IndexError:
             print("Looks like user robot task is finished")
             self.finished = True
+
+        self.update_actions_table()
+
+    def update_actions_table(self, t_adj=timedelta()):
+        sql_cmd = f"""DELETE FROM robot_action_timings WHERE user_id = 0;"""
+        self.db.gen_cmd(sql_cmd)
+        cols = ["user_id", "user_name", "task_name", "last_completed_action_no", "next_r_action_no", "robot_start_t"]
+        data = [0, "robot", self.task_name, self.next_action_id-1, self.next_action_id, self.next_action_time-t_adj]
+        self.db.insert_data_list("robot_action_timings", cols, [data])
 
 
 def robot_control_node():
@@ -333,14 +344,14 @@ def robot_control_node():
                     # Wait for confirmation task has been received
                     while predictor.robot_status != action:
                         move_obj.publish(action)
-                    predictor.robot_start_t = datetime.datetime.now().time()
+                    predictor.robot_start_t = datetime.now().time()
                     predictor.done = False
                     # Wait for confirmation task has been completed
                     while not predictor.done:
                         time.sleep(0.01)
                     predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
 
-                elif (row['robot_start_t'][0] > robot_task.next_task_time):# or (row['done'][0] is True)) and (not robot_task.finished):
+                elif (not robot_task.finished) and (row['robot_start_t'][0] > robot_task.next_action_time):# or (row['done'][0] is True)):
                     # if time to colab action > time to do solo action
                     home = False
                     predictor.task_now = robot_task.task_name
@@ -349,11 +360,13 @@ def robot_control_node():
                     # Wait for confirmation task has been received
                     while predictor.robot_status != robot_task.next_action:
                         move_obj.publish(robot_task.next_action)
-                    predictor.robot_start_t = datetime.datetime.now().time()
+                    predictor.robot_start_t = datetime.now().time()
                     predictor.done = False
                     # Wait for confirmation task has been completed
                     while not predictor.done:
-                        time.sleep(0.01)
+                        robot_task.update_actions_table(datetime.now().time())
+                        robot_task.update_actions_table(datetime.now()-datetime.combine(date.min, predictor.robot_start_t))
+                        time.sleep(0.1)
                     robot_task.update_progress()
 
                 elif not home:
@@ -364,7 +377,7 @@ def robot_control_node():
                     # Wait for confirmation task has been received
                     while predictor.robot_status != 'home':
                         move_obj.publish('home')
-                    predictor.robot_start_t = datetime.datetime.now().time()
+                    predictor.robot_start_t = datetime.now().time()
                     predictor.done = False
                     # Wait for confirmation task has been completed
                     while not predictor.done:
