@@ -7,27 +7,37 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import time
 import rospy
-from std_msgs.msg import Int8, Float64
+from std_msgs.msg import Int8, Float64, String
 from pub_classes import diag_class, act_class
 import csv
+from sam_custom_messages.msg import diagnostics
+
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/"))
+
+
+def sys_stat_callback(data):
+    """callback for system status messages"""
+    if data.Header.frame_id == 'gui_node':
+        if data.DiagnosticStatus.message == 'SHUTDOWN':
+            rospy.signal_shutdown('gui shutdown')
+
 
 def fakeIMUmain():
     print("-----Here we go-----")
     frame_id = 'fakeIMUpub_node'
     rospy.init_node(frame_id, anonymous=True)
-    rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
+    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=10)
+    rospy.Subscriber('SystemStatus', diagnostics, sys_stat_callback)
 
-    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=1)
-    act_obj = act_class(frame_id=frame_id, class_count=4, user_id=1, user_name='unknown', queue=1)
-    
+    act_obj = act_class(frame_id=frame_id, class_count=4, user_id=1, user_name='unknown', queue=10)
     prediction = np.zeros(4)
 
     print("Starting main loop")
     
     diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-
+    
+    rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
     with open ('fake_imu_data.csv', newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=',')
         next(csvreader)
@@ -39,6 +49,7 @@ def fakeIMUmain():
 
                 try:
                     act_obj.publish(prediction.tolist())
+                    print(prediction)
                     diag_msg = "fake_imu_pub all good"
                     diag_level = 0 # ok
                 except Exception as e:

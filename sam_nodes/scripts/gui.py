@@ -22,7 +22,9 @@ import pandas as pd
 from tkinter import ttk
 from global_data import COMPLEX_BOX_ACTIONS
 import argparse
-
+import rosnode
+import threading
+from system_dreaming_phase import enter_dreaming_phase
 
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
@@ -51,6 +53,35 @@ pos = np.arange(len(CATEGORIES))
 plt.ion()
 
 QUIT = False
+
+
+def send_shutdown_signal(diag_obj):
+    print("shutdown time!")
+    shutdown_window = shutting_down_window()
+    diag_obj.publish(1, "SHUTDOWN")
+    nodes = rosnode.get_node_names()
+    nodes.remove('/rosout')
+    nodes.remove('/gui_node')
+
+    x = threading.Thread(target=enter_dreaming_phase)
+    x.start()
+
+    while nodes or x.is_alive():
+        shutdown_window.animate_window()
+        diag_obj.publish(1, "SHUTDOWN")
+        nodes = rosnode.get_node_names()
+        try:
+            nodes.remove('/rosout')
+        except Exception:
+            pass
+        try:
+            nodes.remove('/gui_node')
+        except Exception:
+            pass
+        time.sleep(0.01)
+
+    shutdown_window.shutdown()
+    rospy.signal_shutdown('Quit Button')
 
 
 class user_frame:
@@ -302,6 +333,50 @@ class new_user_dialogue(object):
             return value
 
 
+class shutting_down_window():
+    def __init__(self):
+        self.Window_Width=800
+        self.Window_Height=600
+        self.im_size = 100
+        self.xinc = self.yinc = 4
+
+        # Create GUI
+        self.root = Tk.Tk()
+        self.root.wm_title("Shutting Down...")
+        self.root.geometry(f'{self.Window_Width}x{self.Window_Height}')
+
+        l = Tk.Label(self.root, text = "Dreaming State")
+        l.config(font =("Courier", 20))
+        l.pack(fill=Tk.BOTH)
+
+        self.canvas = Tk.Canvas(self.root)
+        self.canvas.configure(bg="Blue")
+        self.canvas.pack(fill="both", expand=True)
+        self.animate_ball()
+
+    def shutdown(self):
+        self.root.quit()
+        self.root.destroy()
+
+    def animate_ball(self):
+        image = Image.open("dreaming.png")
+        image = image.resize((self.im_size, self.im_size), Image.ANTIALIAS)
+        self.the_image = ImageTk.PhotoImage(image)
+        self.image = self.canvas.create_image(400, 300, anchor=Tk.NW, image=self.the_image)
+        self.animate_window()
+
+    def animate_window(self):
+        self.canvas.move(self.image, self.xinc, self.yinc)
+        self.root.update()
+        ball_pos = self.canvas.coords(self.image)
+        # unpack array to variables
+        x, y = ball_pos
+        if x < abs(self.xinc) or (x+self.im_size) > self.Window_Width-abs(self.xinc):
+            self.xinc = -self.xinc
+        if y < abs(self.yinc) or (y+self.im_size) > self.Window_Height-abs(self.yinc):
+            self.yinc = -self.yinc
+
+
 class GUI:
     def __init__(self):
         self.db = database()
@@ -415,8 +490,6 @@ class GUI:
     def _quit(self):
         global QUIT
         QUIT = True
-        self._state = 11
-        rospy.signal_shutdown('Quit Button')
         self.root.quit()     # stops mainloop
         self.root.destroy()  # this is necessary on Windows to prevent
 
@@ -482,11 +555,11 @@ class GUI:
         #                     row['current_action_no'], background='green')
         #                 if self.users[user_i].current_action_no is not None:
         #                     self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
-                        
+
         #                 self.users[user_i].current_action_no = row['current_action_no']
 
         #                 self.users[user_i].current_action_type = self.users[user_i].task_data.loc[self.users[user_i].current_action_no]['action_name']
-            
+
             # Update robot actions
             self.load_robot_actions_data()
             self.tasks.delete(*self.tasks.get_children())
@@ -494,15 +567,15 @@ class GUI:
                 self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
         # Update user screw counts
-        # for user in self.users:
-        #     user.update_screw_count_txt()
-        #     user.update_shimmer_text()
-        #     try:
-        #         user.canvas.draw()
-        #     except:
-        #         pass
-        #     # user.user_frame.update_idletasks()
-        #     # user.user_frame.update()
+        for user in self.users:
+            # user.update_screw_count_txt()
+            user.update_shimmer_text()
+            try:
+                user.canvas.draw_idle()
+            except:
+                pass
+            # user.user_frame.update_idletasks()
+            # user.user_frame.update()
 
         # Update robot status text
         self.robot_stats.delete("1.0", Tk.END)
@@ -519,9 +592,10 @@ class GUI:
         for i in range(len(self.users)):
             self.root.grid_columnconfigure(i+1, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
+        self.canvas.draw_idle()
 
         # Update gui
-        # self.root.update_idletasks()
+        #self.root.update_idletasks()
         self.root.update()
 
     def update_actions(self, data):
@@ -620,8 +694,13 @@ class GUI:
 
 def run_gui():
     # Run ROS node
+    frame_id = 'gui_node'
+    rospy.init_node(frame_id, anonymous=True)
+
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+    diag_obj.publish(1, "Starting")
+
     gui = GUI()
-    rospy.init_node('gui', anonymous=True)
     rospy.Subscriber('CurrentAction', current_action, gui.update_actions)
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
     rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)
@@ -631,11 +710,18 @@ def run_gui():
     #fake_pub = act_class(frame_id='gui', class_count=4)
 
     while not rospy.is_shutdown():
-        gui.update_gui()
-        #fake_pub.publish([0.1, 0.2, 0.3, 0.4, 0.5])
-        pass
+        if QUIT:
+            send_shutdown_signal(diag_obj)
+        else:
+            try:
+                gui.update_gui()
+                #fake_pub.publish([0.1, 0.2, 0.3, 0.4, 0.5])
+                diag_obj.publish(0, "Running")
+            except Exception as e:
+                diag_obj.publish(2, f"Error: {e}")            
 
 
 if __name__ == '__main__':
     # Run GUI
     run_gui()
+    # shutting_down_window()

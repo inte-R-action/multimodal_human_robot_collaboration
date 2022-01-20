@@ -152,15 +152,17 @@ def current_action_callback(data, users):
 
 
 def sys_stat_callback(data, users):
+    """callback for system status messages"""
     global database_stat, shimmer_stat, imrecog_stat
 
     if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
-
-    if data.Header.frame_id == 'Realsense_node':
-        imrecog_stat = data.DiagnosticStatus.level
-
-    if users:
+    elif data.Header.frame_id == 'Realsense_node':
+        imrecog_stat = data.DiagnosticStatus.level    
+    elif data.Header.frame_id == 'gui_node':
+        if data.DiagnosticStatus.message == 'SHUTDOWN':
+            rospy.signal_shutdown('gui shutdown')
+    elif users:
         for i in range(len(users)):
             if data.Header.frame_id == f'shimmerBase {users[i].name} {users[i].id} node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level

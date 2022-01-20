@@ -27,6 +27,9 @@ def sys_stat_callback(data):
         database_stat = data.DiagnosticStatus.level
     elif data.Header.frame_id == 'users_node':
         user_node_stat = data.DiagnosticStatus.level
+    elif data.Header.frame_id == 'gui_node':
+        if data.DiagnosticStatus.message == 'SHUTDOWN':
+            rospy.signal_shutdown('gui shutdown')
 
 
 class future_predictor():
@@ -342,12 +345,12 @@ def robot_control_node():
                     action = predictor.task_overview.loc[predictor.action_no_now]['action_name']#.values[0]
                     print(f"action: {action}")
                     # Wait for confirmation task has been received
-                    while predictor.robot_status != action:
+                    while (predictor.robot_status != action) and (not rospy.is_shutdown()):
                         move_obj.publish(action)
                     predictor.robot_start_t = datetime.now().time()
                     predictor.done = False
                     # Wait for confirmation task has been completed
-                    while not predictor.done:
+                    while (not predictor.done) and (not rospy.is_shutdown()):
                         time.sleep(0.01)
                     predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
 
@@ -358,12 +361,12 @@ def robot_control_node():
                     predictor.action_no_now = robot_task.next_action_id
                     print(f"Robot solo task {robot_task.next_action}")
                     # Wait for confirmation task has been received
-                    while predictor.robot_status != robot_task.next_action:
+                    while (predictor.robot_status != robot_task.next_action) and (not rospy.is_shutdown()):
                         move_obj.publish(robot_task.next_action)
                     predictor.robot_start_t = datetime.now().time()
                     predictor.done = False
                     # Wait for confirmation task has been completed
-                    while not predictor.done:
+                    while (not predictor.done) and (not rospy.is_shutdown()):
                         robot_task.update_actions_table(datetime.now().time())
                         robot_task.update_actions_table(datetime.now()-datetime.combine(date.min, predictor.robot_start_t))
                         time.sleep(0.1)
@@ -375,12 +378,12 @@ def robot_control_node():
                     predictor.action_no_now = None
                     print("Sending robot home")
                     # Wait for confirmation task has been received
-                    while predictor.robot_status != 'home':
+                    while (predictor.robot_status != 'home') and (not rospy.is_shutdown()):
                         move_obj.publish('home')
                     predictor.robot_start_t = datetime.now().time()
                     predictor.done = False
                     # Wait for confirmation task has been completed
-                    while not predictor.done:
+                    while (not predictor.done) and (not rospy.is_shutdown()):
                         time.sleep(0.01)
                     # move_obj.publish('')
                     home = True
@@ -388,6 +391,8 @@ def robot_control_node():
             diag_obj.publish(0, "Running")
             rospy.loginfo(f"{frame_id} active")
 
+        except rospy.exceptions.ROSException:
+            pass
         except Exception as e:
             print(f"robot_control_node error: {e}")
             diag_obj.publish(2, f"Error: {e}")
