@@ -14,9 +14,9 @@ WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples
 
 
 class perception_module:
-    def __init__(self, name, id, frame_id, ACTION_CATEGORIES):
+    def __init__(self, name, u_id, frame_id, ACTION_CATEGORIES):
         self.name = name
-        self.id = id
+        self.id = u_id
         self.frame_id = frame_id
         self.actions = ACTION_CATEGORIES
         self.imu_data = np.zeros((WIN_LEN, 18))

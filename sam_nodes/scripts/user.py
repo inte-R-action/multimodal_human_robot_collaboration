@@ -13,7 +13,7 @@ import pandas as pd
 from vision_recognition.count_screws_table import screw_counter
 import argparse
 from global_data import COMPLEX_BOX_ACTIONS
-#from user_perception_module import perception_module
+from user_perception_module import perception_module
 from user_reasoning_module import reasoning_module
 
 
@@ -229,7 +229,7 @@ class User:
                     self.db.insert_data_list("Episodes", 
                     ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"], 
                     [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
-                
+
                 # Update state history objects
                 new_start_t = self._har_pred_hist[-1, -1]
                 self._har_state_hist[a] = np.array((action, prob, new_start_t), ndmin=2)

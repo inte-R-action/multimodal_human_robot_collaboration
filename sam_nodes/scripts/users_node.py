@@ -87,8 +87,8 @@ def imu_data_callback(data, users):
         if users[i].name != data.UserName:
             print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
         else:
-            time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
-            users[i].perception.add_imu_data(data, time)
+            msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
+            users[i].perception.add_imu_data(data, msg_time)
 
 
 def skeleton_callback(data, users):
@@ -108,8 +108,8 @@ def skeleton_callback(data, users):
                 skeleton_data.append(pose.orientation.y)
                 skeleton_data.append(pose.orientation.z)
                 skeleton_data.append(pose.orientation.w)
-            time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
-            users[i].add_skel_data(skeleton_data, time)
+            msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
+            users[i].perception.add_skel_data(skeleton_data, msg_time)
 
 
 def current_action_callback(data, users):
@@ -119,7 +119,7 @@ def current_action_callback(data, users):
         if users[i].name != data.UserName:
             print(f"ERROR: users list name {users[i].name} does not match current_action msg name {data.UserName}")
         else:
-            time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
+            msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
 
             # if args.classifier_type == 'all':
             #     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
@@ -145,7 +145,7 @@ def current_action_callback(data, users):
                 # else:
                 #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, null_probs, time)))))
 
-            users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, time)))))
+            users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, msg_time)))))
             users[i].collate_har_seq()
 
             users[i].task_reasoning.predict_action_statuses()
