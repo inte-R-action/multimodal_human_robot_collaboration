@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.7
 # Should be run from multimodal_human_robot_collaboration folder
 
+from fileinput import filename
 import sys, os
 import rospy
 import argparse
@@ -9,20 +10,26 @@ from postgresql.database_funcs import database
 from pub_classes import diag_class
 # from sam_nodes.scripts.robot_controller import sys_stat_callback
 from sam_custom_messages.msg import diagnostics
+from global_data import ACTIONS
+from os import listdir
+from os.path import isfile, join
+import csv
+import pandas as pd
+from statistics import mean
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 #Define tables: tables = [{name, [col1 cmd, col2 cmd, ...]}, ]
-tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'future_action_predictions', 'robot_action_timings']
+tables_to_make = ['tasks', 'actions', 'users', 'episodes', 'assemble_box', 'assemble_chair', 'assemble_complex_box', 'assemble_complex_box_manual', 'stack_tower', 'future_action_predictions', 'robot_action_timings']
 tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
-                    "task_name VARCHAR(255) NOT NULL UNIQUE"]], 
+                    "task_name VARCHAR(255) NOT NULL UNIQUE"]+[f"{action} FLOAT" for action in ACTIONS]],
         ['actions', ["action_id SERIAL PRIMARY KEY",
                     "action_name VARCHAR(255) NOT NULL UNIQUE",
                     "std_dur_s INTERVAL",
                     "user_type VARCHAR(5)"]],
         ['users', ["user_id SERIAL PRIMARY KEY",
                     "user_name VARCHAR(255) NOT NULL UNIQUE",
-                    "last_active TIMESTAMPTZ"]],
+                    "last_active TIMESTAMPTZ"]+[f"{action} FLOAT" for action in ACTIONS]],
         ['episodes', ["episode_id SERIAL PRIMARY KEY",
                     "date DATE",
                     "start_t TIME",
@@ -30,10 +37,16 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "duration INTERVAL",
                     "user_id SMALLINT",
                     "hand CHAR(1)",
-                    "task_name VARCHAR(255) REFERENCES tasks(task_name)", 
+                    "task_name VARCHAR(255) REFERENCES tasks(task_name)",
                     "action_name VARCHAR(255) REFERENCES actions(action_name)",
                     "action_no SMALLINT"]],
         ['assemble_box', ["action_no SERIAL PRIMARY KEY",
+                    "action_id INTEGER REFERENCES actions(action_id)",
+                    "action_name VARCHAR(255) REFERENCES actions(action_name)",
+                    "default_time INTERVAL",
+                    "user_type VARCHAR(5)",
+                    "prev_dependent BOOL"]],
+        ['assemble_chair', ["action_no SERIAL PRIMARY KEY",
                     "action_id INTEGER REFERENCES actions(action_id)",
                     "action_name VARCHAR(255) REFERENCES actions(action_name)",
                     "default_time INTERVAL",
@@ -94,7 +107,7 @@ def sys_stat_callback(data):
             rospy.signal_shutdown('gui shutdown')
 
 
-def make_tables(db, del_tab = True):
+def make_tables(db, del_tab=True):
     try:
         table_avail = [item[0] for item in tables]
         assert all(elem in table_avail for elem in tables_to_make), "Some tables to make not in tables list"
@@ -108,7 +121,7 @@ def make_tables(db, del_tab = True):
                 if name in curr_tables:#del_tab:
                     print(f"Table '{name}' alredy exists, deleting")
                     db.remove_table(name)
-                _, cmd = [i for i in tables if i[0]==name][0]
+                _, cmd = [i for i in tables if i[0] == name][0]
                 db.create_table(name, cmd)
                 print(f"Successfully created table '{name}'")
 
@@ -120,15 +133,45 @@ def make_tables(db, del_tab = True):
         raise
 
 
+def update_meta_meta_data(db, table_name):
+    try:
+        folder = './sam_nodes/scripts/models_parameters'
+        allfiles = [f for f in listdir(folder) if isfile(join(folder, f))]
+        files2process = [f for f in allfiles if f[0:15] == f"meta_data_{table_name}"]
+        for file in files2process:
+            specific_name = file.split(f'meta_data_{table_name}_')[1][0:-4]
+            try:
+                df = pd.read_csv(join(folder, file))
+                for a in range(len(ACTIONS)):
+                    adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
+                    if table_name == "users":
+                        sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE {specific_name} = users.user_name"
+                    elif table_name == "tasks":
+                        sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE {specific_name} = tasks.task_name"
+
+                    db.gen_cmd(sql)
+
+            except Exception as e:
+                print(f"Error with file {file}")
+                print(e)
+
+    except Exception as e:
+        print(f"Error with file {file}")
+        print(e)
+
 def load_tables(db):
     base_dir = os.getcwd()+'/sam_nodes/scripts/postgresql/'
     for name in tables_to_make:
         try:
             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
-            if (name == 'assemble_box') or (name == 'stack_tower') or (name == 'assemble_complex_box') or (name == 'assemble_complex_box_manual'):
+            if (name == 'assemble_box') or (name == 'assemble_chair') or (name == 'stack_tower') or (name == 'assemble_complex_box') or (name == 'assemble_complex_box_manual'):
                 # Update times and action ids from actions table
                 sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
                 db.gen_cmd(sql)
+
+            if (name == 'users') or (name == 'tasks'):
+                update_meta_meta_data(db, name)
+
             print(f"Loaded data into '{name}'")
 
         except FileNotFoundError:

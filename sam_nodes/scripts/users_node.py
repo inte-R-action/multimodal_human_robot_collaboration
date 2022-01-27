@@ -148,7 +148,7 @@ def current_action_callback(data, users):
             users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, msg_time)))))
             users[i].collate_har_seq()
 
-            users[i].task_reasoning.predict_action_statuses()
+            users[i].task_reasoning.predict_action_statuses(data.ActionProbs)
 
 
 def sys_stat_callback(data, users):

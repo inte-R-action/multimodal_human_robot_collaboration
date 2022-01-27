@@ -156,18 +156,18 @@ class database():
     def csv_import(self, filepath, header=True, tab_name=None):
         """Import csv file into table
         filepath:str(full filepath), header:bool (default True) if csv includes header
-        tab_name: name of tale to insert into, default name of file specified"""
+        tab_name: name of table to insert into, default name of file specified"""
 
         # Trap errors for opening the file
         filename = ntpath.basename(filepath)
         if tab_name is None:
-            try: 
+            try:
                 tab_name = re.search('(.*).csv', filename)
             except Exception as e:
                 print(f"Table name construction error: {e}")
                 raise
-        
-        try: 
+
+        try:
             f_contents = open(filepath, 'r')
         except psycopg2.Error as e:
             print(f"Database error: {e} open() text file: {filepath}")
@@ -177,7 +177,7 @@ class database():
             sql = f"COPY {tab_name} FROM stdin WITH CSV HEADER DELIMITER as ','"
         else:
             sql = f"COPY {tab_name} FROM stdin WITH CSV DELIMITER as ','"
-            
+
         # Trap errors for copying the array to our database
         try:
             self.connect()

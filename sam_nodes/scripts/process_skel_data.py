@@ -9,7 +9,7 @@ import pickle
 
 NUM_JOINTS = len(JOINTS_U)
 NUM_LINKS = len(JOINT_LINKS[0])
-infile = open(f'GLOBAL_pca_winlen3_transitionsTrue_None', 'rb')
+infile = open('models_parameters/pca_winlen3_transitionsTrue_1v1', 'rb')
 pca = pickle.load(infile)
 infile.close()
 

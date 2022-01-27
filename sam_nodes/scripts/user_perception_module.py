@@ -5,7 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pub_classes import act_class
 from process_skel_data import process_skel_data
+from tensorflow.keras.models import load_model
 from global_data import PCA_COMPS
+import csv
 plt.ion()
 
 Fs = 50  # Sampling frequency, Hz
@@ -21,13 +23,16 @@ class perception_module:
         self.actions = ACTION_CATEGORIES
         self.imu_data = np.zeros((WIN_LEN, 18))
         self.imu_update_t = None
+        self.imu_means = None
+        self.imu_scales = None
+        self.load_imu_scale_parameters()
         self.skel_data = np.zeros((WIN_LEN, PCA_COMPS))
         self.skel_update_t = None
 
-        self.screw_classifier = None
-        self.allen_classifier = None
-        self.hammer_classifier = None
-        self.hand_classifier = None
+        self.screw_classifier = load_model('models_parameters/Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.allen_classifier = load_model('models_parameters/Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.hammer_classifier = load_model('models_parameters/Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.hand_classifier = load_model('models_parameters/Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
 
         self.screw_pred = 0
         self.allen_pred = 0
@@ -36,6 +41,15 @@ class perception_module:
 
         self.plt_pred = False
         self.act_obj = act_class(frame_id=self.frame_id, class_count=4, user_id=self.id, user_name=self.name, queue=10)
+
+    def load_imu_scale_parameters(self):
+        # load scaling parameters
+        scale_file = "models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1.csv" # file with normalisation parameters
+        with open(scale_file, newline='') as f:
+            reader = csv.reader(f)
+            data = np.array(list(reader))
+            self.means = data[1:, 1].astype(float)
+            self.scales = data[1:, -1].astype(float)
 
     def predict_actions(self):
         new_skel_data = process_skel_data(self.skel_data)
@@ -54,7 +68,8 @@ class perception_module:
 
     def add_imu_data(self, data, time):
         self.imu_update_t = time
-        self.imu_data = np.vstack((self.imu_data, data))
+        scaled_data = (data-self.means)/self.scales
+        self.imu_data = np.vstack((self.imu_data, scaled_data))
         self.imu_data = self.imu_data[-WIN_LEN:, :]
 
     def add_skel_data(self, data, time):
