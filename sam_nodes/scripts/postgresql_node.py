@@ -133,7 +133,7 @@ def make_tables(db, del_tab=True):
         raise
 
 
-def update_meta_meta_data(db, table_name):
+def update_meta_data(db, table_name):
     try:
         folder = './sam_nodes/scripts/models_parameters'
         allfiles = [f for f in listdir(folder) if isfile(join(folder, f))]
@@ -145,9 +145,9 @@ def update_meta_meta_data(db, table_name):
                 for a in range(len(ACTIONS)):
                     adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
                     if table_name == "users":
-                        sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE {specific_name} = users.user_name"
+                        sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE user_name = '{specific_name}'"
                     elif table_name == "tasks":
-                        sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE {specific_name} = tasks.task_name"
+                        sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE task_name = '{specific_name}'"
 
                     db.gen_cmd(sql)
 
@@ -164,13 +164,13 @@ def load_tables(db):
     for name in tables_to_make:
         try:
             db.csv_import(f"{base_dir}{name}.csv", tab_name=name)
-            if (name == 'assemble_box') or (name == 'assemble_chair') or (name == 'stack_tower') or (name == 'assemble_complex_box') or (name == 'assemble_complex_box_manual'):
+            if name in ('assemble_box', 'assemble_chair', 'stack_tower', 'assemble_complex_box', 'assemble_complex_box_manual'):
                 # Update times and action ids from actions table
                 sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
                 db.gen_cmd(sql)
 
-            if (name == 'users') or (name == 'tasks'):
-                update_meta_meta_data(db, name)
+            if name in ('users', 'tasks'):
+                update_meta_data(db, name)
 
             print(f"Loaded data into '{name}'")
 

@@ -6,8 +6,10 @@ import matplotlib.pyplot as plt
 from pub_classes import act_class
 from process_skel_data import process_skel_data
 from tensorflow.keras.models import load_model
+import tensorflow_addons as tfa
 from global_data import PCA_COMPS
 import csv
+import os
 plt.ion()
 
 Fs = 50  # Sampling frequency, Hz
@@ -26,13 +28,13 @@ class perception_module:
         self.imu_means = None
         self.imu_scales = None
         self.load_imu_scale_parameters()
-        self.skel_data = np.zeros((WIN_LEN, PCA_COMPS))
+        self.skel_data = np.zeros((WIN_LEN, 15*7))
         self.skel_update_t = None
 
-        self.screw_classifier = load_model('models_parameters/Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
-        self.allen_classifier = load_model('models_parameters/Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
-        self.hammer_classifier = load_model('models_parameters/Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
-        self.hand_classifier = load_model('models_parameters/Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.screw_classifier = load_model('./sam_nodes/scripts/models_parameters/Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.allen_classifier = load_model('./sam_nodes/scripts/models_parameters/Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.hammer_classifier = load_model('./sam_nodes/scripts/models_parameters/Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.hand_classifier = load_model('./sam_nodes/scripts/models_parameters/Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
 
         self.screw_pred = 0
         self.allen_pred = 0
@@ -44,7 +46,9 @@ class perception_module:
 
     def load_imu_scale_parameters(self):
         # load scaling parameters
-        scale_file = "models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1.csv" # file with normalisation parameters
+        print(os.getcwd())
+
+        scale_file = "./sam_nodes/scripts/models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1.csv" # file with normalisation parameters
         with open(scale_file, newline='') as f:
             reader = csv.reader(f)
             data = np.array(list(reader))

@@ -13,6 +13,9 @@ import pandas as pd
 from postgresql.database_funcs import database
 from global_data import SKELETON_FRAMES
 import os
+from os.path import join
+from statistics import mean
+from global_data import ACTIONS
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 # Argument parsing
@@ -22,7 +25,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--user_names', '-N',
                     nargs='*',
                     help='Set name of user, default: unknown',
-                    default='unknown',
+                    default='j',
                     type=lambda s: [str(item) for item in s.split(',')])
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_complex_box (default)',
@@ -60,6 +63,21 @@ def setup_user(users, frame_id, task, name=None):
     sql_cmd = f"""DELETE FROM users WHERE user_id = {id};"""
     db.gen_cmd(sql_cmd)
     db.insert_data_list("users", ['user_id', 'user_name', 'last_active'], [(id, name, time)])
+
+    folder = './sam_nodes/scripts/models_parameters'
+    file = f"meta_data_users_{name}.csv"
+    try:
+        df = pd.read_csv(join(folder, file))
+    except FileNotFoundError:
+        df = None
+
+    for a in range(len(ACTIONS)):
+        if df is not None:
+            adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
+        else:
+            adj_factor = 0
+        sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE user_name = '{name}'"
+        db.gen_cmd(sql)
 
     users[id-1].update_task(task)
     return users

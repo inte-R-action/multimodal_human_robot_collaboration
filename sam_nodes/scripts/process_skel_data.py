@@ -5,14 +5,15 @@ from global_data import JOINTS_U, JOINT_LINKS, PCA_COMPS
 import matplotlib.pyplot as plt
 from math import acos
 import pickle
+import os
 
 
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 NUM_JOINTS = len(JOINTS_U)
 NUM_LINKS = len(JOINT_LINKS[0])
-infile = open('models_parameters/pca_winlen3_transitionsTrue_1v1', 'rb')
+infile = open('./models_parameters/pca_winlen3_transitionsTrue_1v1', 'rb')
 pca = pickle.load(infile)
 infile.close()
-
 
 def scale_skeleton_data(skeleton_seq, plot):
     # Get positions relative to center joint
@@ -24,7 +25,8 @@ def scale_skeleton_data(skeleton_seq, plot):
     # Scale relative to torso length
     for i in range(np.shape(skeleton_seq)[0]):
         scale_dist = np.linalg.norm(skeleton_seq[i, JOINTS_U.index('neck'), :])
-        skeleton_seq[i, :, :] = skeleton_seq[i, :, :]/scale_dist
+        if scale_dist != 0:
+            skeleton_seq[i, :, :] = skeleton_seq[i, :, :]/scale_dist
 
     if plot:
         fig = plt.figure()
@@ -88,7 +90,11 @@ def find_skeleton_features(skeleton_seq):
             for k in range(NUM_LINKS):
                 if JOINT_LINKS[0][k] == JOINT_LINKS[1][j]:
                     vec2 = skeleton_seq[frame, JOINT_LINKS[1][k], :]-skeleton_seq[frame, JOINT_LINKS[0][k], :]
-                    frame_angles.append(acos((vec1 @ vec2)/(np.linalg.norm(vec1)*np.linalg.norm(vec2))))
+                    norm_dist = np.linalg.norm(vec1)*np.linalg.norm(vec2)
+                    if norm_dist != 0:
+                        frame_angles.append(acos((vec1 @ vec2)/norm_dist))
+                    else:
+                        frame_angles.append(0)
 
         angles = frame_angles
 

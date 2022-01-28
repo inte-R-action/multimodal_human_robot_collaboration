@@ -36,7 +36,8 @@ def get_users_meta_data(episodic_data, actions_meta_data):
         user_episodic_data = episodic_data.loc[episodic_data["user_id"]==user]
         actions = user_episodic_data.action_name.unique()
 
-        for action in actions:
+        for a in range(len(actions)):
+            action = actions[a]
             total_time = sum([t.total_seconds() for t in user_episodic_data.loc[user_episodic_data["action_name"]==action]["duration"]])
             task = user_episodic_data["task_name"][0]
             if task == 'assemble_chair':
@@ -45,7 +46,7 @@ def get_users_meta_data(episodic_data, actions_meta_data):
                 ave_time = total_time/num_chair_actions[action]
 
             actions_meta_data[action].append(ave_time)
-            users_meta_data[user][action] = ave_time
+            users_meta_data[user][a] = ave_time
 
     return actions_meta_data, users_meta_data
 
@@ -76,7 +77,8 @@ def get_tasks_meta_data(episodic_data, actions_meta_data):
         task_episodic_data = episodic_data.loc[episodic_data["task_name"]==task]
         actions = task_episodic_data.action_name.unique()
 
-        for action in actions:
+        for a in range(len(actions)):
+            action = actions[a]
             total_time = sum([t.total_seconds() for t in task_episodic_data.loc[task_episodic_data["action_name"]==action]["duration"]])
             task = task_episodic_data["task_name"][0]
             if task == 'assemble_chair':
@@ -85,7 +87,7 @@ def get_tasks_meta_data(episodic_data, actions_meta_data):
                 ave_time = total_time/num_chair_actions[action]
 
             actions_meta_data[action].append(ave_time)
-            tasks_meta_data[task][action] = ave_time
+            tasks_meta_data[task][a] = ave_time
 
     return actions_meta_data, tasks_meta_data
         
@@ -128,7 +130,8 @@ def write_actions_metadata(actions_meta_data):
 
 
 def update_matedata_tables(actions_meta_data, users_meta_data, tasks_meta_data):
-    for action in range(ACTIONS):
+    for a in range(len(ACTIONS)):
+        action = ACTIONS[a]
         mean_t = mean(actions_meta_data[action])  # mean action time overall
         std_t = stdev(actions_meta_data[action])  # std dev action time overall
 

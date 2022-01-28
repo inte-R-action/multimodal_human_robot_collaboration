@@ -27,10 +27,10 @@ def fakeIMUmain():
     print("-----Here we go-----")
     frame_id = 'fakeIMUpub_node'
     rospy.init_node(frame_id, anonymous=True)
-    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='unknown', queue=10)
+    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='j', queue=10)
     rospy.Subscriber('SystemStatus', diagnostics, sys_stat_callback)
 
-    act_obj = act_class(frame_id=frame_id, class_count=4, user_id=1, user_name='unknown', queue=10)
+    act_obj = act_class(frame_id=frame_id, class_count=4, user_id=1, user_name='j', queue=10)
     prediction = np.zeros(4)
 
     print("Starting main loop")

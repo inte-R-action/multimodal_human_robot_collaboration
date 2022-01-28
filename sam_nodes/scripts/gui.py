@@ -667,9 +667,9 @@ class GUI:
         #self.axs = self.fig.subplots(len(active_users)+1, 1, sharex='col')  # subplot for each user plus robot
 
         for u in range(self.axs.shape[0]-1):
-            time_predictions = [1, 2, 3]#predictions_data.loc[predictions_data["user_id"]==active_users[u]]["time_left"]
+            time_predictions = predictions_data.loc[predictions_data["user_id"]==active_users[u].id]["time_left"]
             for t in time_predictions:
-                self.axs[u, 0].axvline(x=t)
+                self.axs[u, 0].axvline(x=t.total_seconds())
             self.axs[u, 0].get_yaxis().set_ticks([])
             self.axs[u, 0].set_ylabel(f"User: {u}")
 

@@ -13,15 +13,19 @@ import tensorflow as tf
 import datetime
 from global_data import ACTIONS
 import csv
+import os
+gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
+tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
+tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
+
 
 plt.ion()
-
-MODEL_FILE = "models_parameters/lstm_future_prediction_model_20220125-164357.h5"
+MODEL_FILE = "./sam_nodes/scripts/models_parameters/lstm_future_prediction_model_20220125-164357.h5"
 
 
 class reasoning_module:
     def __init__(self, name, id, frame_id, ACTION_CATEGORIES, test):
-        self.test = test
+        self.test = False
         self.name = name
         self.id = id
         self.frame_id = frame_id
@@ -29,6 +33,8 @@ class reasoning_module:
         self.task = None
         self.models = []
         self.model_inputs = None
+        self.means = None
+        self.scales = None
         self.human_row_idxs = []
         self.fut_act_pred_col_names = None
         self.db = database()
@@ -64,9 +70,9 @@ class reasoning_module:
 
                     new_inputs = [None]*8
                     new_inputs[1] = ACTIONS.index(row['action_name'])  # Action of focus
-                    new_inputs[2] = row['default_time']  # Default time
-                    new_inputs[3] = users_data[row['action_name']][0]  # time adjust for user
-                    new_inputs[4] = tasks_data[row['action_name']][0]  # time adjustment for task
+                    new_inputs[2] = row['default_time'].total_seconds()  # Default time
+                    new_inputs[3] = users_data[row['action_name']].values[0]  # time adjust for user
+                    new_inputs[4] = tasks_data[row['action_name']].values[0]  # time adjustment for task
                     self.model_inputs.append(new_inputs)
 
                 else:
@@ -76,7 +82,7 @@ class reasoning_module:
         self.model_inputs = np.array(self.model_inputs)
 
         # Load normalisation parameters
-        file_name = "models_parameters/lstm_input_scale_params.csv"
+        file_name = "./sam_nodes/scripts/models_parameters/lstm_input_scale_params.csv"
         with open(file_name, newline='') as f:
             reader = csv.reader(f)
             scale_data = np.array(list(reader))
@@ -96,9 +102,9 @@ class reasoning_module:
                 self.model_inputs[i, 0] = action_probs[self.model_inputs[i, 1]]  # Action prediction
                 self.model_inputs[i, -3:] = [time, started, done] # Previous action status
 
-                self.model_inputs[i] = self.normalise_input_data(self.model_inputs[i, :])
-
-                [time, started, done] = self.models[i](self.model_inputs[i, :], training=False)[0, 0, :]
+                input_data = self.normalise_input_data(self.model_inputs[i, :])
+                input_data = np.array(input_data, ndmin=3, dtype=np.float)
+                time, started, done = self.models[i](input_data, training=False)[0, 0, :].numpy()
             else:
                 [time, started, done] = [datetime.datetime.now().time(), 0, 0]
 
