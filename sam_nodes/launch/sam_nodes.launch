@@ -2,7 +2,7 @@
 
   <!-- By default, we are not in debug mode -->
   <arg name="test_mode" default="true" />
-  <arg name="task" default="assemble_complex_box" />
+  <arg name="task" default="assemble_chair" />
   <arg name="classifier" default="one" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
@@ -11,7 +11,8 @@
   <arg if="$(arg test_mode)" name="robot_controller_test" default="false" />
   <arg if="$(arg test_mode)" name="users_node" default="true" />
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
-  <arg if="$(arg test_mode)" name="fake_imu_node" default="true" />
+  <arg if="$(arg test_mode)" name="fake_imu_node" default="false" />
+  <arg if="$(arg test_mode)" name="fake_sensors_node" default="true" />
 
   <arg unless="$(arg test_mode)" name="im_recog" default="true" />
   <arg unless="$(arg test_mode)" name="postgresql" default="true" />
@@ -21,7 +22,7 @@
   <arg unless="$(arg test_mode)" name="shimmerBase" default="false" />
   <arg unless="$(arg test_mode)" name="fake_imu_node" default="false" />
 
-  <node name="gui_node" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">
+  <node name="gui_node" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" required="true" args="--task_type $(arg task) --classifier_type $(arg classifier)">
     </node>
 
   <group if="$(arg im_recog)">
@@ -58,6 +59,11 @@
   <arg name="node_start_delay_2" default="5.0" />  
   <group if="$(arg fake_imu_node)">
     <node name="fake_imu_node" pkg="sam_nodes" type="fake_imu_publisher.py" respawn="false" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay_2); $0 $@' ">
+    </node>
+  </group>
+
+  <group if="$(arg fake_sensors_node)">
+    <node name="fake_sensors_node" pkg="sam_nodes" type="fake_sensor_data_publisher.py" respawn="false" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay_2); $0 $@' ">
     </node>
   </group>
 

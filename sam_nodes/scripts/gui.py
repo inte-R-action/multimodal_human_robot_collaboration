@@ -11,6 +11,7 @@ import numpy as np
 import time
 import datetime
 from PIL import Image, ImageTk
+from sympy import EX
 import rospy
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, move_class, act_class
@@ -20,7 +21,7 @@ from postgresql.database_funcs import database
 import os
 import pandas as pd
 from tkinter import ttk
-from global_data import COMPLEX_BOX_ACTIONS
+from global_data import ACTIONS, TASKS, DEFAULT_TASK
 import argparse
 import rosnode
 import threading
@@ -35,20 +36,16 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-                    choices=['assemble_complex_box', 'assemble_complex_box_manual'],
-                    default='assemble_complex_box')
+                    choices=TASKS,
+                    default=DEFAULT_TASK)
 # parser.add_argument('--classifier_type', '-C',
 #                     help='Either 1v1 (one) or allvall (all) classifier',
 #                     choices=['one', 'all'],
 #                     default='all')
 args = parser.parse_known_args()[0]
 
-if args.task_type == 'assemble_complex_box':
-    CATEGORIES = COMPLEX_BOX_ACTIONS[1:]
-elif args.task_type == 'assemble_complex_box_manual':
-    CATEGORIES = COMPLEX_BOX_ACTIONS[1:]
 print(f"GUI settings: {args.task_type}")
-pos = np.arange(len(CATEGORIES))
+pos = np.arange(len(ACTIONS))
 
 plt.ion()
 
@@ -58,17 +55,17 @@ QUIT = False
 def send_shutdown_signal(diag_obj):
     print("shutdown time!")
     shutdown_window = shutting_down_window()
-    diag_obj.publish(1, "SHUTDOWN")
     nodes = rosnode.get_node_names()
-    nodes.remove('/rosout')
-    nodes.remove('/gui_node')
 
     x = threading.Thread(target=enter_dreaming_phase)
     x.start()
 
     while nodes or x.is_alive():
         shutdown_window.animate_window()
-        diag_obj.publish(1, "SHUTDOWN")
+
+        if not x.is_alive():
+            diag_obj.publish(1, "SHUTDOWN")
+        
         nodes = rosnode.get_node_names()
         try:
             nodes.remove('/rosout')
@@ -80,6 +77,7 @@ def send_shutdown_signal(diag_obj):
             pass
         time.sleep(0.01)
 
+    time.sleep(1)
     shutdown_window.shutdown()
     rospy.signal_shutdown('Quit Button')
 
@@ -96,7 +94,6 @@ class user_frame:
         self.status = "unknown"
         self.destroy = False
         #self.current_action_no = None
-        #self.screw_counts = [None, None]
         self.shimmer = [None, None, None]
         self.shimmer_info = []
         #self.current_action_type = None
@@ -128,10 +125,10 @@ class user_frame:
             self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=5/3, width=2, font=('', 10))
             self.shimmer[i].tag_configure("center", justify='center')
             self.shimmer[i].grid(row=i, column=0, sticky="nsew")
-            text = f"Unknown shimmer\n" \
-                    f"Unknown\n"
+            text = "Unknown shimmer\n" \
+                   "Unknown\n"
             self.shimmer_info.append([text, 'Unknown'])
-        
+
         self.update_shimmer_text()
 
         self.shimmer_frame.grid_columnconfigure(0, weight=1)   
@@ -139,18 +136,15 @@ class user_frame:
         self.shimmer_frame.grid_rowconfigure(1, weight=1)
         self.shimmer_frame.grid_rowconfigure(2, weight=1)
 
-        # # Screw counter
-        # self.screw_count_txt = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 12))
-        # self.screw_count_txt.tag_configure("center", justify='center')
-        # self.screw_count_txt.grid(row=0, column=2, sticky="nsew")
-        # self.update_screw_count_txt()
-
         # Graph area for current predictions
         # A tk.DrawingArea.
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.user_frame)
         self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3,
-                                         sticky="nsew")
+        try:
+            self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3,
+                                             sticky="nsew")
+        except AttributeError:
+            pass
 
         # Tasks List
         self.load_task_data()
@@ -228,15 +222,6 @@ class user_frame:
             self.shimmer[i].insert(Tk.INSERT, self.shimmer_info[i][0])
             self.shimmer[i].tag_add("center", "1.0", "end")
 
-    # def update_screw_count_txt(self):
-    #     text = f"\nScrew Counts \n" \
-    #            f"  Now: {self.screw_counts[0]} \n" \
-    #            f"  Last: {self.screw_counts[1]} \n"
-
-    #     self.screw_count_txt.delete("1.0", Tk.END)
-    #     self.screw_count_txt.insert(Tk.INSERT, text)
-    #     #self.screw_count_txt.tag_add("center", "1.0", "end")
-
     def update_user_deets(self):
         text = f" Name: {self.name} \n" \
                f"       Id: {self.id} \n" \
@@ -257,17 +242,10 @@ class user_frame:
 
     def update_action_plot(self):
         self.ax.cla()
-        bars = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
-
-        # if args.classifier_type == 'one':
-        #     try:
-        #         bars[CATEGORIES.index('null')].set_color('r')
-        #         bars[CATEGORIES.index(self.current_action_type)].set_color('r')
-        #     except ValueError:
-        #         pass
+        _ = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
 
         self.ax.set_xticks(pos)
-        self.ax.set_xticklabels(CATEGORIES)
+        self.ax.set_xticklabels(ACTIONS)
         self.ax.set_ylabel('Confidence')
         self.ax.set_ylim([0, 1])
         self.ax.set_title('Current IMU Prediction')
@@ -458,14 +436,13 @@ class GUI:
 
         # Timing Predictions Graph
         # A tk.DrawingArea.
-        canvasframe = Tk.Frame(self.sys_frame)
-        canvasframe.grid(row=5, column=0, columnspan=2,
-                                         sticky="nsew")
-        self.canvas = FigureCanvasTkAgg(self.fig, master=canvasframe)
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.sys_frame)
         self.canvas.draw()
-        #self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2,
-        #                                 sticky="nsew")
-        self.canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+        try:
+            self.canvas.get_tk_widget().grid(row=5, column=0, columnspan=2,
+                                            sticky="nsew")
+        except AttributeError:
+            pass
 
         # New User button
         self.new_user_button = Tk.Button(master=self.sys_frame, text="New User", command=self._new_user, bg="green", padx=50, pady=20)
@@ -539,36 +516,38 @@ class GUI:
                 node[1].indicator.config(bg=colour)
             i += 1
 
-        
         if [node[1].status for node in self.nodes_list if node[1].name == 'Database_node'][0] == 0:
-        #     # Update user action tasks
-        #     col_names, actions_list = self.db.query_table('current_actions', 'all')
-        #     current_data = pd.DataFrame(actions_list, columns=col_names)
-        #     for _, row in current_data.iterrows():
-        #         user_id = row['user_id']
-        #         user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
-
-        #         if user_i:
-        #             user_i = user_i[0]
-        #             if self.users[user_i].current_action_no != row['current_action_no']:
-        #                 self.users[user_i].tasks.tag_configure(
-        #                     row['current_action_no'], background='green')
-        #                 if self.users[user_i].current_action_no is not None:
-        #                     self.users[user_i].tasks.tag_configure(self.users[user_i].current_action_no, background='grey')
-
-        #                 self.users[user_i].current_action_no = row['current_action_no']
-
-        #                 self.users[user_i].current_action_type = self.users[user_i].task_data.loc[self.users[user_i].current_action_no]['action_name']
-
             # Update robot actions
             self.load_robot_actions_data()
             self.tasks.delete(*self.tasks.get_children())
             for index, row in self.robot_tasks_data.iterrows():
                 self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
+            # Update future prediction user data tables
+            col_names, predictions_list = self.db.query_table('future_action_predictions', 'all')
+            predictions_data = pd.DataFrame(predictions_list, columns=col_names)
+            for row in predictions_data.itertuples():
+                try:
+                    user_id = row.user_id
+                    user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
+                    if len(user_i)!=0:
+                        user_i = user_i[0]
+                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 'started'] = round(row.started, 2)
+                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 'done'] = round(row.done, 2)
+                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 't_left'] = round(row.time_left, 2)
+                except Exception as e:
+                    print(e)
+            
+            for u in range(len(self.users)):
+                self.users[u].tasks.delete(*self.users[u].tasks.get_children())
+                for index, row in self.users[u].task_data.iterrows():
+                    self.users[u].tasks.insert("", index=index, values=list(row))
+
+            # Update future timings plot
+            self.update_timings_plot(predictions_data)
+
         # Update user screw counts
         for user in self.users:
-            # user.update_screw_count_txt()
             user.update_shimmer_text()
             try:
                 user.canvas.draw_idle()
@@ -585,9 +564,7 @@ class GUI:
         self.robot_move.delete("1.0", Tk.END)
         self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
-        # Update future timings plot
-        self.update_timings_plot()
-        
+        # Configure layout and update plots
         self.root.grid_columnconfigure(0, weight=1)
         for i in range(len(self.users)):
             self.root.grid_columnconfigure(i+1, weight=1)
@@ -604,26 +581,6 @@ class GUI:
                 if user.name != data.UserName:
                     print(f"ERROR: users list name {self.users[data.UserId].name} does not match current_action msg name {data.UserName}")
                 else:
-                    # if args.classifier_type == 'one':
-                    #     if CATEGORIES.index('null') == 0:
-                    #         try:
-                    #             null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)-1]
-                    #             user.imu_pred = np.hstack((null_prob, data.ActionProbs))
-                    #         except ValueError as e:
-                    #             print(f"GUI value error: {e}")
-                    #             null_prob = 1
-                    #             user.imu_pred = np.hstack((null_prob, data.ActionProbs))
-                    #     else:
-                    #         try:
-                    #             null_prob = 1 - data.ActionProbs[CATEGORIES.index(user.current_action_type)]
-                    #             user.imu_pred = np.hstack((data.ActionProbs, null_prob))
-                    #         except ValueError as e:
-                    #             print(f"GUI value error: {e}")
-                    #             null_prob = 1
-                    #             user.imu_pred = np.hstack((data.ActionProbs, null_prob))
-                    # else:
-                    #     user.imu_pred = data.ActionProbs
-
                     user.imu_pred = data.ActionProbs
                     user.update_action_plot()
 
@@ -650,37 +607,23 @@ class GUI:
     def update_robot_move(self, data):
         self.robot_move_text = f"Robot Move Cmd: {data.data}"
 
-    # def update_screw_count(self, data):
-    #     for user in self.users:
-    #         if data.UserId == user.id:
-    #             if user.name != data.UserName:
-    #                 print(f"ERROR: users list name {user.name} does not match screw_count msg name {data.UserName}")
-    #             else:
-    #                 user.screw_counts = [data.ScrewCount, data.LastScrewCount]
-
-    def update_timings_plot(self):
-        col_names, predictions_list = self.db.query_table('future_action_predictions', 'all')
-        predictions_data = pd.DataFrame(predictions_list, columns=col_names)
-
-        active_users = self.users#pd.unique(predictions_data["user_id"])
+    def update_timings_plot(self, predictions_data):
+        active_users = self.users
         [ax[0].cla() for ax in self.axs]
-        #self.axs = self.fig.subplots(len(active_users)+1, 1, sharex='col')  # subplot for each user plus robot
 
         for u in range(self.axs.shape[0]-1):
             time_predictions = predictions_data.loc[predictions_data["user_id"]==active_users[u].id]["time_left"]
             for t in time_predictions:
-                self.axs[u, 0].axvline(x=t.total_seconds())
+                self.axs[u, 0].axvline(x=t)
             self.axs[u, 0].get_yaxis().set_ticks([])
             self.axs[u, 0].set_ylabel(f"User: {u}")
 
         # Plot robot solo action times
-        #time_predictions = [1, 2, 3]
         try:
             time_predictions = self.robot_tasks_data.loc[self.robot_tasks_data["user_name"]=="robot"]["robot_start_t"][0].total_seconds()
-            #for t in time_predictions:
             self.axs[-1, 0].axvline(x=time_predictions)
         except (KeyError, IndexError) as e:
-            print("robot solo action time error")
+            # print("robot solo action time error")
             pass
 
         self.axs[-1, 0].get_yaxis().set_ticks([])
@@ -705,9 +648,6 @@ def run_gui():
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
     rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)
     rospy.Subscriber('RobotMove', String, gui.update_robot_move)
-    #rospy.Subscriber('ScrewCounts', screw_count, gui.update_screw_count)
-
-    #fake_pub = act_class(frame_id='gui', class_count=4)
 
     while not rospy.is_shutdown():
         if QUIT:
@@ -715,7 +655,6 @@ def run_gui():
         else:
             try:
                 gui.update_gui()
-                #fake_pub.publish([0.1, 0.2, 0.3, 0.4, 0.5])
                 diag_obj.publish(0, "Running")
             except Exception as e:
                 diag_obj.publish(2, f"Error: {e}")            
@@ -723,5 +662,7 @@ def run_gui():
 
 if __name__ == '__main__':
     # Run GUI
-    run_gui()
-    # shutting_down_window()
+    try:
+        run_gui()
+    except rospy.ROSInterruptException:
+        pass

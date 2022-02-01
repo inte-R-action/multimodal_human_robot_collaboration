@@ -10,7 +10,7 @@ from postgresql.database_funcs import database
 from pub_classes import diag_class
 # from sam_nodes.scripts.robot_controller import sys_stat_callback
 from sam_custom_messages.msg import diagnostics
-from global_data import ACTIONS
+from global_data import ACTIONS, TASKS
 from os import listdir
 from os.path import isfile, join
 import csv
@@ -83,7 +83,7 @@ tables = [['tasks', ["task_id SERIAL PRIMARY KEY",
                     "action_no INTEGER",
                     "started FLOAT",
                     "done FLOAT",
-                    "time_left INTERVAL"]],
+                    "time_left FLOAT"]],
         # ['robot_future_estimates', ["user_id INTEGER REFERENCES users(user_id) UNIQUE",
         #             "user_name VARCHAR(255) REFERENCES users(user_name)",
         #             "task_name VARCHAR(255) REFERENCES tasks(task_name)",
@@ -135,20 +135,50 @@ def make_tables(db, del_tab=True):
 
 def update_meta_data(db, table_name):
     try:
-        folder = './sam_nodes/scripts/models_parameters'
-        allfiles = [f for f in listdir(folder) if isfile(join(folder, f))]
-        files2process = [f for f in allfiles if f[0:15] == f"meta_data_{table_name}"]
-        for file in files2process:
-            specific_name = file.split(f'meta_data_{table_name}_')[1][0:-4]
+        # folder = './sam_nodes/scripts/models_parameters'
+        # allfiles = [f for f in listdir(folder) if isfile(join(folder, f))]
+        # files2process = [f for f in allfiles if f[0:15] == f"meta_data_{table_name}"]
+        # for file in files2process:
+        #     specific_name = file.split(f'meta_data_{table_name}_')[1][0:-4]
+        #     try:
+        #         df = pd.read_csv(join(folder, file))
+        #     except FileNotFoundError:
+        #         df = None
+
+        #     try:
+        #         for a in range(len(ACTIONS)):
+        #             if df is not None:
+        #                 adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
+        #             else:
+        #                 adj_factor = 0
+        #             if table_name == "users":
+        #                 sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE user_name = '{specific_name}'"
+        #             elif table_name == "tasks":
+        #                 sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE task_name = '{specific_name}'"
+
+        #             db.gen_cmd(sql)
+
+        #     except Exception as e:
+        #         print(f"Error with file {file}")
+        #         print(e)
+
+        for task in TASKS:
+            folder = './sam_nodes/scripts/models_parameters'
+            file = f"meta_data_tasks_{task}.csv"
+            specific_name = file.split(f'meta_data_tasks_')[1][0:-4]
             try:
                 df = pd.read_csv(join(folder, file))
-                for a in range(len(ACTIONS)):
-                    adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
-                    if table_name == "users":
-                        sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE user_name = '{specific_name}'"
-                    elif table_name == "tasks":
-                        sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE task_name = '{specific_name}'"
+            except FileNotFoundError:
+                df = None
 
+            try:
+                for a in range(len(ACTIONS)):
+                    if df is not None:
+                        adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
+                    else:
+                        adj_factor = 0
+
+                    sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE task_name = '{specific_name}'"
                     db.gen_cmd(sql)
 
             except Exception as e:

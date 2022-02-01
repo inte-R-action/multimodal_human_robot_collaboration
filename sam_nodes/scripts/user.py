@@ -40,7 +40,7 @@ class User:
 
         if not self.test:
             self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
-        self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES, self.test)
+        self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id)
 
         # self.curr_action_no = 0
         # self.curr_action_type = None

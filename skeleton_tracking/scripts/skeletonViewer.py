@@ -15,7 +15,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import String
 from rospy.numpy_msg import numpy_msg
 from geometry_msgs.msg import Pose
-from sam_custom_messages.msg import skeleton_msg
+from sam_custom_messages.msg import skeleton
 import cv2
 import sys
 import tf
@@ -168,7 +168,7 @@ def main(args):
                 setattr(joints_msg, FRAMES[i], pose_msg)
         
             joints_publisher.publish(joints_msg)
-            
+
 
             if disp:
                 disp_image = image

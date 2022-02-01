@@ -15,6 +15,9 @@ Header Header
 ## ID of user (robot or human)
 int8 UserId
 #
+## Name of user (robot or human)
+string UserName
+#
 # geometry_msgs/Accel.msg
 # This expresses acceleration in free space broken into its linear and angular parts.
 # Vector3  linear => float64 x, float64 y, float64 z

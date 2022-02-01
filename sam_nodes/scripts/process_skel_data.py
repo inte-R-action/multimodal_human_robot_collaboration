@@ -114,7 +114,6 @@ def find_skeleton_features(skeleton_seq):
 
 
 def process_skel_data(skeleton_seq):
-    print(f"skeleton seq shape: {skeleton_seq.shape}")
     u_body_joints = [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12]
     u_body_skel = np.empty((skeleton_seq.shape[0], len(u_body_joints), 3))
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3.7
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import rospy
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,7 +11,7 @@ from tensorflow.keras.models import load_model
 import tensorflow_addons as tfa
 from global_data import PCA_COMPS
 import csv
-import os
+
 plt.ion()
 
 Fs = 50  # Sampling frequency, Hz
@@ -46,8 +48,6 @@ class perception_module:
 
     def load_imu_scale_parameters(self):
         # load scaling parameters
-        print(os.getcwd())
-
         scale_file = "./sam_nodes/scripts/models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1.csv" # file with normalisation parameters
         with open(scale_file, newline='') as f:
             reader = csv.reader(f)

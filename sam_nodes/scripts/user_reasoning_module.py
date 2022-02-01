@@ -24,7 +24,7 @@ MODEL_FILE = "./sam_nodes/scripts/models_parameters/lstm_future_prediction_model
 
 
 class reasoning_module:
-    def __init__(self, name, id, frame_id, ACTION_CATEGORIES, test):
+    def __init__(self, name, id, frame_id):
         self.test = False
         self.name = name
         self.id = id
@@ -103,7 +103,7 @@ class reasoning_module:
                 self.model_inputs[i, -3:] = [time, started, done] # Previous action status
 
                 input_data = self.normalise_input_data(self.model_inputs[i, :])
-                input_data = np.array(input_data, ndmin=3, dtype=np.float)
+                input_data = np.nan_to_num(np.array(input_data, ndmin=3, dtype=np.float))
                 time, started, done = self.models[i](input_data, training=False)[0, 0, :].numpy()
             else:
                 [time, started, done] = [datetime.datetime.now().time(), 0, 0]

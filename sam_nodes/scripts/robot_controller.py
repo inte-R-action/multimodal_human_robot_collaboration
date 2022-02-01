@@ -124,8 +124,9 @@ class future_predictor():
                 new_user_data = [user_id, user_name, task_name, last_robot_action_no, next_robot_action_no, Time2UserNeedRobot, RobotActionTime, Time2RoboStart, False]
                 self.future_estimates = self.future_estimates.append(pd.Series(new_user_data, index=self.fut_cols), ignore_index=True)
 
-        print("\nFuture Estimates:")
-        print(self.future_estimates, "\n")
+        if not self.future_estimates.empty:
+            print("\nFuture Estimates:")
+            print(self.future_estimates, "\n")
 
         self.update_robot_completed_actions_table()
 
@@ -334,7 +335,7 @@ def robot_control_node():
             row = predictor.future_estimates[
                 predictor.future_estimates.robot_start_t ==
                 predictor.future_estimates.robot_start_t.min()]
-            print(row)
+
             if not row.empty:
                 if (row['robot_start_t'][0] < pd.Timedelta(0)) and (row['done'][0] is False):
                     # if time to next colab < action time start colab action

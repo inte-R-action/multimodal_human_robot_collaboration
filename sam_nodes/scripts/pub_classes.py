@@ -212,7 +212,7 @@ class capability_class:
         self.publisher.publish(self.capability_msg)
 
 class threeIMUs_class:
-    def __init__(self, frame_id, user_id=1, queue=1):
+    def __init__(self, frame_id, user_id=1, user_name='unknown', queue=1):
         # frame_id=str, queue=int
         # Current IMU data message definitions
         self.IMUs_msg = threeIMUs()
@@ -220,13 +220,14 @@ class threeIMUs_class:
         self.IMUs_msg.Header.seq = None
         self.IMUs_msg.Header.frame_id = frame_id
         self.IMUs_msg.UserId = user_id
+        self.IMUs_msg.UserName = user_name
         self.accel_msg = Accel()
         self.positions = ['Hand', 'Wrist', 'Arm']
 
         for p in range(len(self.positions)):
             self.accel_msg.linear = Vector3(0,0,0)
             self.accel_msg.angular = Vector3(0,0,0)
-            setattr(self.accel_msg, self.positions[p], self.accel_msg)
+            setattr(self.IMUs_msg, self.positions[p], self.accel_msg)
 
         self.publisher = rospy.Publisher('IMUdata', threeIMUs, queue_size=queue)
 
@@ -243,9 +244,9 @@ class threeIMUs_class:
             self.IMUs_msg.Header.seq += 1
 
         for p in range(len(self.positions)):
-            self.accel_msg.linear = Vector3(IMU_data[p*6:(p*6)+3])
-            self.accel_msg.angular = Vector3(IMU_data[(p*6)+3:(p*6)+6])
-            setattr(self.accel_msg, self.positions[p], self.accel_msg)
+            self.accel_msg.linear = Vector3(float(IMU_data[p*6]), float(IMU_data[(p*6)+1]), float(IMU_data[(p*6)+2]))
+            self.accel_msg.angular = Vector3(float(IMU_data[(p*6)+3]), float(IMU_data[(p*6)+4]), float(IMU_data[(p*6)+5]))
+            setattr(self.IMUs_msg, self.positions[p], self.accel_msg)
 
         self.IMUs_msg.Header.stamp = rospy.get_rostime()
         self.publisher.publish(self.IMUs_msg)

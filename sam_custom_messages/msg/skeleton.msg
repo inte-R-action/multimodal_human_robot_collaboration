@@ -15,6 +15,9 @@ Header Header
 ## ID of user (robot or human)
 int8 UserId
 #
+## Name of user (robot or human)
+string UserName
+#
 # geometry_msgs/Pose.msg
 # A representation of pose in free space, composed of position and orientation. 
 # Point position

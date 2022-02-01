@@ -15,7 +15,7 @@ from global_data import SKELETON_FRAMES
 import os
 from os.path import join
 from statistics import mean
-from global_data import ACTIONS
+from global_data import ACTIONS, TASKS, DEFAULT_TASK
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 # Argument parsing
@@ -29,12 +29,12 @@ parser.add_argument('--user_names', '-N',
                     type=lambda s: [str(item) for item in s.split(',')])
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_complex_box (default)',
-                    choices=['assemble_complex_box', 'assemble_complex_box_manual'],
-                    default='assemble_complex_box')
+                    choices=TASKS,
+                    default=DEFAULT_TASK)
 parser.add_argument('--test',
                     help='Test mode without sensors',
                     choices=[True, False],
-                    default=True)
+                    default=False)
 # parser.add_argument('--classifier_type', '-C',
 #                     help='Either 1v1 (one) or allvall (all) classifier',
 #                     choices=['one', 'all'],
@@ -105,8 +105,17 @@ def imu_data_callback(data, users):
         if users[i].name != data.UserName:
             print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
         else:
+            positions = ['Hand', 'Wrist', 'Arm']
+            type = ['linear', 'angular']
+            axes = ['x', 'y', 'z']
             msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
-            users[i].perception.add_imu_data(data, msg_time)
+            data_list = []
+            for p in positions:
+                for t in type:
+                    for a in axes:
+                        data_list.append(getattr(getattr(getattr(data, p), t), a))
+            assert len(data_list)==18, "IMU data received is wrong length"
+            users[i].perception.add_imu_data(data_list, msg_time)
 
 
 def skeleton_callback(data, users):
@@ -186,6 +195,8 @@ def sys_stat_callback(data, users):
                 users[i].shimmer_ready = data.DiagnosticStatus.level
             elif data.Header.frame_id == 'fakeIMUpub_node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
+            elif data.Header.frame_id == 'fakeSensorspub_node':
+                users[i].shimmer_ready = data.DiagnosticStatus.level
 
         shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
 
@@ -245,7 +256,7 @@ def users_node():
 
     rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     while not rospy.is_shutdown():
-        rospy.loginfo(f"{frame_id} active")
+        # rospy.loginfo(f"{frame_id} active")
 
         for user in users:
             user.perception.predict_actions()
@@ -277,7 +288,7 @@ def users_test_node():
 
     rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     while not rospy.is_shutdown():
-        rospy.loginfo(f"{frame_id} active")
+        # rospy.loginfo(f"{frame_id} active")
 
         # for user in users:
         #     user.perception.predict_actions()
@@ -294,3 +305,5 @@ if __name__ == '__main__':
             users_test_node()
     except rospy.ROSInterruptException:
         pass
+
+    print("Users node shutdown")
