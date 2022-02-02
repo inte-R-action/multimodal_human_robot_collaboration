@@ -133,52 +133,25 @@ def make_tables(db, del_tab=True):
         raise
 
 
-def update_meta_data(db, table_name):
+def update_meta_data(db):
     try:
-        # folder = './sam_nodes/scripts/models_parameters'
-        # allfiles = [f for f in listdir(folder) if isfile(join(folder, f))]
-        # files2process = [f for f in allfiles if f[0:15] == f"meta_data_{table_name}"]
-        # for file in files2process:
-        #     specific_name = file.split(f'meta_data_{table_name}_')[1][0:-4]
-        #     try:
-        #         df = pd.read_csv(join(folder, file))
-        #     except FileNotFoundError:
-        #         df = None
-
-        #     try:
-        #         for a in range(len(ACTIONS)):
-        #             if df is not None:
-        #                 adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
-        #             else:
-        #                 adj_factor = 0
-        #             if table_name == "users":
-        #                 sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE user_name = '{specific_name}'"
-        #             elif table_name == "tasks":
-        #                 sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE task_name = '{specific_name}'"
-
-        #             db.gen_cmd(sql)
-
-        #     except Exception as e:
-        #         print(f"Error with file {file}")
-        #         print(e)
-
         for task in TASKS:
-            folder = './sam_nodes/scripts/models_parameters'
-            file = f"meta_data_tasks_{task}.csv"
-            specific_name = file.split(f'meta_data_tasks_')[1][0:-4]
+            folder = './sam_nodes/scripts/models_parameters/'
+            file = f"metadata_tasks_{task}.csv"
+            specific_name = file.split('metadata_tasks_')[1][0:-4]
             try:
                 df = pd.read_csv(join(folder, file))
             except FileNotFoundError:
                 df = None
 
             try:
-                for a in range(len(ACTIONS)):
+                for action in ACTIONS:
                     if df is not None:
-                        adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
+                        adj_factor = mean(df[f"{action}"])
                     else:
                         adj_factor = 0
 
-                    sql = f"UPDATE tasks SET {ACTIONS[a]} = {adj_factor} WHERE task_name = '{specific_name}'"
+                    sql = f"UPDATE tasks SET {action} = {adj_factor} WHERE task_name = '{specific_name}'"
                     db.gen_cmd(sql)
 
             except Exception as e:
@@ -199,8 +172,7 @@ def load_tables(db):
                 sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
                 db.gen_cmd(sql)
 
-            if name in ('users', 'tasks'):
-                update_meta_data(db, name)
+            update_meta_data(db)
 
             print(f"Loaded data into '{name}'")
 

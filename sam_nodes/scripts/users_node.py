@@ -64,19 +64,19 @@ def setup_user(users, frame_id, task, name=None):
     db.gen_cmd(sql_cmd)
     db.insert_data_list("users", ['user_id', 'user_name', 'last_active'], [(id, name, time)])
 
-    folder = './sam_nodes/scripts/models_parameters'
-    file = f"meta_data_users_{name}.csv"
+    folder = './sam_nodes/scripts/models_parameters/'
+    file = f"metadata_users_{name}.csv"
     try:
         df = pd.read_csv(join(folder, file))
     except FileNotFoundError:
         df = None
 
-    for a in range(len(ACTIONS)):
+    for action in ACTIONS:
         if df is not None:
-            adj_factor = mean(df[f"{a}_{ACTIONS[a]}"])
+            adj_factor = mean(df[f"{action}"])
         else:
             adj_factor = 0
-        sql = f"UPDATE users SET {ACTIONS[a]} = {adj_factor} WHERE user_name = '{name}'"
+        sql = f"UPDATE users SET {action} = {adj_factor} WHERE user_name = '{name}'"
         db.gen_cmd(sql)
 
     users[id-1].update_task(task)

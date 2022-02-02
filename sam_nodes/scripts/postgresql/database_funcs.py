@@ -69,7 +69,7 @@ class database():
                 if verbose:
                     print('Database connection closed.')
 
-    def insert_data_list(self, table, columns, data):
+    def insert_data_list(self, table, columns, data, verbose=True):
         """ insert multiple data rows into table  
         table:str(table name), columns:[str(column name),], data:[('data1', data2, ),]"""
         data_ins = "%s" + (", %s"*(len(columns)-1))
@@ -83,7 +83,8 @@ class database():
                 self.cur.executemany(sql, data)
                 # commit the changes to the database
                 self.conn.commit()
-                print(f"Data successfully inserted into {table} table")
+                if verbose:
+                    print(f"Data successfully inserted into {table} table")
                 self.disconnect()
                 break
             except (Exception, psycopg2.DatabaseError) as error:

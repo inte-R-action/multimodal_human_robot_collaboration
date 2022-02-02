@@ -50,7 +50,7 @@ def fakeSensorsmain():
     rate = rospy.Rate(50)  # Message publication rate, Hz => should be 50
     prev = None
     prev_t = time.time()
-    with open ('imu_skeleton_data_user_j_take_1_20211130-155502.csv', newline='') as csvfile:
+    with open ('imu_skeleton_data_user_j_take_3.csv', newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=';')
         next(csvreader)
         for row in csvreader:

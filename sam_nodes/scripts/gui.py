@@ -11,7 +11,7 @@ import numpy as np
 import time
 import datetime
 from PIL import Image, ImageTk
-from sympy import EX
+from sympy import E, EX
 import rospy
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, move_class, act_class
@@ -93,10 +93,8 @@ class user_frame:
         self.task_data = None
         self.status = "unknown"
         self.destroy = False
-        #self.current_action_no = None
         self.shimmer = [None, None, None]
         self.shimmer_info = []
-        #self.current_action_type = None
 
         self.next_action_pub = rospy.Publisher('NextActionOverride', String, queue_size=10)
 
@@ -131,10 +129,16 @@ class user_frame:
 
         self.update_shimmer_text()
 
-        self.shimmer_frame.grid_columnconfigure(0, weight=1)   
+        self.shimmer_frame.grid_columnconfigure(0, weight=1)
         self.shimmer_frame.grid_rowconfigure(0, weight=1)
         self.shimmer_frame.grid_rowconfigure(1, weight=1)
         self.shimmer_frame.grid_rowconfigure(2, weight=1)
+
+        # LSTM network parameters
+        self.lstm_params_txt = Tk.Text(master=self.user_frame, height=5, width=2, font=('', 10))
+        self.lstm_params_txt.tag_configure("right", justify='right')
+        self.lstm_params_txt.grid(row=0, column=2, sticky="nsew")
+        self.update_lstm_params_txt()
 
         # Graph area for current predictions
         # A tk.DrawingArea.
@@ -149,7 +153,7 @@ class user_frame:
         # Tasks List
         self.load_task_data()
         self.tasks = ttk.Treeview(self.user_frame, show=[
-                                  "headings"], height=18, displaycolumns="#all")
+                                  "headings"], height=len(self.task_data.index), displaycolumns="#all")
         self.tasks.grid(row=2, column=0, columnspan=3,
                         sticky=Tk.W + Tk.E + Tk.N + Tk.S)
         self.tasks["columns"] = self.col_names
@@ -222,6 +226,25 @@ class user_frame:
             self.shimmer[i].insert(Tk.INSERT, self.shimmer_info[i][0])
             self.shimmer[i].tag_add("center", "1.0", "end")
 
+    def update_lstm_params_txt(self):
+        col_names, data = self.db.query_table('users', 'all')
+        users_data = pd.DataFrame(data, columns=col_names)
+        users_data = users_data.loc[users_data['user_name']==self.name]
+        col_names, data = self.db.query_table('tasks', 'all')
+        tasks_data = pd.DataFrame(data, columns=col_names)
+        tasks_data = tasks_data.loc[tasks_data['task_name']==self.task_name]
+
+        user_params = users_data[ACTIONS].values[0].round(1)  # time adjust for user
+        task_params = tasks_data[ACTIONS].values[0].round(1)  # time adjustment for task
+
+        text = "LSTM Params       \n" \
+               "User|Task \n"
+        text = text+''.join([f"{action}:  {user_params[a]} |  {task_params[a]} \n" for a, action in enumerate(ACTIONS)])
+
+        self.lstm_params_txt.delete("1.0", Tk.END)
+        self.lstm_params_txt.insert(Tk.INSERT, text)
+        self.lstm_params_txt.tag_add("right", "1.0", "end")
+
     def update_user_deets(self):
         text = f" Name: {self.name} \n" \
                f"       Id: {self.id} \n" \
@@ -230,11 +253,12 @@ class user_frame:
 
         self.user_deets.delete("1.0", Tk.END)
         self.user_deets.insert(Tk.INSERT, text)
-        #self.user_deets.tag_add("center", "1.0", "end")
 
     def load_task_data(self):
         self.col_names, actions_list = self.db.query_table(self.task_name, 'all')
         self.task_data = pd.DataFrame(actions_list, columns=self.col_names)
+        for row in self.task_data.itertuples():
+            self.task_data.at[row.Index, 'default_time'] = round(row.default_time.total_seconds(), 2)
         self.task_data["started"] = 0
         self.task_data["done"] = 0
         self.task_data["t_left"] = 0
@@ -244,11 +268,14 @@ class user_frame:
         self.ax.cla()
         _ = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
 
-        self.ax.set_xticks(pos)
-        self.ax.set_xticklabels(ACTIONS)
+        try:
+            self.ax.set_xticks(pos)
+            self.ax.set_xticklabels(ACTIONS)
+        except Exception:
+            pass
         self.ax.set_ylabel('Confidence')
         self.ax.set_ylim([0, 1])
-        self.ax.set_title('Current IMU Prediction')
+        self.ax.set_title('Current Action Prediction')
 
         plt.pause(0.00001)
 
@@ -360,6 +387,7 @@ class GUI:
         self.db = database()
         # Create GUI
         self.root = Tk.Tk()
+        # self.root = Toplevel
         self.root.wm_title("HRC Interaction System")
         self.root.resizable(True, True)
 
@@ -384,7 +412,7 @@ class GUI:
         load = Image.open("logo.jpg")
         imsize = 100
         resized = load.resize((imsize, imsize), Image.ANTIALIAS)
-        render = ImageTk.PhotoImage(resized)
+        render = ImageTk.PhotoImage(image=resized)
         self.img = Tk.Label(master=self.sys_frame, image=render)
         self.img.image = render
         self.img.grid(row=0, column=0, columnspan=2)
@@ -481,9 +509,10 @@ class GUI:
     def load_robot_actions_data(self):
         self.col_names, actions_list = self.db.query_table('robot_action_timings', 'all')
         self.robot_tasks_data = pd.DataFrame(actions_list, columns=self.col_names)
+        for row in self.robot_tasks_data.itertuples():
+            self.robot_tasks_data.at[row.Index, 'robot_start_t'] = max(0.0, round(row.robot_start_t.total_seconds(), 2))
 
     def update_gui(self):
-
         # destroy any removed users
         for i in range(len(self.users)):
             try:
@@ -537,11 +566,16 @@ class GUI:
                         self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 't_left'] = round(row.time_left, 2)
                 except Exception as e:
                     print(e)
-            
-            for u in range(len(self.users)):
-                self.users[u].tasks.delete(*self.users[u].tasks.get_children())
-                for index, row in self.users[u].task_data.iterrows():
-                    self.users[u].tasks.insert("", index=index, values=list(row))
+
+            for u, user in enumerate(self.users):
+                user.tasks.delete(*user.tasks.get_children())
+                for index, row in user.task_data.iterrows():
+                    user.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
+
+                act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['next_r_action_no'].values[0]
+                user.tasks.tag_configure(act_no, background='yellow')
+                act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['last_completed_action_no'].values[0]
+                user.tasks.tag_configure(act_no, background='green')
 
             # Update future timings plot
             self.update_timings_plot(predictions_data)
@@ -569,7 +603,10 @@ class GUI:
         for i in range(len(self.users)):
             self.root.grid_columnconfigure(i+1, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
-        self.canvas.draw_idle()
+        try:
+            self.canvas.draw_idle()
+        except:
+            pass
 
         # Update gui
         #self.root.update_idletasks()
@@ -615,18 +652,23 @@ class GUI:
             time_predictions = predictions_data.loc[predictions_data["user_id"]==active_users[u].id]["time_left"]
             for t in time_predictions:
                 self.axs[u, 0].axvline(x=t)
-            self.axs[u, 0].get_yaxis().set_ticks([])
+            try:
+                self.axs[u, 0].get_yaxis().set_ticks([])
+            except Exception:
+                pass
             self.axs[u, 0].set_ylabel(f"User: {u}")
 
         # Plot robot solo action times
         try:
-            time_predictions = self.robot_tasks_data.loc[self.robot_tasks_data["user_name"]=="robot"]["robot_start_t"][0].total_seconds()
+            time_predictions = self.robot_tasks_data.loc[self.robot_tasks_data["user_name"]=="robot"]["robot_start_t"].values[0]
             self.axs[-1, 0].axvline(x=time_predictions)
         except (KeyError, IndexError) as e:
             # print("robot solo action time error")
             pass
-
-        self.axs[-1, 0].get_yaxis().set_ticks([])
+        try:
+            self.axs[-1, 0].get_yaxis().set_ticks([])
+        except Exception:
+            pass
         self.axs[-1, 0].set_ylabel("Robot Solo")
 
         self.fig.text(0.5, 0.02, 'Time into future, s', ha='center')
