@@ -103,6 +103,7 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["take_box"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
     joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
+    joint_positions["deliver_big_2_user"] = {17.4, -68.3, 35.9, -60.5, -91.0, 0.0};
     joint_positions["deliver_box"] = {130.0, -62.90, 40.2, -61.2, -91.1, 0.0};
     joint_positions["stack_red_small_block"] = {-110.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["stack_blue_small_block"] = {-130.0, -75.9, 49.1, -61.2, -91.1, 0.0};
@@ -112,6 +113,12 @@ std::map<std::string, jnt_angs> create_joint_pos(){
     joint_positions["final_stack"] = {-20.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["remove_stack"] = {-170.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["bring_hand_screw_parts"] = {-65.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_seat_top"] = {54.1, -79.0, 41.0, -52.4, -90, 0.0};
+    joint_positions["bring_back_frame"] = {80.9, -79.0, 41.0, -52.4, -90, 0.0};
+    joint_positions["bring_back_slats"] = {119.3, -75.9, 49.1, -61.2, -90, 0.0};
+    joint_positions["bring_legs"] = {-65.0, -75.9, 49.1, -61.2, -90, 0.0};
+    joint_positions["take_chair"] = {17.4, -68.3, 35.9, -60.5, -90, 0.0};
+    joint_positions["deliver_chair"] = {130.0, -63.8, 20.1, -46.8, -90, 0.0};
     return joint_positions;
 };
 
@@ -249,7 +256,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
 
     ros::Publisher planning_scene_diff_publisher = nh_.advertise<moveit_msgs::PlanningScene>("planning_scene", 1);
     ros::WallDuration sleep_t(0.5);
-    while (planning_scene_diff_publisher.getNumSubscribers() < 1)
+    while ((planning_scene_diff_publisher.getNumSubscribers() < 1) and ros::ok())
     {
         sleep_t.sleep();
     }
@@ -415,7 +422,7 @@ geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose)
   geometry_msgs::TransformStamped transform1;
   geometry_msgs::TransformStamped transform2;
 
-  while (true){
+  while (ros::ok()){
     try{
       transform1 = tfBuffer.lookupTransform("world", "camera_frame",
                                  ros::Time(0));
@@ -444,32 +451,39 @@ geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose)
 }
 
 void moveit_robot::move_robot(std::map<std::string, double> targetJoints, std::string robot_action, std::string jnt_pos_name){
+    
+    if( joint_positions.count(jnt_pos_name) )
+    {
+        targetJoints.clear();
+        targetJoints["shoulder_pan_joint"] = joint_positions[jnt_pos_name].angles[0]*3.1416/180;	// (deg*PI/180)
+        targetJoints["shoulder_lift_joint"] = joint_positions[jnt_pos_name].angles[1]*3.1416/180;
+        targetJoints["elbow_joint"] = joint_positions[jnt_pos_name].angles[2]*3.1416/180;
+        targetJoints["wrist_1_joint"] = joint_positions[jnt_pos_name].angles[3]*3.1416/180;
+        targetJoints["wrist_2_joint"] = joint_positions[jnt_pos_name].angles[4]*3.1416/180;
+        targetJoints["wrist_3_joint"] = joint_positions[jnt_pos_name].angles[5]*3.1416/180;
 
-    targetJoints.clear();
-    targetJoints["shoulder_pan_joint"] = joint_positions[jnt_pos_name].angles[0]*3.1416/180;	// (deg*PI/180)
-    targetJoints["shoulder_lift_joint"] = joint_positions[jnt_pos_name].angles[1]*3.1416/180;
-    targetJoints["elbow_joint"] = joint_positions[jnt_pos_name].angles[2]*3.1416/180;
-    targetJoints["wrist_1_joint"] = joint_positions[jnt_pos_name].angles[3]*3.1416/180;
-    targetJoints["wrist_2_joint"] = joint_positions[jnt_pos_name].angles[4]*3.1416/180;
-    targetJoints["wrist_3_joint"] = joint_positions[jnt_pos_name].angles[5]*3.1416/180;
+        robot_status_msg.data = robot_action;
+        robot_status_pub.publish(robot_status_msg);
 
-    robot_status_msg.data = robot_action;
-    robot_status_pub.publish(robot_status_msg);
+        move_group.setStartState(*move_group.getCurrentState());
 
-    move_group.setStartState(*move_group.getCurrentState());
+        move_group.setJointValueTarget(targetJoints);
 
-    move_group.setJointValueTarget(targetJoints);
+        bool success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+        ROS_INFO("Visualizing new move position plan (%.2f%% acheived)",success * 100.0);
 
-    bool success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-    ROS_INFO("Visualizing new move position plan (%.2f%% acheived)",success * 100.0);
+        move_group.execute(plan);
+    }
+    else{
+        cout << "Unrecognised joint_position key: " << jnt_pos_name << endl;
+    }
 
-    move_group.execute(plan);
 }
 
 void moveit_robot::open_gripper(){
     // Open Gripper
     gripper_msg.data = "release";
-    while (gripper_state != "release_completed")
+    while ((gripper_state != "release_completed") and ros::ok())
     {
         gripper_cmds_pub.publish(gripper_msg);
     }
@@ -480,7 +494,7 @@ void moveit_robot::open_gripper(){
 void moveit_robot::close_gripper(){
     // Close Gripper
     gripper_msg.data = "grasp";
-    while (gripper_state != "grasp_completed")
+    while ((gripper_state != "grasp_completed") and ros::ok())
     {
         gripper_cmds_pub.publish(gripper_msg);
     }
@@ -571,7 +585,7 @@ void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
     if (dist < 0){
         move_group.asyncExecute(plan);
         double last = 0.0;
-        while ((ft_readings[2] > -3) && (robot_execute_code != 1))
+        while ((ft_readings[2] > -3) && (robot_execute_code != 1) && ros::ok())
         {
             if (abs(ft_readings[2]) > abs(last)){
                 last = ft_readings[2];
@@ -619,58 +633,80 @@ void home(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 }
 
-void take_side(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
+void bring_part_to_user(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    // Move to position above side
+    // Move to position above part
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
-    // Move down, pick side up, move up
-    pick_up_object(Robot, 0.07);
+    // Move down, pick part up, move up
+    if( bring_cmd=="bring_side_1" || bring_cmd=="bring_side_2" || \
+        bring_cmd=="bring_side_3" || bring_cmd=="bring_side_4" || \
+        bring_cmd=="bring_back_slats" )
+    {          
+        pick_up_object(Robot, 0.07);
+        // Move to user delivery position
+        Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
+        // Move down, set down part, move up
+        set_down_object(Robot, 0.03, 0.5);
+    }
+    else if( bring_cmd=="bring_hand_screw_parts" || bring_cmd=="bring_legs" )
+    {          
+        pick_up_object(Robot, 0.065);
+        // Move to user delivery position
+        Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
+        // Move down, set down part, move up
+        set_down_object(Robot, 0.03, 0.5);
+    }
+    else if( bring_cmd=="bring_seat_top" || bring_cmd=="bring_back_frame" )
+    {
+        pick_up_object(Robot, 0.07);
+        // Move to user delivery position
+        Robot.move_robot(targetJoints, bring_cmd, string("deliver_big_2_user"));
+        // Move down, set down part, move up
+        set_down_object(Robot, 0.04, 0.5);
+    }
+    else
+    {
+        cout << "Unrecognised bring part command: " << bring_cmd << endl;
+        return;
+    }
 
-    // Move to user delivery position
-    Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
-
-    // Move down, set down side, move up
-    set_down_object(Robot, 0.03, 0.5);
+    
 
     // Return to home position
     //home(targetJoints, Robot);
 }
 
-void take_hand_screw_parts(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
+void take_assembly(string take_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot)
 {
-    // Move to position above side
-    Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
+    // Move robot to position above assembly
+    Robot.move_robot(targetJoints, take_cmd, take_cmd);
 
-    // Move down, pick side up, move up
-    pick_up_object(Robot, 0.065);
-
-    // Move to user delivery position
-    Robot.move_robot(targetJoints, bring_cmd, string("deliver_2_user"));
-
-    // Move down, set down side, move up
-    set_down_object(Robot, 0.03, 0.5);
-
-    // Return to home position
-    //home(targetJoints, Robot);
-}
-
-void take_box(std::map<std::string, double> &targetJoints, moveit_robot &Robot)
-{
-    // Move robot to position above box
-    string bring_cmd = "take_box";
-    Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
-
-    // Move down, pick side up, move up
-    pick_up_object(Robot, 0.07);
-
-    // Move to position
-    bring_cmd = "deliver_box";
-    Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
-
-    // Move down, set down side, move up
-    set_down_object(Robot, 0.03, 0.05);
-
+    if( take_cmd == "take_box" )
+    {
+        // Move down, pick assembly up, move up
+        pick_up_object(Robot, 0.07);
+        // Move to position
+        string deliver_cmd = "deliver_box";
+        Robot.move_robot(targetJoints, deliver_cmd, deliver_cmd);
+        // Move down, set down assembly, move up
+        set_down_object(Robot, 0.03, 0.5);
+    }
+    else if ( take_cmd == "take_chair" )
+    {
+        // Move down, pick assembly up, move up
+        pick_up_object(Robot, 0.07);
+        // Move to position
+        string deliver_cmd = "deliver_chair";
+        Robot.move_robot(targetJoints, deliver_cmd, deliver_cmd);
+        // Move down, set down assembly, move up
+        set_down_object(Robot, 0.087, 0.5);
+    }
+    else
+    {
+        cout << "Unrecognised take assembly command: " << take_cmd << endl;
+        return;
+    }
     // Return to home
     //home(targetJoints, Robot);
 }
@@ -682,7 +718,7 @@ geometry_msgs::Pose look_for_objects(string bring_cmd)
 
     std::string block = bring_cmd.substr(6);
     cout << "Looking for: " << block << endl;
-    while(true){
+    while(ros::ok()){
         cout << "Looking for: " << block << " detected: " << object_state_msg.Object.Info << endl;
         if (block == object_state_msg.Object.Info){
            object_pose = object_state_msg.Pose;
@@ -838,19 +874,15 @@ int main(int argc, char** argv)
                     Robot.robot_status_pub.publish(Robot.robot_status_msg);
                     //}
 
-                    if(objectString=="bring_side_1" || objectString=="bring_side_2" || objectString=="bring_side_3" || objectString=="bring_side_4")
+                    if( objectString.rfind("bring_", 0) == 0 )
                     {          
-                        take_side(objectString, targetJoints, Robot);
+                        bring_part_to_user(objectString, targetJoints, Robot);
                     }
-                    else if( objectString=="bring_hand_screw_parts" )
-                    {          
-                        take_hand_screw_parts(objectString, targetJoints, Robot);
-                    }
-                    else if( objectString == "take_box" )
+                    else if( objectString.rfind("take_", 0) == 0 )
                     {  
-                        take_box(targetJoints, Robot);
+                        take_assembly(objectString, targetJoints, Robot);
                     }
-                    else if(objectString=="stack_red_small_block" || objectString=="stack_blue_small_block" || objectString=="stack_yellow_small_block" || objectString=="stack_green_small_block")
+                    else if( objectString.rfind("stack_", 0) == 0 )
                     { 
                         stack_blocks(objectString, targetJoints, Robot, stack_height);
                         stack_height++;
