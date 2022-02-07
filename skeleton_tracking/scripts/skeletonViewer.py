@@ -15,7 +15,8 @@ from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import String
 from rospy.numpy_msg import numpy_msg
 from geometry_msgs.msg import Pose
-from sam_custom_messages.msg import skeleton
+from sam_custom_messages.msg import skeleton, diagnostics
+from diagnostic_msgs.msg import KeyValue
 import cv2
 import sys
 import tf
@@ -46,6 +47,39 @@ LAST = rospy.Duration()
 image = None
 camera_info = None
 
+
+class diag_class:
+    def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1, keyvalues=[]):
+        # frame_id=str, user_id=int, user_name=str, queue=int, keyvalues=list of KeyValue items
+        # Diagnostic message definitions
+        self.diag_msg = diagnostics()
+        self.diag_msg.Header.stamp = rospy.get_rostime()
+        self.diag_msg.Header.seq = None
+        self.diag_msg.Header.frame_id = frame_id
+        self.diag_msg.UserId = user_id
+        self.diag_msg.UserName = user_name
+        self.diag_msg.DiagnosticStatus.level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+        self.diag_msg.DiagnosticStatus.name = frame_id
+        self.diag_msg.DiagnosticStatus.message = "Starting..."
+        self.diag_msg.DiagnosticStatus.hardware_id = "N/A"
+        self.diag_msg.DiagnosticStatus.values = keyvalues
+
+        self.publisher = rospy.Publisher('SystemStatus', diagnostics, queue_size=queue)
+        self.publish(1, "Starting...")
+
+    def publish(self, level, message, keyvalues=[]):
+        self.diag_msg.DiagnosticStatus.level = level # 0:ok, 1:warning, 2:error, 3:stale
+        self.diag_msg.DiagnosticStatus.message = message
+        self.diag_msg.DiagnosticStatus.values = keyvalues
+        self.diag_msg.Header.stamp = rospy.get_rostime()
+        if self.diag_msg.Header.seq is None:
+            self.diag_msg.Header.seq = 0
+        else:
+            self.diag_msg.Header.seq += 1
+
+        self.publisher.publish(self.diag_msg)
+
+
 class Kinect:
     def __init__(self, user, name='kinect_listener'):
         self.listener = tf.TransformListener()
@@ -67,7 +101,7 @@ class Kinect:
                     BASE_FRAME, "/%s_%d" % (frame, self.user), LAST)
                 frames.append((trans, rot))
                 #frames.append((trans))
-            
+
             return frames
         except (tf.LookupException,
                 tf.ConnectivityException,
@@ -114,10 +148,11 @@ def main(args):
     rospy.init_node(frame_id, anonymous=True)
 
     image_info_sub = rospy.Subscriber("/camera/rgb/camera_info", CameraInfo, image_info_cb)
-    joints_publisher = rospy.Publisher('SkeletonJoints', skeleton_msg, queue_size = 1)
-    
+    joints_publisher = rospy.Publisher('SkeletonJoints', skeleton, queue_size = 1)
+    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+
     user_id = 1
-    joints_msg = skeleton_msg()
+    joints_msg = skeleton()
     joints_msg.Header.stamp = rospy.get_rostime()
     joints_msg.Header.seq = None
     joints_msg.Header.frame_id = frame_id
@@ -131,6 +166,7 @@ def main(args):
     cam_model = PinholeCameraModel()
     while (not camera_info) and (not rospy.is_shutdown()):
         time.sleep(1)
+        diag_obj.publish(1, "Waiting for camera info")
         print("waiting for camera info")
 
     cam_model.fromCameraInfo(camera_info)
@@ -166,9 +202,8 @@ def main(args):
                 pose_msg.orientation.w = frames[i][1][3]
 
                 setattr(joints_msg, FRAMES[i], pose_msg)
-        
-            joints_publisher.publish(joints_msg)
 
+            joints_publisher.publish(joints_msg)
 
             if disp:
                 disp_image = image
@@ -185,7 +220,9 @@ def main(args):
                     cam_model.cy())), radius=5, color=(0, 255, 0), thickness=-1)
                 cv2.imshow("Image window", disp_image)
                 cv2.waitKey(1)
+
             # rate.sleep()
+            diag_obj.publish(0, "Running")
         except tf2_ros.TransformException:
             print("user not found error")
         except Exception as e:

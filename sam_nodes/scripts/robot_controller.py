@@ -18,6 +18,8 @@ os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboratio
 
 database_stat = 1
 user_node_stat = 1
+start_trial = False
+next_action = False
 
 
 def sys_stat_callback(data):
@@ -30,6 +32,15 @@ def sys_stat_callback(data):
     elif data.Header.frame_id == 'gui_node':
         if data.DiagnosticStatus.message == 'SHUTDOWN':
             rospy.signal_shutdown('gui shutdown')
+
+
+def sys_cmd_callback(msg):
+    """callback for system command messages"""
+    global start_trial, next_action
+    if msg.data == 'start':
+        start_trial = True
+    elif msg.data == 'next_action':
+        next_action = True
 
 
 class future_predictor():
@@ -222,7 +233,7 @@ class robot_solo_task():
 
 
 def robot_control_node():
-    # global database_stat, user_node_stat
+    global next_action
 
     # ROS node setup
     frame_id = 'robot_control_node'
@@ -231,6 +242,7 @@ def robot_control_node():
     diag_obj.publish(1, "Starting")
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback)
+    rospy.Subscriber("ProcessCommands", String, sys_cmd_callback)
     # Wait for postgresql node to be ready
     while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
@@ -252,6 +264,11 @@ def robot_control_node():
     rate = rospy.Rate(1)  # 1hz
     #db = database()
     home = False
+
+    while (not start_trial) and (not rospy.is_shutdown()):
+        diag_obj.publish(0, "Waiting for trial to start")
+        time.sleep(0.1)
+
     while not rospy.is_shutdown():
         try:
             predictor.update_predictions()
@@ -262,7 +279,7 @@ def robot_control_node():
                 predictor.future_estimates.robot_start_t.min()]
 
             if not row.empty:
-                if (row['robot_start_t'][0] < pd.Timedelta(0)) and (row['done'][0] is False):
+                if ((row['robot_start_t'][0] < pd.Timedelta(0)) or (next_action)) and (row['done'][0] is False):
                     # if time to next colab < action time start colab action
                     home = False
                     # get action and task details
@@ -279,6 +296,7 @@ def robot_control_node():
                     while (not predictor.done) and (not rospy.is_shutdown()):
                         time.sleep(0.01)
                     predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
+                    next_action = False
 
                 elif (not robot_task.finished) and (row['robot_start_t'][0] > robot_task.next_action_time) or (row['done'][0] is True):
                     # if time to colab action > time to do solo action

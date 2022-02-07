@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="node_start_delay" default="10.0" />  
+  <arg name="test_mode" default="true" />
+  <arg name="node_start_delay" default="10.0" />
+  <arg if="$(arg test_mode)" name="skeleton_viewer" default="false" />
+  <arg unless="$(arg test_mode)" name="skeleton_viewer" default="true" />
   <!--<include file="$(find freenect_launch)/launch/freenect.launch" />-->
   <include file="$(find openni_launch)/launch/openni.launch"/>
 
@@ -10,16 +13,18 @@
   <node name="openni_tracker" pkg="openni_tracker" type="openni_tracker" respawn="false" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' " >
   </node>
 
-  <node name="skeletonViewer" pkg="skeleton_tracking" type="skeletonViewer.py" respawn="false" output="screen">
-  </node>
+  <group if="$(arg skeleton_viewer)">
+    <node name="skeleton_viewer" pkg="skeleton_tracking" type="skeletonViewer.py" respawn="false" output="screen">
+    </node>
+  </group>
 
-  <node name="video_recorder" pkg="skeleton_imu_datacollection" type="video_recorder.py" respawn="false" output="screen">
+  <node name="video_recorder" pkg="skeleton_tracking" type="video_recorder.py" respawn="false" output="screen">
   </node>
-
+<!--
   <node name="disparity_view" pkg="image_view" type="disparity_view" respawn="false" output="screen" args="image:=/camera/depth/disparity">
   </node>
 
   <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen" args="image:=/camera/rgb/image_color">
   </node>
-
+-->
 </launch>

@@ -6,6 +6,7 @@ from geometry_msgs.msg import Accel, Vector3
 from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability, screw_count, threeIMUs
 from diagnostic_msgs.msg import KeyValue
 
+
 class diag_class:
     def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1, keyvalues=[]):
         # frame_id=str, user_id=int, user_name=str, queue=int, keyvalues=list of KeyValue items

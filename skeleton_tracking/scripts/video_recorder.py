@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 
 # encoding: utf-8
 
@@ -20,82 +20,84 @@ import time
 import datetime
 import tf2_ros
 import os
+import pyautogui
+import numpy as np
+import mss
+import mss.tools
 
-os.chdir(os.path.expanduser("~/catkin_ws/src/skeleton_imu_datacollection/lstm_training_data/videos/"))
+
+os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/user_trial_data_recording/"))
 
 test_mode = False
 recording = False
-image = None
+kin_image = None
 timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 file = f"hrc_output_{timestamp}.avi"
-take = 0
+task = 0
 user = None
 cmd = None
+camera_info = None
+
 
 class image_converter:
-
   def __init__(self):
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/camera/rgb/image_color",Image,self.callback)
     #self.image_sub = rospy.Subscriber("/camera/depth/image",Image,self.callback)
 
-  def callback(self,data):
-    global image
+  def callback(self, data):
+    global kin_image
     try:
       #cv_image = self.bridge.imgmsg_to_cv2(data, "32FC1")
-      cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-
-      cv2.putText(cv_image, str(time.time()), (350, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
-
+      kin_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+      cv2.putText(kin_image, str(time.time()), (350, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
     except CvBridgeError as e:
       print(e)
 
-    image = cv_image
 
-camera_info = None
 def image_info_cb(data):
-    global camera_info 
+    global camera_info
     camera_info = data
 
 
 def cmd_callback(msg):
-    global recording, user, take, cmd, file
+    global recording, user, task, cmd, file
     if msg.data != cmd:
 	    cmd = msg.data
-	    if cmd == 'Start':
-	        recording = True
-	        print(f"video recording starting")
+	    if cmd == 'start':
+	        print("video recording starting")
 	        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-	        file = f"hrc_output_{time.time()}_user_{user}_take_{take}_{timestamp}.avi"
-	    elif cmd == 'Stop':
+	        file = f"hrc_output_{time.time()}_user_{user}_take_{task}_{timestamp}.avi"
+	        recording = True
+	    elif cmd == 'stop':
 	        recording = False
-	        print(f"video recording stopping")
+	        print("video recording stopping")
 	    # elif cmd == 'Discard':
 	    #     data = []
 	    #     print("Data discarded")
 	    # elif cmd == 'Save':
 	    #     save_data()
 	    elif 'User' in cmd:
-	        user = cmd.split("User: ", 1)[1]
+	        user = cmd.split("User:", 1)[1]
 	        print(f"video new user: {user}")
-	    elif 'Take' in cmd:
-	        take = cmd.split("Take: ", 1)[1]
-	        print(f"video new take: {take}")
+	    elif 'Task' in cmd:
+	        task = cmd.split("Task:", 1)[1]
+	        print(f"video new take: {task}")
 	    elif cmd == 'Quit':
 	    	rospy.signal_shutdown('video quit cmd received')
 
 
 def main(args):
-    global image, file
+    global kin_image, file
     rospy.init_node('skeleton_viewer', anonymous=True)
 
     image_info_sub = rospy.Subscriber("/camera/rgb/camera_info", CameraInfo, image_info_cb)
-    rospy.Subscriber('collection_cmds', String, cmd_callback)
-    
+    rospy.Subscriber('ProcessCommands', String, cmd_callback)
+
     if test_mode:
         cap= cv2.VideoCapture(0)
 
-        size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
+        size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
         	int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     else:
         ic = image_converter()
@@ -112,35 +114,55 @@ def main(args):
     fps = 30
     rate = rospy.Rate(fps)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    writer = cv2.VideoWriter()
-    writer_open = False
+    kinect_writer = cv2.VideoWriter()
+    k_writer_open = False
+    s_writer_open = False
+    SCREEN_SIZE = tuple(pyautogui.size())
+    screen_writer = cv2.VideoWriter()
 
-    while not rospy.is_shutdown():
-        if test_mode:
-            ret, image= cap.read()
+    with mss.mss() as sct:
+        # The screen part to capture
+        region = {'top': 0, 'left': 0, 'width': SCREEN_SIZE[0], 'height': SCREEN_SIZE[1]}
 
-        if recording:
-            if not writer_open:
-                writer_open = writer.open(file, fourcc, fps, size, True) 
+        while not rospy.is_shutdown():
+            if test_mode:
+                ret, kin_image= cap.read()
             
-            writer.write(image)
+            # Grab the screenshot data
+            screen_img = sct.grab(region)
+            screen_frame = cv2.cvtColor(np.array(screen_img), cv2.COLOR_RGBA2RGB)
 
-        elif writer_open:
-            writer.release()
-            writer_open = False
+            if recording:
+                if not k_writer_open:
+                    k_writer_open = kinect_writer.open("kinect_"+file, fourcc, fps, size, True)
+                if not s_writer_open:
+                    s_writer_open = screen_writer.open("screen_"+file, fourcc, fps, SCREEN_SIZE, True)
 
-        cv2.imshow("Image window", image)
+                kinect_writer.write(kin_image)
+                screen_writer.write(screen_frame)
 
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
+            else:
+                if k_writer_open:
+                    kinect_writer.release()
+                    k_writer_open = False
+                if s_writer_open:
+                    screen_writer.release()
+                    s_writer_open = False
 
-        rate.sleep()
+            cv2.imshow("Image window", kin_image)
 
-    if test_mode:
-        cap.release()
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
 
-    if writer_open:
-        writer.release()
+            rate.sleep()
+
+        if test_mode:
+            cap.release()
+
+        if k_writer_open:
+            kinect_writer.release()
+        if s_writer_open:
+            screen_writer.release()
 
 
 if __name__ == '__main__':

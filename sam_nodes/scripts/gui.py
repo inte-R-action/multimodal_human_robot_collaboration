@@ -65,16 +65,18 @@ def send_shutdown_signal(diag_obj):
 
         if not x.is_alive():
             diag_obj.publish(1, "SHUTDOWN")
+            time.sleep(5)
+            nodes = False
         
-        nodes = rosnode.get_node_names()
-        try:
-            nodes.remove('/rosout')
-        except Exception:
-            pass
-        try:
-            nodes.remove('/gui_node')
-        except Exception:
-            pass
+        # nodes = rosnode.get_node_names()
+        # try:
+        #     nodes.remove('/rosout')
+        # except Exception:
+        #     pass
+        # try:
+        #     nodes.remove('/gui_node')
+        # except Exception:
+        #     pass
         time.sleep(0.01)
 
     time.sleep(1)
@@ -83,7 +85,7 @@ def send_shutdown_signal(diag_obj):
 
 
 class user_frame:
-    def __init__(self, no, id, name, root):
+    def __init__(self, no, id, name, root, cmd_publisher):
         self.no = no
         self.id = id
         self.name = name
@@ -96,7 +98,9 @@ class user_frame:
         self.shimmer = [None, None, None]
         self.shimmer_info = []
 
-        self.next_action_pub = rospy.Publisher('NextActionOverride', String, queue_size=10)
+        self.cmd_publisher = cmd_publisher
+        self.cmd_publisher.publish(f'User:{self.name}')
+        self.cmd_publisher.publish(f'Task:{self.task_name}')
 
         self.fig = Figure()
         self.ax = self.fig.subplots(1, 1)
@@ -178,10 +182,10 @@ class user_frame:
         self.next_action_button.grid(
             row=3, column=1, sticky='nsew')
 
-        # Restart Task button
-        self.restart_task_button = Tk.Button(
-            master=self.user_frame, text="Restart Task", command=self.restart_task, bg="green", padx=50, pady=20, width=1, height=1)
-        self.restart_task_button.grid(
+        # Start Task button
+        self.start_task_button = Tk.Button(
+            master=self.user_frame, text="Start Task", command=self.start_task, bg="green", padx=50, pady=20, width=1, height=1)
+        self.start_task_button.grid(
             row=3, column=2, sticky='nsew')
 
         # Adjust spacing of objects
@@ -200,11 +204,10 @@ class user_frame:
         self.destroy = True
 
     def next_action(self):
-        self.next_action_pub.publish(self.name)
-        pass
+        self.cmd_publisher.publish('next_action')
 
-    def restart_task(self):
-        pass
+    def start_task(self):
+        self.cmd_publisher.publish('start')
 
     def update_shimmer_text(self):
         for i in range(len(self.shimmer_info)):
@@ -271,8 +274,8 @@ class user_frame:
         try:
             self.ax.set_xticks(pos)
             self.ax.set_xticklabels(ACTIONS)
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
         self.ax.set_ylabel('Confidence')
         self.ax.set_ylim([0, 1])
         self.ax.set_title('Current Action Prediction')
@@ -383,14 +386,14 @@ class shutting_down_window():
 
 
 class GUI:
-    def __init__(self):
+    def __init__(self, cmd_publisher):
         self.db = database()
         # Create GUI
         self.root = Tk.Tk()
         # self.root = Toplevel
         self.root.wm_title("HRC Interaction System")
         self.root.resizable(True, True)
-
+        self.cmd_publisher = cmd_publisher
         self.fig = Figure()
         self.axs = np.reshape(self.fig.subplots(1, 1), (-1, 1))
 
@@ -422,7 +425,7 @@ class GUI:
         self.node_stats.grid(row=1, column=0, columnspan=2, sticky="nsew")
         self.nodes_list = [['Database_node', None],
                            ['users_node', None],
-                           ['Realsense_node', None],
+                           ['skeletonViewer', None],
                            ['robot_control_node', None],
                            ['hri_static_demo', None],
                            ['rq_gripper_2F140', None]]
@@ -493,6 +496,7 @@ class GUI:
         self.sys_frame.grid_rowconfigure(6, weight=0)
 
     def _quit(self):
+        self.cmd_publisher.publish('stop')
         global QUIT
         QUIT = True
         self.root.quit()     # stops mainloop
@@ -502,7 +506,7 @@ class GUI:
         user = new_user_dialogue(self.root).show()
         if user is not None:
             user = eval(user)
-            self.users.append(user_frame(len(self.users)+1, user[0], user[1], self.root))
+            self.users.append(user_frame(len(self.users)+1, user[0], user[1], self.root, self.cmd_publisher))
             self.fig.clf()
             self.axs = np.reshape(self.fig.subplots(len(self.users)+1, 1, sharex='col'), (-1,1))  # subplot for each user plus robot
 
@@ -572,10 +576,13 @@ class GUI:
                 for index, row in user.task_data.iterrows():
                     user.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
 
-                act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['next_r_action_no'].values[0]
-                user.tasks.tag_configure(act_no, background='yellow')
-                act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['last_completed_action_no'].values[0]
-                user.tasks.tag_configure(act_no, background='green')
+                try:
+                    act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['next_r_action_no'].values[0]
+                    user.tasks.tag_configure(act_no, background='yellow')
+                    act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['last_completed_action_no'].values[0]
+                    user.tasks.tag_configure(act_no, background='green')
+                except Exception:
+                    pass
 
             # Update future timings plot
             self.update_timings_plot(predictions_data)
@@ -683,9 +690,10 @@ def run_gui():
     rospy.init_node(frame_id, anonymous=True)
 
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+    cmd_publisher= rospy.Publisher('ProcessCommands', String, queue_size=10)
     diag_obj.publish(1, "Starting")
 
-    gui = GUI()
+    gui = GUI(cmd_publisher)
     rospy.Subscriber('CurrentAction', current_action, gui.update_actions)
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
     rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)
@@ -699,7 +707,7 @@ def run_gui():
                 gui.update_gui()
                 diag_obj.publish(0, "Running")
             except Exception as e:
-                diag_obj.publish(2, f"Error: {e}")            
+                diag_obj.publish(2, f"Error: {e}")
 
 
 if __name__ == '__main__':

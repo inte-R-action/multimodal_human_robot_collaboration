@@ -46,7 +46,7 @@ args = parser.parse_known_args()[0]
 print(f"Users node settings: {args.task_type}")# {args.classifier_type}")
 database_stat = 1
 shimmer_stat = 1
-imrecog_stat = 1
+kinect_stat = 1
 
 
 def setup_user(users, frame_id, task, name=None):
@@ -180,12 +180,14 @@ def current_action_callback(data, users):
 
 def sys_stat_callback(data, users):
     """callback for system status messages"""
-    global database_stat, shimmer_stat, imrecog_stat
+    global database_stat, shimmer_stat, kinect_stat
 
     if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
     elif data.Header.frame_id == 'Realsense_node':
-        imrecog_stat = data.DiagnosticStatus.level    
+        imrecog_stat = data.DiagnosticStatus.level
+    elif data.Header.frame_id == 'skeleton_viewer':
+        kinect_stat = data.DiagnosticStatus.level
     elif data.Header.frame_id == 'gui_node':
         if data.DiagnosticStatus.message == 'SHUTDOWN':
             rospy.signal_shutdown('gui shutdown')
@@ -209,7 +211,7 @@ def next_action_override_callback(msg, users):
 
 
 def users_node():
-    global database_stat, use_vision, imrecog_stat, shimmer_stat
+    global database_stat, kinect_stat, shimmer_stat
     frame_id = "users_node"
     rospy.init_node(frame_id, anonymous=True)
     keyvalues = []
@@ -225,12 +227,11 @@ def users_node():
         diag_obj.publish(1, "Waiting for postgresql node")
         time.sleep(0.5)
 
-    # if use_vision:
-    #     # Wait for imrecog node to be ready
-    #     while imrecog_stat != 0 and not rospy.is_shutdown():
-    #         print(f"Waiting for imrecog_stat node status, currently {imrecog_stat}")
-    #         diag_obj.publish(1, "Waiting for imrecog_stat node")
-    #         time.sleep(0.5)
+    # Wait for kinect node to be ready
+    while kinect_stat != 0 and not rospy.is_shutdown():
+        print(f"Waiting for kinect_stat node status, currently {kinect_stat}")
+        diag_obj.publish(1, "Waiting for kinect_stat node")
+        time.sleep(0.5)
 
     for name in args.user_names:
         users = setup_user(users, frame_id, args.task_type, name)
@@ -246,18 +247,9 @@ def users_node():
     rospy.Subscriber("IMUdata", threeIMUs, imu_data_callback, (users))
     rospy.Subscriber('SkeletonJoints', skeleton, skeleton_callback, (users))
 
-    # timer = time.time()
-    # if use_vision:
-    #     # Get first reading for screw counters, need to wait for good readings
-    #     while time.time() - timer < 5:
-    #         time.sleep(0.5)
-    #     for user in users:
-    #         user.screw_counter.next_screw()
-
     rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     while not rospy.is_shutdown():
         # rospy.loginfo(f"{frame_id} active")
-
         for user in users:
             user.perception.predict_actions()
 

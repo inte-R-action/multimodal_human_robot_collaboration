@@ -16,6 +16,7 @@ from geometry_msgs.msg import Pose
 from statistics import mean, stdev
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/"))
+start_trial = False
 
 
 def sys_stat_callback(data):
@@ -25,12 +26,21 @@ def sys_stat_callback(data):
             rospy.signal_shutdown('gui shutdown')
 
 
+def sys_cmd_callback(msg):
+    """callback for system command messages"""
+    global start_trial
+    if msg.data == 'start':
+        start_trial = True
+
+
 def fakeSensorsmain():
     print("-----Here we go-----")
     frame_id = 'fakeSensorspub_node'
     rospy.init_node(frame_id, anonymous=True)
     diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='j', queue=10)
+    skel_diag_obj = diag_class(frame_id='skeleton_viewer', user_id=1, user_name='j', queue=10)
     rospy.Subscriber('SystemStatus', diagnostics, sys_stat_callback)
+    rospy.Subscriber("ProcessCommands", String, sys_cmd_callback)
 
     imu_obj = threeIMUs_class(frame_id=frame_id, user_id=1, user_name='j', queue=10)
     imu_data = [0]*18
@@ -53,6 +63,12 @@ def fakeSensorsmain():
     with open ('imu_skeleton_data_user_j_take_3.csv', newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=';')
         next(csvreader)
+
+        while (not start_trial) and (not rospy.is_shutdown()):
+            diag_obj.publish(0, "Waiting for trial to start")
+            skel_diag_obj.publish(0, "Waiting for trial to start")
+            time.sleep(0.1)
+
         for row in csvreader:
             if not rospy.is_shutdown():
 
@@ -78,16 +94,17 @@ def fakeSensorsmain():
                     joints_msg.Header.stamp = rospy.get_rostime()
                     joints_publisher.publish(joints_msg)
                     
-                    diag_msg = "fake_imu_pub all good"
+                    diag_msg = "fake_sensor_pub all good"
                     diag_level = 0 # ok
 
                 except Exception as e:
                     print(f"Error: {e}")
-                    diag_msg = "fake_imu_pub not so good"
+                    diag_msg = "fake_sensor_pub not so good"
                     diag_level = 1 # warning
 
                 try:
                     diag_obj.publish(diag_level, diag_msg)
+                    skel_diag_obj.publish(diag_level, diag_msg)
                 except rospy.exceptions.ROSException:
                     print("fake sensor pub diag pub error")
 
