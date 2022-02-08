@@ -98,22 +98,22 @@ struct jnt_angs{double angles[6];};
 std::map<std::string, jnt_angs> create_joint_pos(){
     std::map<std::string, jnt_angs> joint_positions;
     joint_positions["home"] = {-11.75, -83.80, 47.90, -125.0, -90.0, 0.0};
-    joint_positions["bring_side_1"] = {54.1, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["bring_side_2"] = {80.9, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["bring_side_3"] = {119.3, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_side_1"] = {54.1, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["bring_side_2"] = {80.9, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["bring_side_3"] = {119.3, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["bring_side_4"] = {154.5, -75.9, 49.1, -61.2, -90.0, 0.0};
     joint_positions["take_box"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
-    joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -91.1, 0.0};
+    joint_positions["deliver_2_user"] = {14.5, -45.90, 12.2, -61.2, -90.0, 0.0};
     joint_positions["deliver_big_2_user"] = {17.4, -68.3, 35.9, -60.5, -91.0, 0.0};
     joint_positions["deliver_box"] = {130.0, -62.90, 40.2, -61.2, -91.1, 0.0};
-    joint_positions["stack_red_small_block"] = {-110.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["stack_blue_small_block"] = {-130.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["stack_green_small_block"] = {-150.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["stack_yellow_small_block"] = {-90.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["look_for_objects"] = {-110.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["stack_red_small_block"] = {-110.0, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["stack_blue_small_block"] = {-130.0, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["stack_green_small_block"] = {-150.0, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["stack_yellow_small_block"] = {-90.0, -75.9, 49.1, -61.2, -90.0, 0.0};
+    joint_positions["look_for_objects"] = {-110.0, -75.9, 49.1, -61.2, -90.0, 0.0};
     joint_positions["final_stack"] = {-20.0, -75.9, 49.1, -61.2, -91.1, 0.0};
     joint_positions["remove_stack"] = {-170.0, -75.9, 49.1, -61.2, -91.1, 0.0};
-    joint_positions["bring_hand_screw_parts"] = {-65.0, -75.9, 49.1, -61.2, -91.1, 0.0};
+    joint_positions["bring_hand_screw_parts"] = {-65.0, -75.9, 49.1, -61.2, -90.0, 0.0};
     joint_positions["bring_seat_top"] = {54.1, -79.0, 41.0, -52.4, -90, 0.0};
     joint_positions["bring_back_frame"] = {80.9, -79.0, 41.0, -52.4, -90, 0.0};
     joint_positions["bring_back_slats"] = {119.3, -75.9, 49.1, -61.2, -90, 0.0};
@@ -582,16 +582,16 @@ void moveit_robot::z_move(double dist, double max_velocity_scale_factor){
         ROS_INFO("ret: %s", ft_srv.response.res.c_str());
         ROS_INFO("I heard: FX[%f] FY[%f] FZ[%f] MX[%f] MY[%f] MZ[%f]", ft_readings[0], ft_readings[1], ft_readings[2], ft_readings[3], ft_readings[4], ft_readings[5]);
     }
-
+    std::cout << "Z move dist: " << dist << endl;
     if (dist < 0){
         move_group.asyncExecute(plan);
         double last = 0.0;
         while ((ft_readings[2] > -3) && (robot_execute_code != 1) && ros::ok())
         {
-            if (abs(ft_readings[2]) > abs(last)){
-                last = ft_readings[2];
-                std::cout << ft_readings[2] << endl;
-            }
+            //if (abs(ft_readings[2]) > abs(last)){
+            //    last = ft_readings[2];
+            //    std::cout << ft_readings[2] << endl;
+            //}
         }
         move_group.stop();
         string execute_result = "unknown";
@@ -614,7 +614,7 @@ void pick_up_object(moveit_robot &Robot, double down_move_dist = 0.05)
 {
     // Robot moves down, grasps part and moves back to original position
     Robot.open_gripper();
-    Robot.z_move(-down_move_dist, 1);
+    Robot.z_move(-down_move_dist, 0.8);
     Robot.close_gripper();
     Robot.z_move(down_move_dist, 1);
 }
