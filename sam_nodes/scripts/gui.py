@@ -561,9 +561,9 @@ class GUI:
                     user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
                     if len(user_i)!=0:
                         user_i = user_i[0]
-                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 'started'] = round(row.started, 2)
-                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 'done'] = round(row.done, 2)
-                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no']==row.action_no, 't_left'] = round(row.time_left, 2)
+                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'started'] = round(row.started, 2)
+                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'done'] = round(row.done, 2)
+                        self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 't_left'] = round(row.time_left, 2)
                 except Exception as e:
                     print(e)
 
@@ -573,9 +573,9 @@ class GUI:
                     user.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
 
                 try:
-                    act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['next_r_action_no'].values[0]
+                    act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['next_r_action_no'].values[0]
                     user.tasks.tag_configure(act_no, background='yellow')
-                    act_no = self.robot_tasks_data[self.robot_tasks_data['user_id']==user.id]['last_completed_action_no'].values[0]
+                    act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['last_completed_action_no'].values[0]
                     user.tasks.tag_configure(act_no, background='green')
                 except Exception:
                     pass

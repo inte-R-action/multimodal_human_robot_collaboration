@@ -216,7 +216,8 @@ def users_node():
         # Create user object
         users = setup_user(users, frame_id, args.task_type, name)
         # Thread to update sensor data windows
-        user_threads.append(threading.Thread(target=update_user_data_seq, args=(users[-1]), daemon=True))
+        user_threads.append(threading.Thread(target=update_user_data_seq, args=(users[-1],), daemon=True))
+        user_threads[-1].start()
 
     # Wait for shimmer node to be ready
     while shimmer_stat != 0 and not rospy.is_shutdown():

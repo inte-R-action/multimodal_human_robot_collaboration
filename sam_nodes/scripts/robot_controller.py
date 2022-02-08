@@ -265,6 +265,7 @@ def robot_control_node():
     #db = database()
     home = False
 
+    print("Ready for trial to start")
     while (not start_trial) and (not rospy.is_shutdown()):
         diag_obj.publish(0, "Waiting for trial to start")
         time.sleep(0.1)

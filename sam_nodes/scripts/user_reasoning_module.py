@@ -14,20 +14,20 @@ import datetime
 from global_data import ACTIONS
 import csv
 import os
+
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
 tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
 tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
-
 
 plt.ion()
 MODEL_FILE = "./sam_nodes/scripts/models_parameters/lstm_future_prediction_model_20220125-164357.h5"
 
 
 class reasoning_module:
-    def __init__(self, name, id, frame_id):
+    def __init__(self, name, Id, frame_id):
         self.test = False
         self.name = name
-        self.id = id
+        self.id = Id
         self.frame_id = frame_id
         self.task_data = None
         self.task = None

@@ -53,8 +53,6 @@ def fakeSensorsmain():
     joints_msg.UserId = 1
     joints_msg.UserName = 'j'
 
-    print("Starting main loop")
-
     diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
 
     rate = rospy.Rate(50)  # Message publication rate, Hz => should be 50
@@ -69,6 +67,7 @@ def fakeSensorsmain():
             skel_diag_obj.publish(0, "Waiting for trial to start")
             time.sleep(0.1)
 
+        print("Fake sensor publisher starting")
         for row in csvreader:
             if not rospy.is_shutdown():
 
@@ -93,7 +92,7 @@ def fakeSensorsmain():
                     joints_msg.Header.seq += 1
                     joints_msg.Header.stamp = rospy.get_rostime()
                     joints_publisher.publish(joints_msg)
-                    
+
                     diag_msg = "fake_sensor_pub all good"
                     diag_level = 0 # ok
 

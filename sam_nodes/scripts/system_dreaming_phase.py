@@ -38,7 +38,6 @@ def get_users_meta_data(episodic_data, actions_meta_data):
         actions = user_episodic_data.action_name.unique()
 
         for a, action in enumerate(ACTIONS):
-            # action = ACTIONS[a]
             total_time = sum([t.total_seconds() for t in user_episodic_data.loc[user_episodic_data["action_name"] == action]["duration"]])
             task = user_episodic_data["task_name"].values[0]
             if task == 'assemble_chair':
@@ -85,7 +84,6 @@ def get_tasks_meta_data(episodic_data, actions_meta_data):
 
         for a, action in enumerate(ACTIONS):
             total_time = sum([t.total_seconds() for t in task_episodic_data.loc[task_episodic_data["action_name"] == action]["duration"]])
-            task = task_episodic_data["task_name"][0]
             if task == 'assemble_chair':
                 ave_time = total_time/num_box_actions[action]
             elif task == 'assemble_complex_box':
