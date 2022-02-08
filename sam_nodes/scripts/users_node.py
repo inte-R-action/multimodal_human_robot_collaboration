@@ -16,6 +16,7 @@ import os
 from os.path import join
 from statistics import mean
 from global_data import ACTIONS, TASKS, DEFAULT_TASK
+import threading
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
 # Argument parsing
@@ -35,18 +36,13 @@ parser.add_argument('--test',
                     help='Test mode without sensors',
                     choices=[True, False],
                     default=False)
-# parser.add_argument('--classifier_type', '-C',
-#                     help='Either 1v1 (one) or allvall (all) classifier',
-#                     choices=['one', 'all'],
-#                     default='one')
-
-# use_vision = False
 
 args = parser.parse_known_args()[0]
-print(f"Users node settings: {args.task_type}")# {args.classifier_type}")
+print(f"Users node settings: {args.task_type}")
 database_stat = 1
 shimmer_stat = 1
 kinect_stat = 1
+task_started = False
 
 
 def setup_user(users, frame_id, task, name=None):
@@ -114,7 +110,7 @@ def imu_data_callback(data, users):
                 for t in type:
                     for a in axes:
                         data_list.append(getattr(getattr(getattr(data, p), t), a))
-            assert len(data_list)==18, "IMU data received is wrong length"
+            assert len(data_list) == 18, "IMU data received is wrong length"
             users[i].perception.add_imu_data(data_list, msg_time)
 
 
@@ -148,34 +144,11 @@ def current_action_callback(data, users):
         else:
             msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
 
-            # if args.classifier_type == 'all':
-            #     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [np.argmax(data.ActionProbs).astype(float), 0, time, time]))
-            #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, time)))))
-            # elif args.classifier_type == 'one':
-                # # Only select relevant classifier output
-                # try:
-                #     action_idx = users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)-1
-                #     null_probs = 1-data.ActionProbs[action_idx]
-
-                #     if data.ActionProbs[action_idx] > null_probs:
-                #         users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index(users[i].curr_action_type)), 0, time, time]))
-                #     else:
-                #         users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
-
-                # except ValueError as e:
-                #     # When action is robot action so not found in user action list
-                #     users[i]._imu_state_hist = np.vstack((users[i]._imu_state_hist, [float(users[i].ACTION_CATEGORIES.index('null')), 0, time, time]))
-                #     null_probs = 1
-
-                # if users[i].ACTION_CATEGORIES.index('null') == 0:
-                #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((null_probs, data.ActionProbs, time)))))
-                # else:
-                #     users[i]._imu_pred_hist = np.vstack((users[i]._imu_pred_hist, (np.hstack((data.ActionProbs, null_probs, time)))))
-
             users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, msg_time)))))
             users[i].collate_har_seq()
 
-            users[i].task_reasoning.predict_action_statuses(data.ActionProbs)
+            if task_started:
+                users[i].task_reasoning.predict_action_statuses(data.ActionProbs)
 
 
 def sys_stat_callback(data, users):
@@ -184,8 +157,6 @@ def sys_stat_callback(data, users):
 
     if data.Header.frame_id == 'Database_node':
         database_stat = data.DiagnosticStatus.level
-    elif data.Header.frame_id == 'Realsense_node':
-        imrecog_stat = data.DiagnosticStatus.level
     elif data.Header.frame_id == 'skeleton_viewer':
         kinect_stat = data.DiagnosticStatus.level
     elif data.Header.frame_id == 'gui_node':
@@ -203,11 +174,18 @@ def sys_stat_callback(data, users):
         shimmer_stat = max(users[i].shimmer_ready for i in range(len(users)))
 
 
-def next_action_override_callback(msg, users):
-    if users:
-        for i in range(len(users)):
-            if msg.data == users[i].name:
-                users[i].next_action_override()
+def sys_cmd_callback(msg):
+    """callback for system command messages"""
+    global task_started
+    if msg.data == 'start':
+        task_started = True
+
+
+def update_user_data_seq(user):
+    rate = rospy.Rate(50)
+    while not rospy.is_shutdown():
+        user.perception.update_data_window()
+        rate.sleep()
 
 
 def users_node():
@@ -219,7 +197,7 @@ def users_node():
     diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1, keyvalues=keyvalues)
 
     rospy.Subscriber("SystemStatus", diagnostics, sys_stat_callback, (users))
-    rospy.Subscriber("NextActionOverride", String, next_action_override_callback, (users))
+    rospy.Subscriber("ProcessCommands", String, sys_cmd_callback)
 
     # Wait for postgresql node to be ready
     while database_stat != 0 and not rospy.is_shutdown():
@@ -233,8 +211,12 @@ def users_node():
         diag_obj.publish(1, "Waiting for kinect_stat node")
         time.sleep(0.5)
 
+    user_threads = []
     for name in args.user_names:
+        # Create user object
         users = setup_user(users, frame_id, args.task_type, name)
+        # Thread to update sensor data windows
+        user_threads.append(threading.Thread(target=update_user_data_seq, args=(users[-1]), daemon=True))
 
     # Wait for shimmer node to be ready
     while shimmer_stat != 0 and not rospy.is_shutdown():
@@ -280,11 +262,6 @@ def users_test_node():
 
     rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     while not rospy.is_shutdown():
-        # rospy.loginfo(f"{frame_id} active")
-
-        # for user in users:
-        #     user.perception.predict_actions()
-
         diag_obj.publish(0, "Running")
         rate.sleep()
 

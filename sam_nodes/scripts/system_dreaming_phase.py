@@ -30,16 +30,16 @@ def read_users_memory():
 def get_users_meta_data(episodic_data, actions_meta_data):
     users_data = read_users_memory()
     user_ids = episodic_data.user_id.unique()
-    users_meta_data = {n : [[] for _ in range(len(ACTIONS))] for n in user_ids}
-    user_names = {n : users_data.loc[users_data['user_id']==n]['user_name'].values[0] for n in user_ids}
+    users_meta_data = {n: [[] for _ in range(len(ACTIONS))] for n in user_ids}
+    user_names = {n: users_data.loc[users_data['user_id'] == n]['user_name'].values[0] for n in user_ids}
 
     for user in user_ids:
-        user_episodic_data = episodic_data.loc[episodic_data["user_id"]==user]
+        user_episodic_data = episodic_data.loc[episodic_data["user_id"] == user]
         actions = user_episodic_data.action_name.unique()
 
         for a, action in enumerate(ACTIONS):
             # action = ACTIONS[a]
-            total_time = sum([t.total_seconds() for t in user_episodic_data.loc[user_episodic_data["action_name"]==action]["duration"]])
+            total_time = sum([t.total_seconds() for t in user_episodic_data.loc[user_episodic_data["action_name"] == action]["duration"]])
             task = user_episodic_data["task_name"].values[0]
             if task == 'assemble_chair':
                 ave_time = total_time/num_box_actions[action]
@@ -78,14 +78,13 @@ def write_users_metadata(users_meta_data, user_names):
 
 def get_tasks_meta_data(episodic_data, actions_meta_data):
     tasks = episodic_data.task_name.unique()
-    tasks_meta_data = {n : [[] for _ in range(len(ACTIONS))] for n in set(tasks)}
+    tasks_meta_data = {n: [[] for _ in range(len(ACTIONS))] for n in set(tasks)}
     for task in tasks:
-        task_episodic_data = episodic_data.loc[episodic_data["task_name"]==task]
+        task_episodic_data = episodic_data.loc[episodic_data["task_name"] == task]
         actions = task_episodic_data.action_name.unique()
 
         for a, action in enumerate(ACTIONS):
-            # action = ACTIONS[a]
-            total_time = sum([t.total_seconds() for t in task_episodic_data.loc[task_episodic_data["action_name"]==action]["duration"]])
+            total_time = sum([t.total_seconds() for t in task_episodic_data.loc[task_episodic_data["action_name"] == action]["duration"]])
             task = task_episodic_data["task_name"][0]
             if task == 'assemble_chair':
                 ave_time = total_time/num_box_actions[action]
@@ -112,8 +111,8 @@ def write_tasks_metadata(tasks_meta_data):
         columns = list(task_df.columns)
         new_task_df = pd.DataFrame(columns=columns)
         new_task_df = new_task_df.append({'date': date.today()}, ignore_index=True)
-        for a in range(len(ACTIONS)):
-            new_task_df[ACTIONS[a]] = tasks_meta_data[task][a]
+        for a, action in enumerate(ACTIONS):
+            new_task_df[action] = tasks_meta_data[task][a]
 
         new_task_df['time'] = datetime.now().time()
         task_df = task_df.append(new_task_df)
@@ -145,7 +144,6 @@ def write_actions_metadata(actions_meta_data):
 def update_matedata_tables(actions_meta_data, users_meta_data, tasks_meta_data, user_names):
     print(actions_meta_data)
     for a, action in enumerate(ACTIONS):
-        # action = ACTIONS[a]
         try:
             mean_t = mean(actions_meta_data[action])  # mean action time overall
         except StatisticsError:
@@ -161,10 +159,9 @@ def update_matedata_tables(actions_meta_data, users_meta_data, tasks_meta_data, 
 
     base_meta_data = pd.read_csv("models_parameters/base_training_meta_data.csv")
 
-    for a in range(len(ACTIONS)):
-        action = ACTIONS[a]
-        mean_t = base_meta_data.loc[base_meta_data['actions']=='default_timings_mean'][action].values[0]
-        std_t = base_meta_data.loc[base_meta_data['actions']=='default_timings_std'][action].values[0]
+    for a, action in enumerate(ACTIONS):
+        mean_t = base_meta_data.loc[base_meta_data['actions'] == 'default_timings_mean'][action].values[0]
+        std_t = base_meta_data.loc[base_meta_data['actions'] == 'default_timings_std'][action].values[0]
         for user in users_meta_data:
             # users_meta_data[user][a] = mean(user[action])  # mean action time per user
             users_meta_data[user][a] = (users_meta_data[user][a]-mean_t)/std_t  # normalise data
@@ -186,7 +183,7 @@ def enter_dreaming_phase():
 
     episodic_data = read_episodic_memory()
 
-    actions_meta_data = {n : [] for n in ACTIONS}
+    actions_meta_data = {n: [] for n in ACTIONS}
     actions_meta_data, users_meta_data, user_names = get_users_meta_data(episodic_data, actions_meta_data)
     actions_meta_data, tasks_meta_data = get_tasks_meta_data(episodic_data, actions_meta_data)
     print(users_meta_data)
@@ -194,5 +191,5 @@ def enter_dreaming_phase():
     update_matedata_tables(actions_meta_data, users_meta_data, tasks_meta_data, user_names)
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     enter_dreaming_phase()

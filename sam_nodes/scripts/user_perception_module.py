@@ -25,11 +25,13 @@ class perception_module:
         self.id = u_id
         self.frame_id = frame_id
         self.actions = ACTION_CATEGORIES
+        self.new_imu_data = np.zeros((1, 18))
         self.imu_data = np.zeros((WIN_LEN, 18))
         self.imu_update_t = None
         self.imu_means = None
         self.imu_scales = None
         self.load_imu_scale_parameters()
+        self.new_skel_data = np.zeros((1, 15*7))
         self.skel_data = np.zeros((WIN_LEN, 15*7))
         self.skel_update_t = None
 
@@ -72,13 +74,16 @@ class perception_module:
 
     def add_imu_data(self, data, time):
         self.imu_update_t = time
-        scaled_data = (data-self.means)/self.scales
-        self.imu_data = np.vstack((self.imu_data, scaled_data))
-        self.imu_data = self.imu_data[-WIN_LEN:, :]
+        self.new_imu_data = (data-self.means)/self.scales
 
     def add_skel_data(self, data, time):
         self.skel_update_t = time
-        self.skel_data = np.vstack((self.skel_data, data))
+        self.new_skel_data = data
+
+    def update_data_window(self):
+        self.imu_data = np.vstack((self.imu_data, self.new_imu_data))
+        self.imu_data = self.imu_data[-WIN_LEN:, :]
+        self.skel_data = np.vstack((self.skel_data, self.new_skel_data))
         self.skel_data = self.skel_data[-WIN_LEN:, :]
 
     def plot_prediction(self, prediction):

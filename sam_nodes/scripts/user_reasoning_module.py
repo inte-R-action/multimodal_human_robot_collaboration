@@ -89,7 +89,6 @@ class reasoning_module:
             self.means = scale_data[1:, 1].astype(float)
             self.scales = scale_data[1:, -1].astype(float)
 
-
     def normalise_input_data(self, input_data):
         return (input_data-self.means)/self.scales
 

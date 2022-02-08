@@ -38,10 +38,6 @@ parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
                     choices=TASKS,
                     default=DEFAULT_TASK)
-# parser.add_argument('--classifier_type', '-C',
-#                     help='Either 1v1 (one) or allvall (all) classifier',
-#                     choices=['one', 'all'],
-#                     default='all')
 args = parser.parse_known_args()[0]
 
 print(f"GUI settings: {args.task_type}")
