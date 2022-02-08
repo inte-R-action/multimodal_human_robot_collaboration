@@ -48,6 +48,7 @@ string gripper_state = "";
 namespace rvt = rviz_visual_tools;
 int robot_execute_code;
 double ft_readings [6];
+bool vision_recog = false;
 
 void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
 {
@@ -742,22 +743,28 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
     // Move to position above block
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
-    // Look for block
-    geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
-    cout << "Found: " << pose_cam_obj << endl;
-    // Transform to world frame
-    geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
-    // Move to new position above object
-    geometry_msgs::Pose target_pose1;
-    target_pose1.orientation.x = pose_base_obj.orientation.x;
-    target_pose1.orientation.y = pose_base_obj.orientation.y;
-    target_pose1.orientation.z = pose_base_obj.orientation.z;
-    target_pose1.orientation.w = pose_base_obj.orientation.w;
-    target_pose1.position.x = pose_base_obj.position.x;
-    target_pose1.position.y = pose_base_obj.position.y;
-    target_pose1.position.z = 0.4;
-    ROS_INFO_STREAM("Target pose: \n" << target_pose1);
-    bool success = Robot.plan_to_pose(target_pose1);
+    bool success = false;
+    if ( vision_recog ){
+        // Look for block
+        geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
+        cout << "Found: " << pose_cam_obj << endl;
+        // Transform to world frame
+        geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
+        // Move to new position above object
+        geometry_msgs::Pose target_pose1;
+        target_pose1.orientation.x = pose_base_obj.orientation.x;
+        target_pose1.orientation.y = pose_base_obj.orientation.y;
+        target_pose1.orientation.z = pose_base_obj.orientation.z;
+        target_pose1.orientation.w = pose_base_obj.orientation.w;
+        target_pose1.position.x = pose_base_obj.position.x;
+        target_pose1.position.y = pose_base_obj.position.y;
+        target_pose1.position.z = 0.4;
+        ROS_INFO_STREAM("Target pose: \n" << target_pose1);
+        success = Robot.plan_to_pose(target_pose1);
+    }
+    else {
+        success = true;
+    }
 
     if (success){
         //Robot.move_group.execute();
@@ -838,7 +845,9 @@ int main(int argc, char** argv)
 	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 1000, robotMoveCallback);
 
     // Object recognition subscriber
-    ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 1000, objectDetectionCallback);
+    if ( vision_recog ){
+        ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 1000, objectDetectionCallback);
+    }
 
     // Robot object
     moveit_robot Robot(&node_handle);
