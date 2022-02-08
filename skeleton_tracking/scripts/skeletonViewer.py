@@ -154,9 +154,10 @@ def main(args):
     user_id = 1
     joints_msg = skeleton()
     joints_msg.Header.stamp = rospy.get_rostime()
-    joints_msg.Header.seq = None
+    joints_msg.Header.seq = 0
     joints_msg.Header.frame_id = frame_id
     joints_msg.UserId = user_id
+    joints_msg.UserName = 'j'
 
     # Init the Kinect object
     kin = Kinect(user_id)
@@ -185,7 +186,7 @@ def main(args):
     thickness = 2
 
     pose_msg = Pose()
-
+    diag_timer = time.time()
     rate = rospy.Rate(1)  # 1hz
     while not rospy.is_shutdown():
         try:
@@ -203,6 +204,8 @@ def main(args):
 
                 setattr(joints_msg, FRAMES[i], pose_msg)
 
+            joints_msg.Header.stamp = rospy.get_rostime()
+            joints_msg.Header.seq += 1
             joints_publisher.publish(joints_msg)
 
             if disp:
@@ -222,11 +225,13 @@ def main(args):
                 cv2.waitKey(1)
 
             # rate.sleep()
-            diag_obj.publish(0, "Running")
+            if time.time()-diag_timer >1:
+                diag_obj.publish(0, "Running")
+                diag_timer = time.time()
         except tf2_ros.TransformException:
             print("user not found error")
         except Exception as e:
-            print("skeleton viewer error: " + e)
+            print("skeleton viewer error: ", e)
 
 
 if __name__ == '__main__':

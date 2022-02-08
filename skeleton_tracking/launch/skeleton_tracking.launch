@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="test_mode" default="true" />
+  <arg name="test_mode" default="false" />
   <arg name="node_start_delay" default="10.0" />
   <arg if="$(arg test_mode)" name="skeleton_viewer" default="false" />
   <arg unless="$(arg test_mode)" name="skeleton_viewer" default="true" />
