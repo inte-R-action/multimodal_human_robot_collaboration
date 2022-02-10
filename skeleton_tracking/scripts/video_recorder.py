@@ -139,6 +139,7 @@ def main(args):
                     s_writer_open = screen_writer.open("screen_"+file, fourcc, fps, SCREEN_SIZE, True)
 
                 kinect_writer.write(kin_image)
+                cv2.putText(screen_frame, str(time.time()), (50, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
                 screen_writer.write(screen_frame)
 
             else:

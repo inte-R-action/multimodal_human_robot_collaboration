@@ -145,7 +145,7 @@ def current_action_callback(data, users):
             msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
 
             users[i]._har_pred_hist = np.vstack((users[i]._har_pred_hist, (np.hstack((data.ActionProbs, msg_time)))))
-            users[i].collate_har_seq()
+            users[i].collate_har_seq(task_started)
 
             if task_started:
                 users[i].task_reasoning.predict_action_statuses(data.ActionProbs)

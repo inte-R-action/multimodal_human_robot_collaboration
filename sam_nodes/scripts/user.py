@@ -52,7 +52,7 @@ class User:
 
         print(f"Updated task for user {self.name} to task {self.task}")
 
-    def collate_har_seq(self):
+    def collate_har_seq(self, task_started):
         # Group predictions of same type together
         for a, act_hist in enumerate(self._har_state_hist):
             prediction_prob = self._har_pred_hist[-1, a]
@@ -70,15 +70,16 @@ class User:
                 self._final_state_hist[a][-1, 1] = np.mean(act_hist[:, 1])  # update final confidence
                 self._final_state_hist[a][-1, -1] = self._har_pred_hist[-1, -1]  # update finish time
             else:
-                # Can publish new episode to sql if not null action
-                if int(self._final_state_hist[a][-1, 0]) != 0:
-                    start_t = self._final_state_hist[a][-1, 2]
-                    end_t = self._final_state_hist[a][-1, 3]
-                    dur = end_t - start_t
-                    action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[a][-1, 0])]
-                    self.db.insert_data_list("Episodes",
-                    ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"],
-                    [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
+                if task_started:
+                    # Can publish new episode to sql if not null action
+                    if int(self._final_state_hist[a][-1, 0]) != 0:
+                        start_t = self._final_state_hist[a][-1, 2]
+                        end_t = self._final_state_hist[a][-1, 3]
+                        dur = end_t - start_t
+                        action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[a][-1, 0])]
+                        self.db.insert_data_list("Episodes",
+                        ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"],
+                        [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
 
                 # Update state history objects
                 new_start_t = self._har_pred_hist[-1, -1]

@@ -26,3 +26,4 @@ action_id,action_name,std_dur_s,user_type
 24,bring_back_slats,24,robot
 25,bring_legs,15,robot
 26,take_chair,1,robot
+27,deliver_chair,0,robot

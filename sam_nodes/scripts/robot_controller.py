@@ -299,7 +299,7 @@ def robot_control_node():
                     predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
                     next_action = False
 
-                elif (not robot_task.finished) and (row['robot_start_t'][0] > robot_task.next_action_time) or (row['done'][0] is True):
+                elif (not robot_task.finished) and ((row['robot_start_t'][0] > robot_task.next_action_time) or (row['done'][0] is True)):
                     # if time to colab action > time to do solo action
                     home = False
                     predictor.task_now = robot_task.task_name

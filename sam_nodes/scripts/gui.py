@@ -421,7 +421,7 @@ class GUI:
         self.node_stats.grid(row=1, column=0, columnspan=2, sticky="nsew")
         self.nodes_list = [['Database_node', None],
                            ['users_node', None],
-                           ['skeletonViewer', None],
+                           ['skeleton_viewer', None],
                            ['robot_control_node', None],
                            ['hri_static_demo', None],
                            ['rq_gripper_2F140', None]]

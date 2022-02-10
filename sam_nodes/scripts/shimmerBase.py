@@ -56,14 +56,6 @@ parser.add_argument('--disp', '-V',
                     help='Enable displaying of live graphs',
                     default=False,
                     action="store_true")
-parser.add_argument('--task_type', '-T',
-                    help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-                    choices=['assemble_box', 'assemble_complex_box'],
-                    default='assemble_complex_box')
-parser.add_argument('--bar', '-B',
-                    help='Enable displaying of live prediction bar plot',
-                    default=False,
-                    action="store_true")
 parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
                     default='j',
@@ -74,11 +66,10 @@ parser.add_argument('--user_id', '-I',
                     action="store_true")
 
 args = parser.parse_known_args()[0]
-print(f"Shimmer settings: {args.task_type}")# {args.classifier_type}")
 frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
 
 # Shimmer sensor connection params
-serialports = ['/dev/rfcomm5', '/dev/rfcomm3', '/dev/rfcomm4']
+serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm2']
 POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
@@ -193,29 +184,46 @@ class shimmer():
             try:
                 self._serial = serial.Serial(self._port, 115200, timeout=5)
                 self._serial.flushInput()
-                print(f"---{self._location} port opening, done.")
-                # send the set sensors command
-                self._serial.write(struct.pack('BBBB', 0x08, 0xC0, 0x20, 0x00))  # analogaccel, mpu gyro, batt volt
-                if not self.wait_for_ack():
-                    return False
-                self._connected = True
-                self._status = 6 # initialising
-                print(f"---{self._location} sensor setting, done.")
-                # send the set sampling rate command
-                self._serial.write(
-                    struct.pack('BBB', 0x05, 0x80,
-                                0x02))  # 51.2Hz (6400 (0x1900)). Has to be done like this for alignment reasons
-                if not self.wait_for_ack():
-                    return False
-                print(f"---{self._location} sampling rate setting, done.")
-                # send start streaming command
-                self._serial.write(struct.pack('B', 0x07))
-                if not self.wait_for_ack():
-                    return False
-                print(f"---{self._location} start command sending, done.")
-                #self.inquiry_response()  # Use this if you want to find the structure of data that will be streamed back
 
-                return True
+                devices = subprocess.Popen("rfcomm", stdout=subprocess.PIPE)
+                devices = devices.communicate()[0].decode("utf-8")
+                devices = devices.split("\n")
+                correct_device = False
+                for device in devices:
+                    if self._port[-7:] in device:
+                        if self._ID in device:
+                            print(f"Correct device for {self._location}")
+                            correct_device = True
+                            break
+
+                if correct_device:
+                    print(f"---{self._location} port opening, done.")
+                    # send the set sensors command
+                    self._serial.write(struct.pack('BBBB', 0x08, 0xC0, 0x20, 0x00))  # analogaccel, mpu gyro, batt volt
+                    if not self.wait_for_ack():
+                        return False
+                    self._connected = True
+                    self._status = 6 # initialising
+                    print(f"---{self._location} sensor setting, done.")
+                    # send the set sampling rate command
+                    self._serial.write(
+                        struct.pack('BBB', 0x05, 0x80,
+                                    0x02))  # 51.2Hz (6400 (0x1900)). Has to be done like this for alignment reasons
+                    if not self.wait_for_ack():
+                        return False
+                    print(f"---{self._location} sampling rate setting, done.")
+                    # send start streaming command
+                    self._serial.write(struct.pack('B', 0x07))
+                    if not self.wait_for_ack():
+                        return False
+                    print(f"---{self._location} start command sending, done.")
+                    #self.inquiry_response()  # Use this if you want to find the structure of data that will be streamed back
+
+                    return True
+
+                else:
+                    print(f"Incorrect device for {self._location}")
+                    return False
 
             except Exception as e:
                 print(f'exception in {self._location} initiate: {e}')
@@ -382,7 +390,7 @@ class shimmer():
         # Start thread for shimmer connection
         # connect_threads[num] = threading.Thread(target=shimmers[num].bt_connection, args=(num,))
         # connect_threads[num].start()
-        
+
         # if self.bt_connection():
         count = 0
         while count <= 3:
@@ -512,7 +520,7 @@ def IMUsensorsMain():
     rospy.init_node(f'shimmerBase_{args.user_name}_{args.user_id}', anonymous=True)
     rate = rospy.Rate(50)  # Message publication rate, Hz => should be 50
     
-    keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]), 
+    keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]),
                  KeyValue(key = f'Shimmer {POSITIONS[1]} {SHIM_IDs[1]}', value = IMU_MSGS[2]),
                  KeyValue(key = f'Shimmer {POSITIONS[2]} {SHIM_IDs[2]}', value = IMU_MSGS[2]),
                  KeyValue(key = f'Overall', value = IMU_SYS_MSGS[2])] # [unknown, unknown, unknown, setting up]

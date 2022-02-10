@@ -30,6 +30,7 @@ def read_users_memory():
 def get_users_meta_data(episodic_data, actions_meta_data):
     users_data = read_users_memory()
     user_ids = episodic_data.user_id.unique()
+    user_ids = user_ids[user_ids != 0]
     users_meta_data = {n: [[] for _ in range(len(ACTIONS))] for n in user_ids}
     user_names = {n: users_data.loc[users_data['user_id'] == n]['user_name'].values[0] for n in user_ids}
 
@@ -77,6 +78,8 @@ def write_users_metadata(users_meta_data, user_names):
 
 def get_tasks_meta_data(episodic_data, actions_meta_data):
     tasks = episodic_data.task_name.unique()
+    tasks = tasks[tasks != None]
+    tasks = tasks[tasks != 'stack_tower']
     tasks_meta_data = {n: [[] for _ in range(len(ACTIONS))] for n in set(tasks)}
     for task in tasks:
         task_episodic_data = episodic_data.loc[episodic_data["task_name"] == task]
@@ -88,6 +91,8 @@ def get_tasks_meta_data(episodic_data, actions_meta_data):
                 ave_time = total_time/num_box_actions[action]
             elif task == 'assemble_complex_box':
                 ave_time = total_time/num_chair_actions[action]
+            else:
+                break
 
             if ave_time == 0:
                 ave_time = float("nan")
