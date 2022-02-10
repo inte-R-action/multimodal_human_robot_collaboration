@@ -2,7 +2,7 @@
 
   <!-- By default, we are not in debug mode -->
   <arg name="test_mode" default="false" />
-  <arg name="task" default="assemble_complex_box" />
+  <arg name="task" default="assemble_chair" />
   <arg name="classifier" default="one" />
   <arg name="gui" default="false" />
 

@@ -280,7 +280,7 @@ def robot_control_node():
                 predictor.future_estimates.robot_start_t.min()]
 
             if not row.empty:
-                if ((row['robot_start_t'][0] < pd.Timedelta(0)) or (next_action)) and (row['done'][0] is False):
+                if ((row['robot_start_t'][0] <= pd.Timedelta(0)) or (next_action)) and (row['done'][0] is False):
                     # if time to next colab < action time start colab action
                     home = False
                     # get action and task details

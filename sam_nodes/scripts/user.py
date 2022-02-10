@@ -43,8 +43,8 @@ class User:
         self.ACTION_CATEGORIES = COMPLEX_BOX_ACTIONS
 
         self._har_pred_hist = np.array([0, 0, 0, 0, datetime.min])  # class confs, t
-        self._har_state_hist = [np.array([0, 1, datetime.min], ndmin=2)]*(len(self.ACTION_CATEGORIES)-1)  # [class, conf, t]*num_classes
-        self._final_state_hist = [np.array([0, 1, datetime.min, datetime.min], ndmin=2)]*(len(self.ACTION_CATEGORIES)-1)  # [class, conf, tStart, tEnd]*num_classes
+        self._har_state_hist = [np.array([0, 1, datetime.min], ndmin=2) for _ in range(len(self.ACTION_CATEGORIES)-1)]  # [class, conf, t]*num_classes
+        self._final_state_hist = [np.array([0, 1, datetime.min, datetime.min], ndmin=2) for _ in range(len(self.ACTION_CATEGORIES)-1)]  # [class, conf, tStart, tEnd]*num_classes
 
         if not self.test:
             self.perception.actions = self.ACTION_CATEGORIES

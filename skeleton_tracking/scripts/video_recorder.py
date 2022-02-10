@@ -127,7 +127,7 @@ def main(args):
         while not rospy.is_shutdown():
             if test_mode:
                 ret, kin_image= cap.read()
-            
+
             # Grab the screenshot data
             screen_img = sct.grab(region)
             screen_frame = cv2.cvtColor(np.array(screen_img), cv2.COLOR_RGBA2RGB)

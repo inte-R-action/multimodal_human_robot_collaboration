@@ -46,10 +46,10 @@ class reasoning_module:
 
         col_names, data = self.db.query_table('users', 'all')
         users_data = pd.DataFrame(data, columns=col_names)
-        users_data = users_data.loc[users_data['user_name']==self.name]
+        users_data = users_data.loc[users_data['user_name'] == self.name]
         col_names, data = self.db.query_table('tasks', 'all')
         tasks_data = pd.DataFrame(data, columns=col_names)
-        tasks_data = tasks_data.loc[tasks_data['task_name']==self.task]
+        tasks_data = tasks_data.loc[tasks_data['task_name'] == self.task]
 
         self.model_inputs = []
         for index, row in self.task_data.iterrows():
