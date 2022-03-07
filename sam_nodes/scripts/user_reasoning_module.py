@@ -11,7 +11,7 @@ from tensorflow.keras.layers import Dense, LSTM, \
     Input, TimeDistributed
 import tensorflow as tf
 import datetime
-from global_data import ACTIONS
+from global_data import ACTIONS, inclAdjParam
 import csv
 import os
 
@@ -20,7 +20,6 @@ tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
 tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
 
 plt.ion()
-MODEL_FILE = "./sam_nodes/scripts/models_parameters/lstm_future_prediction_model_20220125-164357.h5"
 
 
 class reasoning_module:
@@ -29,18 +28,23 @@ class reasoning_module:
         self.name = name
         self.id = Id
         self.frame_id = frame_id
+        self.inclAdjParam = inclAdjParam
         self.task_data = None
         self.task = None
         self.models = []
         self.model_inputs = None
+        self.actions_id_list = []
         self.means = None
         self.scales = None
         self.human_row_idxs = []
+        self.output_override = []
         self.fut_act_pred_col_names = None
         self.db = database()
 
     def setup_prediction_networks(self):
         if not self.test:
+            MODEL_FILE = f"./sam_nodes/scripts/models_parameters/lstm_future_prediction_model_inclAdjParam{self.inclAdjParam}.h5"
+
             old_model = load_model(MODEL_FILE)
             old_weights = old_model.get_weights()  # copy weights
 
@@ -55,9 +59,13 @@ class reasoning_module:
         for index, row in self.task_data.iterrows():
             if row['user_type'] == 'human':
                 if not self.test:
+                    if self.inclAdjParam:
+                        input_size = 7
+                    else:
+                        input_size = 5
                     # Need to recreate model with stateful parameter set and updated input shape
                     new_model = Sequential()
-                    new_model.add(Input((1, 8), batch_size=1))
+                    new_model.add(Input((1, input_size), batch_size=1))
                     new_model.add(LSTM(20, return_sequences=True, stateful=True))
                     new_model.add(TimeDistributed(Dense(120, activation='relu')))
                     new_model.add(TimeDistributed(Dense(120, activation='relu')))
@@ -68,12 +76,15 @@ class reasoning_module:
                     new_model.compile(loss='mse', optimizer=opt)
                     self.models.append(new_model)
 
-                    new_inputs = [None]*8
-                    new_inputs[1] = ACTIONS.index(row['action_name'])  # Action of focus
-                    new_inputs[2] = row['default_time'].total_seconds()  # Default time
-                    new_inputs[3] = users_data[row['action_name']].values[0]  # time adjust for user
-                    new_inputs[4] = tasks_data[row['action_name']].values[0]  # time adjustment for task
+                    new_inputs = [None]*input_size
+                    new_inputs[0] = 0 # Action prediction prob
+                    new_inputs[1] = row['default_time'].total_seconds()  # Default time
+                    if self.inclAdjParam:
+                        new_inputs[2] = users_data[row['action_name']].values[0]  # time adjust for user
+                        new_inputs[3] = tasks_data[row['action_name']].values[0]  # time adjustment for task
                     self.model_inputs.append(new_inputs)
+                    self.actions_id_list.append(ACTIONS.index(row['action_name']))  # Action of focus
+                    self.output_override.append(0)
 
                 else:
                     self.models.append("fake model")
@@ -82,7 +93,7 @@ class reasoning_module:
         self.model_inputs = np.array(self.model_inputs)
 
         # Load normalisation parameters
-        file_name = "./sam_nodes/scripts/models_parameters/lstm_input_scale_params.csv"
+        file_name = f"./sam_nodes/scripts/models_parameters/lstm_input_scale_params_finalTrue_inclAllNullTrue_inclAdjParam{self.inclAdjParam}.csv"
         with open(file_name, newline='') as f:
             reader = csv.reader(f)
             scale_data = np.array(list(reader))
@@ -98,18 +109,22 @@ class reasoning_module:
         done = 1
         for i in range(len(self.models)):
             if not self.test:
-                self.model_inputs[i, 0] = action_probs[self.model_inputs[i, 1]]  # Action prediction
-                self.model_inputs[i, -3:] = [time, started, done] # Previous action status
+                # Check if override button has been used on action
+                if not self.output_override[i]:
+                    self.model_inputs[i, 0] = action_probs[self.actions_id_list[i]]  # Action prediction
+                    self.model_inputs[i, -3:] = [time, started, done] # Previous action status
 
-                input_data = self.normalise_input_data(self.model_inputs[i, :])
-                input_data = np.nan_to_num(np.array(input_data, ndmin=3, dtype=np.float))
-                time, started, done = self.models[i](input_data, training=False)[0, 0, :].numpy()
+                    input_data = self.normalise_input_data(self.model_inputs[i, :])
+                    input_data = np.nan_to_num(np.array(input_data, ndmin=3, dtype=np.float))
+                    time, started, done = self.models[i](input_data, training=False)[0, 0, :].numpy()
+                else:
+                    time, started, done = [0, 1, 1]
             else:
                 [time, started, done] = [datetime.datetime.now().time(), 0, 0]
 
             self.task_data.loc[self.human_row_idxs[i], 'started'] = started
             self.task_data.loc[self.human_row_idxs[i], 'done'] = done
-            self.task_data.loc[self.human_row_idxs[i], 'time_left'] = time
+            self.task_data.loc[self.human_row_idxs[i], 'time_left'] = time*100
 
         self.publish_to_database()
 
@@ -150,3 +165,32 @@ class reasoning_module:
         self.db.gen_cmd(sql_cmd)
 
         self.setup_prediction_networks()
+
+    def next_action_override(self):
+        # Get last updated robot actions
+        col_names, robot_actions = self.db.query_table('robot_action_timings', 'all')
+        last_robot_stats = pd.DataFrame(robot_actions, columns=col_names)
+
+        # Get last action not completed by robot
+        try:
+            last_robot_action_no = last_robot_stats.loc[last_robot_stats["user_id"]==self.id]["last_completed_action_no"].values[0]
+        except (KeyError, IndexError) as e:
+            # user hasn't been entered into table yet
+            last_robot_action_no = -1
+
+        # get list of actions after last completed robot action
+        if last_robot_action_no != -1:
+            tasks_left = self.task_data.drop(self.task_data.index[:self.task_data.loc[self.task_data['action_no']==last_robot_action_no].first_valid_index()+1])
+        else:
+            tasks_left = self.task_data
+
+        next_robot_action_idx = int(tasks_left[tasks_left['user_type']=='robot'].first_valid_index())
+        print(next_robot_action_idx)
+        i = 0
+        for r in range(next_robot_action_idx):
+            print(self.task_data.loc[r])
+            if self.task_data.loc[r]['user_type'] == 'human':
+                self.output_override[i] = 1
+                i += 1
+
+        print(self.output_override)

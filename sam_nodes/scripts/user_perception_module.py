@@ -35,10 +35,10 @@ class perception_module:
         self.skel_data = np.zeros((WIN_LEN, 15*7))
         self.skel_update_t = None
 
-        self.screw_classifier = load_model('./sam_nodes/scripts/models_parameters/Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
-        self.allen_classifier = load_model('./sam_nodes/scripts/models_parameters/Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
-        self.hammer_classifier = load_model('./sam_nodes/scripts/models_parameters/Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
-        self.hand_classifier = load_model('./sam_nodes/scripts/models_parameters/Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD).h5')
+        self.screw_classifier = load_model('./sam_nodes/scripts/models_parameters/Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.allen_classifier = load_model('./sam_nodes/scripts/models_parameters/Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.hammer_classifier = load_model('./sam_nodes/scripts/models_parameters/Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.hand_classifier = load_model('./sam_nodes/scripts/models_parameters/Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
 
         self.screw_pred = 0
         self.allen_pred = 0
@@ -50,7 +50,7 @@ class perception_module:
 
     def load_imu_scale_parameters(self):
         # load scaling parameters
-        scale_file = "./sam_nodes/scripts/models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1.csv" # file with normalisation parameters
+        scale_file = "./sam_nodes/scripts/models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1_inclAllNull.csv" # file with normalisation parameters
         with open(scale_file, newline='') as f:
             reader = csv.reader(f)
             data = np.array(list(reader))

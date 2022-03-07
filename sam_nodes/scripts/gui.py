@@ -21,7 +21,7 @@ from postgresql.database_funcs import database
 import os
 import pandas as pd
 from tkinter import ttk
-from global_data import ACTIONS, TASKS, DEFAULT_TASK
+from global_data import ACTIONS, TASKS, DEFAULT_TASK, inclAdjParam
 import argparse
 import rosnode
 import threading
@@ -38,6 +38,10 @@ parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
                     choices=TASKS,
                     default=DEFAULT_TASK)
+# parser.add_argument('--inclAdjParam',
+#                     help='include user/task adjustment parameters for lstm model',
+#                     choices=[True, False],
+#                     default=False)
 args = parser.parse_known_args()[0]
 
 print(f"GUI settings: {args.task_type}")
@@ -226,15 +230,19 @@ class user_frame:
             self.shimmer[i].tag_add("center", "1.0", "end")
 
     def update_lstm_params_txt(self):
-        col_names, data = self.db.query_table('users', 'all')
-        users_data = pd.DataFrame(data, columns=col_names)
-        users_data = users_data.loc[users_data['user_name']==self.name]
-        col_names, data = self.db.query_table('tasks', 'all')
-        tasks_data = pd.DataFrame(data, columns=col_names)
-        tasks_data = tasks_data.loc[tasks_data['task_name']==self.task_name]
+        if inclAdjParam:
+            col_names, data = self.db.query_table('users', 'all')
+            users_data = pd.DataFrame(data, columns=col_names)
+            users_data = users_data.loc[users_data['user_name']==self.name]
+            col_names, data = self.db.query_table('tasks', 'all')
+            tasks_data = pd.DataFrame(data, columns=col_names)
+            tasks_data = tasks_data.loc[tasks_data['task_name']==self.task_name]
 
-        user_params = users_data[ACTIONS].values[0].round(1)  # time adjust for user
-        task_params = tasks_data[ACTIONS].values[0].round(1)  # time adjustment for task
+            user_params = users_data[ACTIONS].values[0].round(1)  # time adjust for user
+            task_params = tasks_data[ACTIONS].values[0].round(1)  # time adjustment for task
+        else:
+            user_params = ["N/A"]*len(ACTIONS)
+            task_params = ["N/A"]*len(ACTIONS)
 
         text = "LSTM Params       \n" \
                "User|Task \n"

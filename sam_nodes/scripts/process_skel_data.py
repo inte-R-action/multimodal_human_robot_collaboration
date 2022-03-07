@@ -11,7 +11,7 @@ import os
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 NUM_JOINTS = len(JOINTS_U)
 NUM_LINKS = len(JOINT_LINKS[0])
-infile = open('./models_parameters/pca_winlen3_transitionsTrue_1v1', 'rb')
+infile = open('./models_parameters/pca_winlen3_transitionsTrue_1v1_inclAllNull', 'rb')
 pca = pickle.load(infile)
 infile.close()
 

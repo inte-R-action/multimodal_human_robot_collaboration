@@ -36,6 +36,10 @@ parser.add_argument('--test',
                     help='Test mode without sensors',
                     choices=[True, False],
                     default=False)
+# parser.add_argument('--inclAdjParam',
+#                     help='include user/task adjustment parameters for lstm model',
+#                     choices=[True, False],
+#                     default=False)
 
 args = parser.parse_known_args()[0]
 print(f"Users node settings: {args.task_type}")
@@ -43,6 +47,7 @@ database_stat = 1
 shimmer_stat = 1
 kinect_stat = 1
 task_started = False
+next_action = False
 
 
 def setup_user(users, frame_id, task, name=None):
@@ -176,9 +181,11 @@ def sys_stat_callback(data, users):
 
 def sys_cmd_callback(msg):
     """callback for system command messages"""
-    global task_started
+    global task_started, next_action
     if msg.data == 'start':
         task_started = True
+    elif msg.data == 'next_action':
+        next_action = True
 
 
 def update_user_data_seq(user):
@@ -189,7 +196,7 @@ def update_user_data_seq(user):
 
 
 def users_node():
-    global database_stat, kinect_stat, shimmer_stat
+    global database_stat, kinect_stat, shimmer_stat, next_action
     frame_id = "users_node"
     rospy.init_node(frame_id, anonymous=True)
     keyvalues = []
@@ -235,6 +242,11 @@ def users_node():
         # rospy.loginfo(f"{frame_id} active")
         for user in users:
             user.perception.predict_actions()
+        
+        if next_action:
+            for user in users:
+                user.task_reasoning.next_action_override()
+            next_action = False
 
         diag_obj.publish(0, "Running")
         rate.sleep()
