@@ -157,7 +157,7 @@ def main(args):
     joints_msg.Header.seq = 0
     joints_msg.Header.frame_id = frame_id
     joints_msg.UserId = user_id
-    joints_msg.UserName = 'j'
+    joints_msg.UserName = 'r'
 
     # Init the Kinect object
     kin = Kinect(user_id)
