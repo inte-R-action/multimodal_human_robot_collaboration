@@ -58,7 +58,7 @@ parser.add_argument('--disp', '-V',
                     action="store_true")
 parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
-                    default='r',
+                    default='l',
                     action="store_true")
 parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',
@@ -69,7 +69,7 @@ args = parser.parse_known_args()[0]
 frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
 
 # Shimmer sensor connection params
-serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm3']
+serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm2']
 POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)

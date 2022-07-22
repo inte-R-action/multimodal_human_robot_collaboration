@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--user_names', '-N',
                     nargs='*',
                     help='Set name of user, default: unknown',
-                    default='r',
+                    default='l',
                     type=lambda s: [str(item) for item in s.split(',')])
 parser.add_argument('--task_type', '-T',
                     help='Task for users to perform, options: assemble_complex_box (default)',

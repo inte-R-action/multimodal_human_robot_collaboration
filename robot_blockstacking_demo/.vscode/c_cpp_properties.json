@@ -1,0 +1,62 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/bathrobot/catkin_ws/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/bathrobot/moveit_ws/devel/include/**",
+        "/home/bathrobot/robotology-superbuild/build/install/include/**",
+        "/home/bathrobot/robotology-superbuild/build/install/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_planners/chomp/chomp_motion_planner/include/**",
+        "/home/bathrobot/catkin_ws/src/Universal_Robots_ROS_Driver/controller_stopper/include/**",
+        "/home/bathrobot/catkin_ws/src/vision_opencv/cv_bridge/include/**",
+        "/home/bathrobot/moveit_ws/src/geometric_shapes/include/**",
+        "/home/bathrobot/catkin_ws/src/vision_opencv/image_geometry/include/**",
+        "/home/bathrobot/catkin_ws/src/mocap_optitrack/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_planners/chomp/chomp_interface/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_ros/benchmarks/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_plugins/moveit_ros_control_interface/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_ros/move_group/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_ros/occupancy_map_monitor/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_ros/robot_interaction/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_ros/moveit_servo/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_setup_assistant/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit/moveit_plugins/moveit_simple_controller_manager/include/**",
+        "/home/bathrobot/moveit_ws/src/moveit_visual_tools/include/**",
+        "/home/bathrobot/catkin_ws/src/realsense-ros/realsense2_camera/include/**",
+        "/home/bathrobot/catkin_ws/src/robotiq/robotiq_2f_gripper_action_server/include/**",
+        "/home/bathrobot/catkin_ws/src/robotiq/robotiq_2f_gripper_control/include/**",
+        "/home/bathrobot/catkin_ws/src/robotiq/robotiq_3f_gripper_articulated_gazebo_plugins/include/**",
+        "/home/bathrobot/catkin_ws/src/robotiq/robotiq_3f_gripper_control/include/**",
+        "/home/bathrobot/catkin_ws/src/robotiq/robotiq_ethercat/include/**",
+        "/home/bathrobot/catkin_ws/src/robotiq/robotiq_ft_sensor/include/**",
+        "/home/bathrobot/catkin_ws/src/rosserial/rosserial_server/include/**",
+        "/home/bathrobot/catkin_ws/src/rosserial/rosserial_test/include/**",
+        "/home/bathrobot/moveit_ws/src/rviz_visual_tools/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_bullet/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_eigen/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_geometry_msgs/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_kdl/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_msgs/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_ros/include/**",
+        "/home/bathrobot/catkin_ws/src/geometry2/tf2_sensor_msgs/include/**",
+        "/home/bathrobot/catkin_ws/src/Universal_Robots_ROS_Driver/ur_calibration/include/**",
+        "/home/bathrobot/catkin_ws/src/Universal_Robots_ROS_Driver/ur_controllers/include/**",
+        "/home/bathrobot/catkin_ws/src/fmauch_universal_robot/ur_kinematics/include/**",
+        "/home/bathrobot/catkin_ws/src/Universal_Robots_ROS_Driver/ur_robot_driver/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
