@@ -7,7 +7,7 @@ import argparse
 import traceback
 from diagnostic_msgs.msg import KeyValue
 from pub_classes import diag_class, move_class
-from sam_custom_messages.msg import user_prediction, capability, diagnostics
+from sam_custom_messages.msg import diagnostics
 from std_msgs.msg import String
 from postgresql.database_funcs import database
 import pandas as pd

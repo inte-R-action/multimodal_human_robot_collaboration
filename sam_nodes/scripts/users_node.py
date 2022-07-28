@@ -4,9 +4,9 @@ import rospy
 import numpy as np
 from std_msgs.msg import String
 from user import User
-from sam_custom_messages.msg import hand_pos, capability, current_action, diagnostics, threeIMUs, skeleton
+from sam_custom_messages.msg import hand_pos, current_action, diagnostics, threeIMUs, skeleton
 from diagnostic_msgs.msg import KeyValue
-from pub_classes import diag_class, capability_class
+from pub_classes import diag_class
 import argparse
 import datetime, time
 import pandas as pd
@@ -242,7 +242,7 @@ def users_node():
         # rospy.loginfo(f"{frame_id} active")
         for user in users:
             user.perception.predict_actions()
-        
+
         if next_action:
             for user in users:
                 user.task_reasoning.next_action_override()

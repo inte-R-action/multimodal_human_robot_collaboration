@@ -1,19 +1,18 @@
 #!/usr/bin/env python3.7
 
-import sys, struct, serial, os
-import numpy as np
-import argparse
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-import time
-import rospy
-from std_msgs.msg import Int8, Float64, String
-from pub_classes import diag_class, act_class, threeIMUs_class
 import csv
-from sam_custom_messages.msg import diagnostics, skeleton
-from global_data import SKELETON_FRAMES, ALL_ACTIONS
+import os
+import time
+import matplotlib.pyplot as plt
+import numpy as np
+import rospy
 from geometry_msgs.msg import Pose
-from statistics import mean, stdev
+from matplotlib.animation import FuncAnimation
+from sam_custom_messages.msg import diagnostics, skeleton
+from std_msgs.msg import String
+from global_data import ALL_ACTIONS, SKELETON_FRAMES
+from pub_classes import diag_class, threeIMUs_class
+
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts/"))
 start_trial = False
@@ -53,12 +52,12 @@ def fakeSensorsmain():
     joints_msg.UserId = 1
     joints_msg.UserName = 'j'
 
-    diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
+    diag_level = 1  # 0:ok, 1:warning, 2:error, 3:stale
 
     rate = rospy.Rate(50)  # Message publication rate, Hz => should be 50
     prev = None
     prev_t = time.time()
-    with open ('imu_skeleton_data_user_j_take_3.csv', newline='') as csvfile:
+    with open('imu_skeleton_data_user_j_take_3.csv', newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=';')
         next(csvreader)
 
@@ -94,12 +93,12 @@ def fakeSensorsmain():
                     joints_publisher.publish(joints_msg)
 
                     diag_msg = "fake_sensor_pub all good"
-                    diag_level = 0 # ok
+                    diag_level = 0  # ok
 
                 except Exception as e:
                     print(f"Error: {e}")
                     diag_msg = "fake_sensor_pub not so good"
-                    diag_level = 1 # warning
+                    diag_level = 1  # warning
 
                 try:
                     diag_obj.publish(diag_level, diag_msg)

@@ -1,19 +1,20 @@
 #!/usr/bin/env python3.7
 
+import csv
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-import rospy
 import numpy as np
 import matplotlib.pyplot as plt
 from pub_classes import act_class
 from process_skel_data import process_skel_data
 from tensorflow.keras.models import load_model
-import tensorflow_addons as tfa
-from global_data import PCA_COMPS
-import csv
+import tensorflow as tf
 
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 plt.ion()
-
+gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
+tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
+tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
 Fs = 50  # Sampling frequency, Hz
 WIN_TIME = 3  # Window length, s
 WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples

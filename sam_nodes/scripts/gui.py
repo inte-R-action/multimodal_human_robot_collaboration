@@ -1,30 +1,27 @@
 #!/usr/bin/env python3.7
 
-import tkinter as Tk
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
-# Implement the default Matplotlib key bindings.
-from matplotlib.backend_bases import key_press_handler
-from matplotlib.figure import Figure
-import numpy as np
+import argparse
+import os
+import threading
 import time
-import datetime
-from PIL import Image, ImageTk
-from sympy import E, EX
+import tkinter as Tk
+from tkinter import ttk
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import rosnode
 import rospy
 from diagnostic_msgs.msg import KeyValue
-from pub_classes import diag_class, move_class, act_class
-from sam_custom_messages.msg import user_prediction, capability, diagnostics, current_action, screw_count
+# Implement the default Matplotlib key bindings.
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
+from PIL import Image, ImageTk
+from sam_custom_messages.msg import current_action, diagnostics
 from std_msgs.msg import String
+from global_data import ACTIONS, DEFAULT_TASK, TASKS, inclAdjParam
 from postgresql.database_funcs import database
-import os
-import pandas as pd
-from tkinter import ttk
-from global_data import ACTIONS, TASKS, DEFAULT_TASK, inclAdjParam
-import argparse
-import rosnode
-import threading
+from pub_classes import diag_class
 from system_dreaming_phase import enter_dreaming_phase
 
 os.chdir(os.path.expanduser(

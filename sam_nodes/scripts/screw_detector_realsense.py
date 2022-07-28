@@ -1,37 +1,42 @@
 #!/usr/bin/env python3.7
 # Must be run from scripts folder
-# Import Statements
-import pyrealsense2 as rs
-import numpy as np
-import traceback
+
 import argparse
-import sys, os
+import os
+import sys
 import time
+import traceback
 import cv2
+import numpy as np
+from std_msgs.msg import Int8
+from vision_recognition.blob_detector import detect_blobs
+from vision_recognition.rs_cam import rs_cam
 #import matplotlib
 #matplotlib.use( 'tkagg' )
 #import matplotlib.pyplot as plt
 # from vision_recognition.finger_count import skinmask, getcnthull
 from vision_recognition.shape_detector import rectangle_detector
-from vision_recognition.blob_detector import detect_blobs
-from vision_recognition.rs_cam import rs_cam
-from std_msgs.msg import Int8
+
 
 try:
-    from pub_classes import diag_class, obj_class
     import rospy
-    test=False
+    from pub_classes import diag_class
+    test = False
 except ModuleNotFoundError:
-    print(f"rospy module not found, proceeding in test mode")
+    print("rospy module not found, proceeding in test mode")
     test = True
     # Hacky way of avoiding errors
+
     class ROS():
         def is_shutdown(self):
             return False
+
     rospy = ROS()
 
+
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
-sys.path.insert(0, "./sam_nodes/scripts/vision_recognition") # Need to add path to "models" parent dir for pickler
+sys.path.insert(0, "./sam_nodes/scripts/vision_recognition")  # Need to add path to "models" parent dir for pickler
+
 
 def realsense_run():
     # ROS node setup
@@ -42,7 +47,7 @@ def realsense_run():
         diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
         screw_publisher = rospy.Publisher('RawScrewCount', Int8, queue_size=1)
         rate = rospy.Rate(10)
-                
+
     diag_timer = time.time()
     while (not rospy.is_shutdown()) or test:
         try:
@@ -62,7 +67,6 @@ def realsense_run():
                         im_with_keypoints = cv2.drawKeypoints(color_image_raw, key_points, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
                     except Exception as e:
                         print("blob error: ", e)
-                        pass
 
                     if approx is not None:
                         cv2.drawContours(im_with_keypoints, [approx], 0, (0, 255, 0), 5)
@@ -71,9 +75,8 @@ def realsense_run():
 
                 except Exception as e:
                     print("rectangle error: ", e)
-                    pass
 
-            if  (time.time()-diag_timer) > 1:
+            if (time.time()-diag_timer) > 1:
                 if not test:
                     diag_obj.publish(0, f"Running")
                 diag_timer = time.time()
@@ -81,21 +84,20 @@ def realsense_run():
         except TypeError as e:
             time.sleep(1)
             if not test:
-                diag_obj.publish(2, f"TypeError")
+                diag_obj.publish(2, "TypeError")
         except Exception as e:
             print("**Get Image Error**")
             if not test:
                 diag_obj.publish(2, f"Realsense image error: {e}")
             traceback.print_exc(file=sys.stdout)
             break
-        
 
         if args.disp:
             if args.depth:
                 disp_im = np.hstack((im_with_keypoints, depth_colormap))
             else:
-                disp_im = im_with_keypoints#color_image
-            
+                disp_im = im_with_keypoints  # color_image
+
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
             key = cv2.waitKey(1)
@@ -103,7 +105,7 @@ def realsense_run():
             if key & 0xFF == ord('q') or key == 27:
                 cv2.destroyAllWindows()
                 break
-            
+
         if not test:
             rate.sleep()
         else:

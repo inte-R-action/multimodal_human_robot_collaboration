@@ -1,17 +1,8 @@
 #!/usr/bin/env python3.7
 
-import numpy as np
-import rospy
-from std_msgs.msg import String, Int8, Float64
-import cv2
-import time
 from datetime import datetime, date
-import matplotlib.pyplot as plt
+import numpy as np
 from postgresql.database_funcs import database
-from pub_classes import capability_class
-import pandas as pd
-from vision_recognition.count_screws_table import screw_counter
-import argparse
 from global_data import COMPLEX_BOX_ACTIONS
 from user_perception_module import perception_module
 from user_reasoning_module import reasoning_module

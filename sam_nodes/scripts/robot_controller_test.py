@@ -1,16 +1,16 @@
 #!/usr/bin/env python3.7
 
-import sys, os
-import rospy
 import argparse
-import traceback
-from diagnostic_msgs.msg import KeyValue
-from pub_classes import diag_class, capability_class
-from sam_custom_messages.msg import capability
-from postgresql.database_funcs import database
-import pandas as pd
 import datetime
+import os
+import sys
+import traceback
+import pandas as pd
+import rospy
+from postgresql.database_funcs import database
+from pub_classes import diag_class
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
+
 
 def test_robot_control_node():
     # ROS node setup
@@ -33,14 +33,13 @@ def test_robot_control_node():
         print(e)
         raise e
 
-    rate = rospy.Rate(1/10) # 0.1hz
+    rate = rospy.Rate(1/10)  # 0.1hz
     i = 0
 
     col_names, act_data = db.query_table('future_action_predictions',rows=0)
     while (not rospy.is_shutdown()):# and (i < len(data)):
         try:
             print('here')
-            
             time = datetime.datetime.utcnow()
 
             data_ins = "%s" + (", %s"*(len(col_names)-1))
@@ -65,24 +64,24 @@ def test_robot_control_node():
             db.gen_cmd(sql_cmd)
 
             diag_obj.publish(0, "Running")
-            
+
             print(task_data.loc[i])
-            i=i+1
+            i = i + 1
             if i == len(data):
-                i=0
+                i = 0
 
         except Exception as e:
             print(f"test_robot_control_node connection error: {e}")
             diag_obj.publish(2, f"Error: {e}")
             raise
-        
+
         rate.sleep()
         print('here2')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Run test robot controller ROS node')
-
     args = parser.parse_known_args()[0]
 
     try:

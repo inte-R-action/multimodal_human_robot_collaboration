@@ -1,25 +1,22 @@
 #!/usr/bin/env python3.7
 
-import rospy
+import os
+import datetime
+import csv
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from postgresql.database_funcs import database
 from tensorflow.keras.models import load_model
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, \
     Input, TimeDistributed
 import tensorflow as tf
-import datetime
 from global_data import ACTIONS, inclAdjParam
-import csv
-import os
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
 tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
 tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
-
-plt.ion()
 
 
 class reasoning_module:
