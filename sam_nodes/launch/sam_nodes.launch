@@ -25,7 +25,7 @@
   <arg unless="$(arg test_mode)" name="fake_sensors_node" default="false" />
 
   <group if="$(arg gui)">
-    <node name="gui_node" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" required="true" args="--task_type $(arg task) --classifier_type $(arg classifier)">
+    <node name="gui_node" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" required="true">
     </node>
   </group>
 
@@ -51,12 +51,12 @@
   </group>
   
   <group if="$(arg shimmerBase)">
-    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">
+    <node name="shimmerBase" pkg="sam_nodes" type="shimmerBase.py" respawn="false" output="screen">
     </node>
   </group>
   
   <group if="$(arg users_node)">
-    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen" args="--task_type $(arg task) --classifier_type $(arg classifier)">
+    <node name="users_node" pkg="sam_nodes" type="users_node.py" respawn="false" output="screen">
     </node>
   </group>
 

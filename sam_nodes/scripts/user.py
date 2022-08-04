@@ -3,7 +3,7 @@
 from datetime import datetime, date
 import numpy as np
 from postgresql.database_funcs import database
-from global_data import COMPLEX_BOX_ACTIONS
+from global_data import ACTIONS_NULL
 from user_perception_module import perception_module
 from user_reasoning_module import reasoning_module
 
@@ -17,7 +17,7 @@ class User:
         self.frame_id = f"{frame_id}_{self.name}"
         self.task_data = None
         self.task = None
-        self.ACTION_CATEGORIES = None
+        self.ACTION_CATEGORIES = ACTIONS_NULL
         self.col_names = None
         self.db = database()
         self.shimmer_ready = 1
@@ -29,9 +29,21 @@ class User:
             self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
         self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id)
 
+    def update_user_details(self, frame_id=None, name=None, Id=None, task=None):
+        if name:
+            self.name = name
+            self.frame_id = f"{frame_id}_{self.name}"
+            self.perception.update_user_details(name=name, frame_id=self.frame_id)
+            self.task_reasoning.update_user_details(name=name, frame_id=self.frame_id)
+        if Id:
+            self.id = Id
+            self.perception.update_user_details(Id=self.id)
+            self.task_reasoning.update_user_details(Id=self.id)
+        if task:
+            self.update_task(task)
+    
     def update_task(self, task):
         self.task = task
-        self.ACTION_CATEGORIES = COMPLEX_BOX_ACTIONS
 
         self._har_pred_hist = np.array([0, 0, 0, 0, datetime.min])  # class confs, t
         self._har_state_hist = [np.array([0, 1, datetime.min], ndmin=2) for _ in range(len(self.ACTION_CATEGORIES)-1)]  # [class, conf, t]*num_classes

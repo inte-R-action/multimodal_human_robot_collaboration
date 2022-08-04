@@ -1,22 +1,24 @@
 #!/usr/bin/env python3.7
 
 import os
-import datetime
+from datetime import datetime
 import csv
 import numpy as np
 import pandas as pd
+import rospy
+from std_msgs.msg import String, Bool
 from postgresql.database_funcs import database
 from tensorflow.keras.models import load_model
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM, \
-    Input, TimeDistributed
+from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed
 import tensorflow as tf
-from global_data import ACTIONS, inclAdjParam
+from global_data import ACTIONS, GESTURES, inclAdjParam
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
-tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
-tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
+if len(gpus) > 0:
+    tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
+    tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
 
 
 class reasoning_module:
@@ -36,11 +38,30 @@ class reasoning_module:
         self.human_row_idxs = []
         self.output_override = []
         self.fut_act_pred_col_names = None
+        self.stop = False
+        # self.handover_action = False
+        self.task_started = False
+        self.user_state = "initialising"
+
+        self.current_gesture = np.array([0, datetime.min, datetime.min]) # class, tStart, tEnd
+        self.cmd_publisher = rospy.Publisher('ProcessCommands', String, queue_size=10)
+        self.usr_fdbck_pub = rospy.Publisher('UserFeedback', String, queue_size=10)
+        # self.handover_active_pub = rospy.Publisher('HandoverActive', Bool, queue_size=10)
+        # self.robot_stat_sub = rospy.Subscriber("RobotStatus", String, self.robot_stat_callback)
         self.db = database()
+
+    def update_user_details(self, name=None, Id=None, frame_id=None):
+        if name:
+            self.name = name
+        if Id:
+            self.id = Id
+        if frame_id:
+            self.frame_id = frame_id
 
     def setup_prediction_networks(self):
         if not self.test:
-            MODEL_FILE = f"./sam_nodes/scripts/models_parameters/lstm_future_prediction_model_inclAdjParam{self.inclAdjParam}.h5"
+            folder = './sam_nodes/scripts/models_parameters'
+            MODEL_FILE = f"{folder}/lstm_future_prediction_model_inclAdjParam{self.inclAdjParam}.h5"
 
             old_model = load_model(MODEL_FILE)
             old_weights = old_model.get_weights()  # copy weights
@@ -53,7 +74,7 @@ class reasoning_module:
         tasks_data = tasks_data.loc[tasks_data['task_name'] == self.task]
 
         self.model_inputs = []
-        for index, row in self.task_data.iterrows():
+        for _, row in self.task_data.iterrows():
             if row['user_type'] == 'human':
                 if not self.test:
                     if self.inclAdjParam:
@@ -74,23 +95,23 @@ class reasoning_module:
                     self.models.append(new_model)
 
                     new_inputs = [None]*input_size
-                    new_inputs[0] = 0 # Action prediction prob
+                    new_inputs[0] = 0  # Action prediction prob
                     new_inputs[1] = row['default_time'].total_seconds()  # Default time
                     if self.inclAdjParam:
                         new_inputs[2] = users_data[row['action_name']].values[0]  # time adjust for user
                         new_inputs[3] = tasks_data[row['action_name']].values[0]  # time adjustment for task
                     self.model_inputs.append(new_inputs)
                     self.actions_id_list.append(ACTIONS.index(row['action_name']))  # Action of focus
-                    self.output_override.append(0)
+                    # self.output_override.append(0)
 
                 else:
                     self.models.append("fake model")
-                self.human_row_idxs.append(index)
+                # self.human_row_idxs.append(index)
 
         self.model_inputs = np.array(self.model_inputs)
 
         # Load normalisation parameters
-        file_name = f"./sam_nodes/scripts/models_parameters/lstm_input_scale_params_finalTrue_inclAllNullTrue_inclAdjParam{self.inclAdjParam}.csv"
+        file_name = f"{folder}/lstm_input_scale_params_finalTrue_inclAllNullTrue_inclAdjParam{self.inclAdjParam}.csv"
         with open(file_name, newline='') as f:
             reader = csv.reader(f)
             scale_data = np.array(list(reader))
@@ -117,7 +138,7 @@ class reasoning_module:
                 else:
                     time, started, done = [0, 1, 1]
             else:
-                [time, started, done] = [datetime.datetime.now().time(), 0, 0]
+                [time, started, done] = [datetime.now().time(), 0, 0]
 
             self.task_data.loc[self.human_row_idxs[i], 'started'] = started
             self.task_data.loc[self.human_row_idxs[i], 'done'] = done
@@ -127,7 +148,7 @@ class reasoning_module:
 
     def publish_to_database(self):
         # Update user current action in sql table
-        time = datetime.datetime.utcnow()
+        time = datetime.utcnow()
         separator = ', '
 
         # Delete old rows for user
@@ -154,9 +175,11 @@ class reasoning_module:
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["started"] = 0
         self.task_data["done"] = 0
-        self.task_data["time_left"] = datetime.datetime.now().time()
+        self.task_data["time_left"] = datetime.now().time()
+        self.human_row_idxs = self.task_data.index[self.task_data['user_type'] == 'human'].tolist()
+        self.output_override = [0]*len(self.human_row_idxs)
 
-        self.fut_act_pred_col_names, act_data = self.db.query_table('future_action_predictions',rows=0)
+        self.fut_act_pred_col_names, _ = self.db.query_table('future_action_predictions',rows=0)
 
         sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {self.id};"""
         self.db.gen_cmd(sql_cmd)
@@ -190,4 +213,71 @@ class reasoning_module:
                 self.output_override[i] = 1
                 i += 1
 
-        print(self.output_override)
+        if self.task_started:
+            if self.stop:
+                self.usr_fdbck_pub.publish(f"""STOP received. FORWARD to resume \n
+                                            Waiting for {self.curr_action_type} action""")
+            else:
+                self.usr_fdbck_pub.publish(f"Waiting for {self.curr_action_type} action")
+
+        print(f"OUTPUT OVERRIDE: {self.output_override}")
+
+    def gesture_handler(self, ges_idx, msg_time):
+        if ges_idx == self.current_gesture[0]:
+            self.current_gesture[2] = msg_time
+        else:
+            # Publish old gesture to episodic
+            gesture = GESTURES[self.current_gesture[0]]
+            if (gesture != "Null") and (gesture != "null"):
+                start_t = self.current_gesture[1]
+                end_t = self.current_gesture[2]
+                self.pub_episode(start_t, end_t, gesture)
+
+            # Start tracking new gesture
+            last_gesture = GESTURES[self.current_gesture[0]]
+            self.current_gesture[0] = ges_idx
+            self.current_gesture[1] = msg_time
+            self.current_gesture[2] = msg_time
+            gesture = GESTURES[self.current_gesture[0]]
+            if (gesture != "Null") and (gesture != "null"):
+                print(f"Gesture {gesture} detected")
+                if self.task_started:
+                    if gesture == "Left":
+                        self.cmd_publisher.publish('next_action')
+                        self.usr_fdbck_pub.publish(f"Sorry I'm behind, next action coming!")
+                    elif (gesture == "Stop") and (last_gesture == "Stop"):# and (not self.handover_action):
+                        self.cmd_publisher.publish('Stop')
+                        self.usr_fdbck_pub.publish("STOP received. FORWARD to resume")
+                        self.stop = True
+                    elif (gesture == "Forward") and self.stop:
+                        self.cmd_publisher.publish('next_action')
+                        self.usr_fdbck_pub.publish("Resuming")
+                        self.stop = False
+                else:
+                    if (gesture == "Wave") and (self.name == "unknown"):
+                        self.cmd_publisher.publish(f'user_identification_{self.id}')
+                    elif (gesture == "Forward") and (self.name != "unknown"):
+                        print("Task starting")
+                        self.usr_fdbck_pub.publish("Task starting")
+                        self.cmd_publisher.publish('start')
+
+    # def handover_active(self):
+    #     activate_handover = False
+
+    #     # check if stop gesture
+    #     if self.handover_action:
+    #         if (GESTURES[self.current_gesture[0]] == "Stop"):
+    #             activate_handover = True
+
+    #         # check if no action being performed
+    #         if (GESTURES[self.current_gesture[0]] == "Null"):
+    #             if (self.imu_pred_hist[-1, 1:-1] < 0.5).all():
+    #                 activate_handover = True
+
+    #     self.handover_active_pub.publish(activate_handover)
+
+    # def robot_stat_callback(self, msg):
+    #     if msg.data == "waiting_for_handover":
+    #         self.handover_action = True
+    #     else:
+    #         self.handover_action = False

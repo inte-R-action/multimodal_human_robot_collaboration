@@ -7,14 +7,16 @@ import matplotlib.pyplot as plt
 from pub_classes import act_class
 from process_skel_data import process_skel_data
 from tensorflow.keras.models import load_model
+from global_data import GESTURES
 import tensorflow as tf
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 plt.ion()
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
-tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
-tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
+if len(gpus) > 0:
+    tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
+    tf.config.experimental.set_memory_growth(device=gpus[0], enable=True)
 Fs = 50  # Sampling frequency, Hz
 WIN_TIME = 3  # Window length, s
 WIN_LEN = round(WIN_TIME * Fs)  # Window length, samples
@@ -31,37 +33,58 @@ class perception_module:
         self.imu_update_t = None
         self.imu_means = None
         self.imu_scales = None
-        self.load_imu_scale_parameters()
         self.new_skel_data = np.zeros((1, 15*7))
         self.skel_data = np.zeros((WIN_LEN, 15*7))
         self.skel_update_t = None
 
-        self.screw_classifier = load_model('./sam_nodes/scripts/models_parameters/Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
-        self.allen_classifier = load_model('./sam_nodes/scripts/models_parameters/Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
-        self.hammer_classifier = load_model('./sam_nodes/scripts/models_parameters/Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
-        self.hand_classifier = load_model('./sam_nodes/scripts/models_parameters/Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        folder = './sam_nodes/scripts/models_parameters/'
+        self.gesture_classifier = load_model(folder+'gestures_imuskel_classifier_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.screw_classifier = load_model(folder+'Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.allen_classifier = load_model(folder+'Allen In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.hammer_classifier = load_model(folder+'Hammer_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
+        self.hand_classifier = load_model(folder+'Hand Screw In_model_1_2str_i(CCPCCP)s(CCPCCP)c(HHHD)_inclAllNull.h5')
 
         self.screw_pred = 0
         self.allen_pred = 0
         self.hammer_pred = 0
         self.hand_pred = 0
+        self.load_imu_scale_parameters(folder)
 
         self.plt_pred = False
         self.act_obj = act_class(frame_id=self.frame_id, class_count=4, user_id=self.id, user_name=self.name, queue=10)
+        self.ges_obj = act_class(frame_id=self.frame_id+'_gestures', class_count=len(GESTURES), user_id=self.id, user_name=self.name, queue=10)
 
-    def load_imu_scale_parameters(self):
+    def update_user_details(self, name=None, Id=None, frame_id=None):
+        if name:
+            self.name = name
+            self.act_obj.act_msg.UserName = self.name
+            self.ges_obj.act_msg.UserName = self.name
+        if Id:
+            self.id = Id
+            self.act_obj.act_msg.UserId = self.id
+            self.ges_obj.act_msg.UserId = self.id
+        if frame_id:
+            self.frame_id = frame_id
+            self.act_obj.act_msg.Header.frame_id = self.frame_id+'_actions'
+            self.ges_obj.act_msg.Header.frame_id = self.frame_id+'_gestures'
+
+    def load_imu_scale_parameters(self, folder):
         # load scaling parameters
-        scale_file = "./sam_nodes/scripts/models_parameters/imu_scale_params_winlen3_transitionsTrue_1v1_inclAllNull.csv" # file with normalisation parameters
+        scale_file = folder+"imu_scale_params_winlen3_transitionsTrue_1v1_inclAllNull.csv"  # file with normalisation parameters
         with open(scale_file, newline='') as f:
             reader = csv.reader(f)
             data = np.array(list(reader))
             self.means = data[1:, 1].astype(float)
             self.scales = data[1:, -1].astype(float)
 
-    def predict_actions(self):
+    def predict(self):
         new_skel_data = process_skel_data(self.skel_data)
         predict_data = [self.imu_data[np.newaxis, ...], new_skel_data[np.newaxis, ...]]
 
+        self.predict_actions(predict_data)
+        self.predict_gestures(predict_data)
+
+    def predict_actions(self, predict_data):
         self.screw_pred = self.screw_classifier.predict(predict_data)[0][0]
         self.allen_pred = self.allen_classifier.predict(predict_data)[0][0]
         self.hammer_pred = self.hammer_classifier.predict(predict_data)[0][0]
@@ -72,6 +95,10 @@ class perception_module:
 
         if self.plt_pred:
             self.plot_prediction(prediction)
+
+    def predict_gestures(self, predict_data):
+        gesture_pred = self.gesture_classifier.predict(predict_data)[0]
+        self.ges_obj.publish(gesture_pred)
 
     def add_imu_data(self, data, time):
         self.imu_update_t = time
