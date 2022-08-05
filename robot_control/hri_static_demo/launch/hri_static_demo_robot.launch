@@ -22,6 +22,8 @@
     <arg name="config" value="true" />
   </include>
 
-  <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="0.065 0.037 0.082 0 0 0 1 ee_link camera_frame 100" />
+  <!-- <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="0.065 0.037 0.082 0 0 0 1 ee_link camera_frame 100" /> -->
+
+  <node pkg="tf" type="static_transform_publisher" name="camera_frame_broadcaster" args="-0.035 -0.0795005 0.0827469 -0.00521848 -0.00502728 0.00248873 0.999971 wrist_3_link camera_color_optical_frame 100" />
 
 </launch>

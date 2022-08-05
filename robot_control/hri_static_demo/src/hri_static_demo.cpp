@@ -30,6 +30,7 @@
 #include <sstream>
 #include "sam_custom_messages/diagnostics.h"
 #include "sam_custom_messages/object_state.h"
+#include "sam_custom_messages/Object.h"
 #include "robotiq_ft_sensor/ft_sensor.h"
 #include "robotiq_ft_sensor/sensor_accessor.h"
 #include <ros/ros.h>
@@ -48,7 +49,7 @@ string gripper_state = "";
 namespace rvt = rviz_visual_tools;
 int robot_execute_code;
 double ft_readings [6];
-bool vision_recog = false;
+bool vision_recog = true;
 
 void ftSensorCallback(const robotiq_ft_sensor::ft_sensor& msg)
 {
@@ -85,7 +86,7 @@ void robotExecuteCallback(const moveit_msgs::ExecuteTrajectoryActionResult::Cons
     robot_execute_code = msg->result.error_code.val;
 }
 
-void objectDetectionCallback(const sam_custom_messages::object_state::ConstPtr &msg)
+void objectDetectionCallback(const sam_custom_messages::object_state::ConstPtr& msg)
 {
     object_state_msg.Object = msg->Object;
     object_state_msg.Pose = msg->Pose;
@@ -178,7 +179,7 @@ class moveit_robot {
         void open_gripper();
         void close_gripper();
         void z_move(double dist, double max_velocity_scale_factor);
-        bool plan_to_pose(geometry_msgs::Pose pose);
+        bool plan_to_pose(geometry_msgs::Pose pose, float rot_angle);
         geometry_msgs::Pose transform_pose(geometry_msgs::Pose input_pose);
     
     private:
@@ -392,7 +393,7 @@ moveit_robot::moveit_robot(ros::NodeHandle* node_handle) : nh_(*node_handle), PL
     visual_tools.trigger();
 }
 
-bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
+bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose, float rot_angle){
     bool success = false;
     move_group.setPoseTarget(pose);
 
@@ -409,9 +410,31 @@ bool moveit_robot::plan_to_pose(geometry_msgs::Pose pose){
     visual_tools.publishTrajectoryLine(plan.trajectory_, joint_model_group);
     visual_tools.trigger();
     if (success){
-        visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
+        //visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
         move_group.move();
     }
+    
+    move_group.setStartState(*move_group.getCurrentState());
+    std::vector<double> joint_group_positions;
+    std::map<std::string, double> jointPositions;
+    
+    current_state = move_group.getCurrentState();
+    current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
+
+    jointPositions["shoulder_pan_joint"] = joint_group_positions[0] + (0 * 3.1416 / 180);	// (deg*PI/180)
+	jointPositions["shoulder_lift_joint"] = joint_group_positions[1] + (0 * 3.1416 / 180);
+	jointPositions["elbow_joint"] = joint_group_positions[2] + (0 * 3.1416 / 180);
+	jointPositions["wrist_1_joint"] = joint_group_positions[3] + (0 * 3.1416 / 180);
+	jointPositions["wrist_2_joint"] = joint_group_positions[4] + (0 * 3.1416 / 180);
+	jointPositions["wrist_3_joint"] = joint_group_positions[5] + (rot_angle * 3.1416 / 180);
+    
+	move_group.setJointValueTarget(jointPositions);
+
+	success = (move_group.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	ROS_INFO("Visualizing PRE-START position plan (%.2f%% acheived)",success * 100.0);
+
+	move_group.execute(plan);
+
     return success;
 }
 
@@ -425,8 +448,8 @@ geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose)
 
   while (ros::ok()){
     try{
-      transform1 = tfBuffer.lookupTransform("world", "camera_frame",
-                                 ros::Time(0));
+      //transform1 = tfBuffer.lookupTransform("world", "camera_frame", ros::Time(0));
+      transform1 = tfBuffer.lookupTransform("base_link", "camera_color_optical_frame", ros::Time(0));
     
       ROS_INFO("%s", transform1.child_frame_id.c_str());
       ROS_INFO("%f", transform1.transform.translation.x);
@@ -438,6 +461,9 @@ geometry_msgs::Pose moveit_robot::transform_pose(geometry_msgs::Pose input_pose)
       ROS_INFO("%f", transform1.transform.rotation.w);
 
       tf2::doTransform(input_pose, output_pose1, transform1);
+
+      output_pose1.position.x = -output_pose1.position.x;
+      output_pose1.position.y = -output_pose1.position.y;
 
       ROS_INFO_STREAM("Input pose: \n" << input_pose);
       ROS_INFO_STREAM("Output pose1: \n" << output_pose1);
@@ -738,29 +764,35 @@ geometry_msgs::Pose look_for_objects(string bring_cmd)
     //return object_pose;
 }
 
-void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
+bool stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
 {
     // Move to position above block
     Robot.move_robot(targetJoints, bring_cmd, bring_cmd);
 
     bool success = false;
     if ( vision_recog ){
-        // Look for block
-        geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
-        cout << "Found: " << pose_cam_obj << endl;
-        // Transform to world frame
-        geometry_msgs::Pose pose_base_obj = Robot.transform_pose(pose_cam_obj);
-        // Move to new position above object
-        geometry_msgs::Pose target_pose1;
-        target_pose1.orientation.x = pose_base_obj.orientation.x;
-        target_pose1.orientation.y = pose_base_obj.orientation.y;
-        target_pose1.orientation.z = pose_base_obj.orientation.z;
-        target_pose1.orientation.w = pose_base_obj.orientation.w;
-        target_pose1.position.x = pose_base_obj.position.x;
-        target_pose1.position.y = pose_base_obj.position.y;
-        target_pose1.position.z = 0.4;
-        ROS_INFO_STREAM("Target pose: \n" << target_pose1);
-        success = Robot.plan_to_pose(target_pose1);
+        while (not success){
+            // Look for block
+            geometry_msgs::Pose pose_cam_obj = look_for_objects(bring_cmd);
+            
+            // Transform to world frame
+            geometry_msgs::Pose pose_base_obj = pose_cam_obj;//Robot.transform_pose(pose_cam_obj);
+            // Move to new position above object
+            geometry_msgs::Pose target_pose1;
+            geometry_msgs::Pose pose_now = Robot.move_group.getCurrentPose().pose;
+            cout << "Current pose: " << pose_now << endl;
+            
+            target_pose1.orientation.x = pose_now.orientation.x;
+            target_pose1.orientation.y = pose_now.orientation.y;
+            target_pose1.orientation.z = pose_now.orientation.z;
+            target_pose1.orientation.w = pose_now.orientation.w;
+            target_pose1.position.x = pose_base_obj.position.x;
+            target_pose1.position.y = pose_base_obj.position.y;
+            target_pose1.position.z = 0.4;
+            ROS_INFO_STREAM("Target pose: \n" << target_pose1);
+            success = Robot.plan_to_pose(target_pose1, target_pose1.orientation.z);
+
+        }
     }
     else {
         success = true;
@@ -787,8 +819,11 @@ void stack_blocks(string bring_cmd, std::map<std::string, double> &targetJoints,
     else {
         cout << "Failed to perform IK plan" << endl;
     }
+    
+    
+    return success;
   // Return to home position
-    //home(targetJoints, Robot);
+    home(targetJoints, Robot);
 }
 
 void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Robot, int stack_height)
@@ -812,7 +847,7 @@ void remove_blocks(std::map<std::string, double> &targetJoints, moveit_robot &Ro
     set_down_object(Robot, z_move, 0.05);
 
     // Return to home
-    //home(targetJoints, Robot);
+    home(targetJoints, Robot);
 }
 
 
@@ -845,9 +880,7 @@ int main(int argc, char** argv)
 	ros::Subscriber subRobotPosition = node_handle.subscribe("RobotMove", 1000, robotMoveCallback);
 
     // Object recognition subscriber
-    if ( vision_recog ){
-        ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 1000, objectDetectionCallback);
-    }
+    ros::Subscriber subObjectRecog = node_handle.subscribe("ObjectStates", 1000, objectDetectionCallback);
 
     // Robot object
     moveit_robot Robot(&node_handle);
@@ -893,8 +926,10 @@ int main(int argc, char** argv)
                     }
                     else if( objectString.rfind("stack_", 0) == 0 )
                     { 
-                        stack_blocks(objectString, targetJoints, Robot, stack_height);
-                        stack_height++;
+                        bool success = stack_blocks(objectString, targetJoints, Robot, stack_height);
+                        if ( success ){                            
+                            stack_height++;
+                        }
                     }
                     else if( objectString == "remove_stack" )
                     {  
