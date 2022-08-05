@@ -1,7 +1,8 @@
 #!/usr/bin/env python3.7
 
 import os
-from datetime import datetime
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+from datetime import datetime, date
 import csv
 import numpy as np
 import pandas as pd
@@ -14,7 +15,7 @@ from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed
 import tensorflow as tf
 from global_data import ACTIONS, GESTURES, inclAdjParam
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
 if len(gpus) > 0:
     tf.config.experimental.set_visible_devices(devices=gpus[0], device_type='GPU')
@@ -39,15 +40,15 @@ class reasoning_module:
         self.output_override = []
         self.fut_act_pred_col_names = None
         self.stop = False
-        # self.handover_action = False
+        self.handover_action = False
         self.task_started = False
         self.user_state = "initialising"
 
         self.current_gesture = np.array([0, datetime.min, datetime.min]) # class, tStart, tEnd
         self.cmd_publisher = rospy.Publisher('ProcessCommands', String, queue_size=10)
         self.usr_fdbck_pub = rospy.Publisher('UserFeedback', String, queue_size=10)
-        # self.handover_active_pub = rospy.Publisher('HandoverActive', Bool, queue_size=10)
-        # self.robot_stat_sub = rospy.Subscriber("RobotStatus", String, self.robot_stat_callback)
+        self.handover_active_pub = rospy.Publisher('HandoverActive', Bool, queue_size=10)
+        self.robot_stat_sub = rospy.Subscriber("RobotStatus", String, self.robot_stat_callback)
         self.db = database()
 
     def update_user_details(self, name=None, Id=None, frame_id=None):
@@ -205,22 +206,29 @@ class reasoning_module:
             tasks_left = self.task_data
 
         next_robot_action_idx = int(tasks_left[tasks_left['user_type']=='robot'].first_valid_index())
-        print(next_robot_action_idx)
+        # print(next_robot_action_idx)
         i = 0
         for r in range(next_robot_action_idx):
-            print(self.task_data.loc[r])
+            # print(self.task_data.loc[r])
             if self.task_data.loc[r]['user_type'] == 'human':
                 self.output_override[i] = 1
                 i += 1
 
         if self.task_started:
             if self.stop:
-                self.usr_fdbck_pub.publish(f"""STOP received. FORWARD to resume \n
-                                            Waiting for {self.curr_action_type} action""")
+                self.usr_fdbck_pub.publish("""STOP received. FORWARD to resume \n
+                                            Waiting for next action""")
             else:
-                self.usr_fdbck_pub.publish(f"Waiting for {self.curr_action_type} action")
+                self.usr_fdbck_pub.publish("Waiting for next action")
 
         print(f"OUTPUT OVERRIDE: {self.output_override}")
+
+    def pub_episode(self, start_t, end_t, action_name):
+        dur = end_t - start_t
+         # Can publish new episode to sql
+        self.db.insert_data_list("Episodes", 
+        ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"],
+        [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
 
     def gesture_handler(self, ges_idx, msg_time):
         if ges_idx == self.current_gesture[0]:
@@ -244,7 +252,7 @@ class reasoning_module:
                 if self.task_started:
                     if gesture == "Left":
                         self.cmd_publisher.publish('next_action')
-                        self.usr_fdbck_pub.publish(f"Sorry I'm behind, next action coming!")
+                        self.usr_fdbck_pub.publish("Sorry I'm behind, next action coming!")
                     elif (gesture == "Stop") and (last_gesture == "Stop"):# and (not self.handover_action):
                         self.cmd_publisher.publish('Stop')
                         self.usr_fdbck_pub.publish("STOP received. FORWARD to resume")
@@ -261,23 +269,25 @@ class reasoning_module:
                         self.usr_fdbck_pub.publish("Task starting")
                         self.cmd_publisher.publish('start')
 
-    # def handover_active(self):
-    #     activate_handover = False
+    def handover_active(self):
+        self.handover_active_pub.publish(True)
+        return
+        activate_handover = False
 
-    #     # check if stop gesture
-    #     if self.handover_action:
-    #         if (GESTURES[self.current_gesture[0]] == "Stop"):
-    #             activate_handover = True
+        # check if stop gesture
+        if self.handover_action:
+            if (GESTURES[self.current_gesture[0]] == "Stop"):
+                activate_handover = True
 
-    #         # check if no action being performed
-    #         if (GESTURES[self.current_gesture[0]] == "Null"):
-    #             if (self.imu_pred_hist[-1, 1:-1] < 0.5).all():
-    #                 activate_handover = True
+            # check if no action being performed
+            if (GESTURES[self.current_gesture[0]] == "Null"):
+                if (self.imu_pred_hist[-1, 1:-1] < 0.5).all():
+                    activate_handover = True
 
-    #     self.handover_active_pub.publish(activate_handover)
+        self.handover_active_pub.publish(activate_handover)
 
-    # def robot_stat_callback(self, msg):
-    #     if msg.data == "waiting_for_handover":
-    #         self.handover_action = True
-    #     else:
-    #         self.handover_action = False
+    def robot_stat_callback(self, msg):
+        if msg.data == "waiting_for_handover":
+            self.handover_action = True
+        else:
+            self.handover_action = False

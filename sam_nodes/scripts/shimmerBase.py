@@ -28,7 +28,7 @@ parser.add_argument('--disp', '-V',
                     action="store_true")
 parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
-                    default='l',
+                    default='unknown',
                     action="store_true")
 parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',
@@ -36,10 +36,10 @@ parser.add_argument('--user_id', '-I',
                     action="store_true")
 
 args = parser.parse_known_args()[0]
-frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
+frame_id = 'shimmerBase_node'
 
 # Shimmer sensor connection params
-serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm2']
+serialports = ['/dev/rfcomm3', '/dev/rfcomm4', '/dev/rfcomm5']
 POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
@@ -421,7 +421,7 @@ def shimmer_thread(num):
 
 def IMUsensorsMain():
     print("-----Here we go-----")
-    rospy.init_node(f'shimmerBase_{args.user_name}_{args.user_id}', anonymous=True)
+    rospy.init_node(frame_id, anonymous=True)
     rate = rospy.Rate(50)  # Message publication rate, Hz => should be 50
     
     keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]),

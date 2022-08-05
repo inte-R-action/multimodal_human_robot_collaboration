@@ -2,13 +2,11 @@
 
   <!-- By default, we are not in debug mode -->
   <arg name="test_mode" default="false" />
-  <arg name="task" default="assemble_chair" />   <!-- assemble_complex_box assemble_chair -->
-  <arg name="classifier" default="one" />
-  <arg name="gui" default="false" />
+  <arg name="gui" default="true" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="false" />
   <arg if="$(arg test_mode)" name="postgresql" default="true" />
-  <arg if="$(arg test_mode)" name="robot_controller" default="true" />
+  <arg if="$(arg test_mode)" name="robot_controller" default="false" />
   <arg if="$(arg test_mode)" name="robot_controller_test" default="false" />
   <arg if="$(arg test_mode)" name="users_node" default="true" />
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />

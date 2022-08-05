@@ -179,6 +179,7 @@ def update_matedata_tables(actions_meta_data, users_meta_data, tasks_meta_data, 
 
 
 def enter_dreaming_phase():
+    return
     print("Entering dreaming phase")
     # Fake shutdown timer
     t = time.time()

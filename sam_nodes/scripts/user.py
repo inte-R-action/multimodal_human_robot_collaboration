@@ -25,8 +25,8 @@ class User:
         self._har_state_hist = None
         self._final_state_hist = None
 
-        if not self.test:
-            self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
+        #if not self.test:
+        self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
         self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id)
 
     def update_user_details(self, frame_id=None, name=None, Id=None, task=None):
@@ -78,11 +78,8 @@ class User:
                     if int(self._final_state_hist[a][-1, 0]) != 0:
                         start_t = self._final_state_hist[a][-1, 2]
                         end_t = self._final_state_hist[a][-1, 3]
-                        dur = end_t - start_t
                         action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[a][-1, 0])]
-                        self.db.insert_data_list("Episodes",
-                        ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"],
-                        [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
+                        self.task_reasoning.pub_episode(start_t, end_t, action_name)
 
                 # Update state history objects
                 new_start_t = self._har_pred_hist[-1, -1]

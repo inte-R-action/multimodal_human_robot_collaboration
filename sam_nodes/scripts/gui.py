@@ -28,21 +28,6 @@ from system_dreaming_phase import enter_dreaming_phase
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 
-# Argument parsing
-# parser = argparse.ArgumentParser(
-#     description='Node for GUI')
-
-# parser.add_argument('--task_type', '-T',
-#                     help='Task for users to perform, options: assemble_box (default), assemble_complex_box',
-#                     choices=TASKS,
-#                     default=DEFAULT_TASK)
-# parser.add_argument('--inclAdjParam',
-#                     help='include user/task adjustment parameters for lstm model',
-#                     choices=[True, False],
-#                     default=False)
-# args = parser.parse_known_args()[0]
-
-# print(f"GUI settings: {args.task_type}")
 pos = np.arange(len(ACTIONS))
 
 plt.ion()
@@ -109,125 +94,78 @@ class user_frame:
 
         self.create_user_details_frame()
         self.create_shimmer_frame()
-        self.create_actions_plots()
+
+        self.buttons_frame = Tk.Frame(master=self.user_frame, bg="red")
+        self.buttons_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
         # Remove User button
         self.remove_user_button = Tk.Button(
-            master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, width=1, height=1)
-        self.remove_user_button.grid(
-            row=3, column=0, sticky='nsew')
+            master=self.buttons_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, height=1)
+        self.remove_user_button.grid(row=0, column=0, sticky='nsew')
 
         # Next action button
         self.next_action_button = Tk.Button(
-            master=self.user_frame, text="Next Action", command=self.next_action, bg="blue", padx=50, pady=20, width=1, height=1)
-        self.next_action_button.grid(
-            row=3, column=1, sticky='nsew')
+            master=self.buttons_frame, text="Next Action", command=self.next_action, bg="blue", padx=50, pady=20, height=1)
+        self.next_action_button.grid(row=0, column=1, sticky='nsew')
 
         # Start Task button
         self.start_task_button = Tk.Button(
-            master=self.user_frame, text="Start Task", command=self.start_task, bg="green", padx=50, pady=20, width=1, height=1)
-        self.start_task_button.grid(
-            row=3, column=2, sticky='nsew')
+            master=self.buttons_frame, text="Start Task", command=self.start_task, bg="green", padx=50, pady=20, height=1)
+        self.start_task_button.grid(row=0, column=2, sticky='nsew')
 
-        self.user_frame.grid_columnconfigure(0, weight=1)
-        self.user_frame.grid_columnconfigure(1, weight=1)
+        self.buttons_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.buttons_frame.grid_columnconfigure(1, weight=1, uniform=1)
+        self.buttons_frame.grid_columnconfigure(2, weight=1, uniform=1)
+        self.buttons_frame.grid_rowconfigure(0, weight=1)
+        
+        self.user_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.user_frame.grid_columnconfigure(1, weight=1, uniform=1)
         self.user_frame.grid_rowconfigure(0, weight=1)
-        self.user_frame.grid_rowconfigure(1, weight=1)
-        self.user_frame.grid_rowconfigure(2, weight=1)
+        self.user_frame.grid_rowconfigure(1, weight=0)
 
     def create_user_details_frame(self):
         self.user_deets_frame = Tk.Frame(master=self.user_frame, bg="red")
         self.user_deets_frame.grid(row=0, column=0, sticky="nsew")
 
         # User Details
-        self.user_deets = Tk.Text(master=self.user_deets_frame, height=5)#, width=2, font=('', 10))
+        self.user_deets = Tk.Text(master=self.user_deets_frame, height=5, width=1, font=('', 10))
         # self.user_deets.tag_configure("center", justify='center')
         self.user_deets.grid(row=0, column=0, sticky="nsew")
         self.update_user_deets()
 
-        # # Shimmer status indicators
-        # self.shimmer_frame = Tk.Frame(master=self.user_frame, height=5, width=2, bg="red")
-        # self.shimmer_frame.grid(row=0, column=1, sticky="nsew")
-        # for i in range(0, 3):
-        #     self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=5/3, width=2, font=('', 10))
-        #     self.shimmer[i].tag_configure("center", justify='center')
-        #     self.shimmer[i].grid(row=i, column=0, sticky="nsew")
-        #     text = "Unknown shimmer\n" \
-        #            "Unknown\n"
-        #     self.shimmer_info.append([text, 'Unknown'])
-
-        # self.update_shimmer_text()
-
-        # self.shimmer_frame.grid_columnconfigure(0, weight=1)
-        # self.shimmer_frame.grid_rowconfigure(0, weight=1)
-        # self.shimmer_frame.grid_rowconfigure(1, weight=1)
-        # self.shimmer_frame.grid_rowconfigure(2, weight=1)
-
         # LSTM network parameters
-        self.lstm_params_txt = Tk.Text(master=self.user_deets_frame, height=5, width=2, font=('', 10))
+        self.lstm_params_txt = Tk.Text(master=self.user_deets_frame, height=5, width=1, font=('', 10))
         self.lstm_params_txt.tag_configure("right", justify='right')
         self.lstm_params_txt.grid(row=0, column=1, sticky="nsew")
         self.update_lstm_params_txt()
-
-        # Graph area for current predictions
-        # A tk.DrawingArea.
-        # self.canvas = FigureCanvasTkAgg(self.fig, master=self.user_frame)
-        # self.canvas.draw()
-        # try:
-        #     self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3,
-        #                                      sticky="nsew")
-        # except AttributeError:
-        #     pass
 
         # Tasks List
         self.col_names = ["action_no","action_id","action_name","default_time","user_type","prev_dependent","started","done","t_left"]
 
         self.tasks = ttk.Treeview(self.user_deets_frame, show=["headings"], height=1, displaycolumns="#all")
-        self.tasks.grid(row=1, column=0, sticky='nsew')
+        self.tasks.grid(row=1, column=0, columnspan=2, sticky='nsew')
         self.tasks["columns"] = self.col_names
 
         for i in self.col_names:
-            self.tasks.column(i, anchor="center", stretch=True, width=20)
+            self.tasks.column(i, anchor="center", stretch=True, width=2)
             self.tasks.heading(i, text=i, anchor='center')
 
         if self.task_name is not None:
             self.load_task_data()
 
-        # for index, row in self.task_data.iterrows():
-        #     self.tasks.insert("", index=index, values=list(
-        #         row), tags=(row['action_no'],))
-
-        # # Remove User button
-        # self.remove_user_button = Tk.Button(
-        #     master=self.user_frame, text="Remove User", command=self.remove_user, bg="red", padx=50, pady=20, width=1, height=1)
-        # self.remove_user_button.grid(
-        #     row=3, column=0, sticky='nsew')
-
-        # # Next action button
-        # self.next_action_button = Tk.Button(
-        #     master=self.user_frame, text="Next Action", command=self.next_action, bg="blue", padx=50, pady=20, width=1, height=1)
-        # self.next_action_button.grid(
-        #     row=3, column=1, sticky='nsew')
-
-        # # Start Task button
-        # self.start_task_button = Tk.Button(
-        #     master=self.user_frame, text="Start Task", command=self.start_task, bg="green", padx=50, pady=20, width=1, height=1)
-        # self.start_task_button.grid(
-        #     row=3, column=2, sticky='nsew')
-
         # Adjust spacing of objects
-        self.user_frame.grid_columnconfigure(0, weight=1)
-        self.user_frame.grid_columnconfigure(1, weight=1)
+        self.user_deets_frame.grid_columnconfigure(0, weight=1)
+        self.user_deets_frame.grid_columnconfigure(1, weight=1)
 
-        self.user_frame.grid_rowconfigure(0, weight=0)
-        self.user_frame.grid_rowconfigure(1, weight=1)
+        self.user_deets_frame.grid_rowconfigure(0, weight=0)
+        self.user_deets_frame.grid_rowconfigure(1, weight=1)
 
     def create_shimmer_frame(self):
         # Shimmer status indicators
-        self.shimmer_frame = Tk.Frame(master=self.user_frame, height=5)#, width=2, bg="red")
-        self.shimmer_frame.grid(row=0, column=2, sticky="nsew")
+        self.shimmer_frame = Tk.Frame(master=self.user_frame, height=5, bg="red")
+        self.shimmer_frame.grid(row=0, column=1, sticky="nsew")
         for i in range(0, 3):
-            self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=5/3)#, width=2, font=('', 10))
+            self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=5/3, width=2, font=('', 10))
             self.shimmer[i].tag_configure("center", justify='center')
             self.shimmer[i].grid(row=i, column=0, sticky="nsew")
             text = "Unknown shimmer\n" \
@@ -236,23 +174,27 @@ class user_frame:
 
         self.update_shimmer_text()
 
+        self.create_actions_plots()
+
         self.shimmer_frame.grid_columnconfigure(0, weight=1)
-        self.shimmer_frame.grid_rowconfigure(0, weight=1)
-        self.shimmer_frame.grid_rowconfigure(1, weight=1)
-        self.shimmer_frame.grid_rowconfigure(2, weight=1)
+        self.shimmer_frame.grid_rowconfigure(0, weight=0, uniform=1)
+        self.shimmer_frame.grid_rowconfigure(1, weight=0, uniform=1)
+        self.shimmer_frame.grid_rowconfigure(2, weight=0, uniform=1)
+        self.shimmer_frame.grid_rowconfigure(3, weight=1)
+        self.shimmer_frame.grid_rowconfigure(4, weight=1)
 
     def create_actions_plots(self):
         # Graph area for current action predictions
         # A tk.DrawingArea.
-        self.act_canvas = FigureCanvasTkAgg(self.act_fig, master=self.user_frame)
+        self.act_canvas = FigureCanvasTkAgg(self.act_fig, master=self.shimmer_frame)
         self.act_canvas.draw()
-        self.act_canvas.get_tk_widget().grid(row=1, column=1, sticky="nsew")
+        self.act_canvas.get_tk_widget().grid(row=3, column=0, sticky="nsew")
 
         # Graph area for current gesture predictions
         # A tk.DrawingArea.
-        self.ges_canvas = FigureCanvasTkAgg(self.ges_fig, master=self.user_frame)
+        self.ges_canvas = FigureCanvasTkAgg(self.ges_fig, master=self.shimmer_frame)
         self.ges_canvas.draw()
-        self.ges_canvas.get_tk_widget().grid(row=2, column=1, sticky="nsew")
+        self.ges_canvas.get_tk_widget().grid(row=4, column=0, sticky="nsew")
 
     def remove_user(self):
         self.user_frame.quit()     # stops mainloop
@@ -328,17 +270,17 @@ class user_frame:
         self.col_names.extend(("started", "done", "t_left"))
 
     def update_action_plot(self):
-        self.ax.cla()
-        _ = self.ax.bar(pos, self.imu_pred, align='center', alpha=0.5)
+        self.act_ax.cla()
+        _ = self.act_ax.bar(pos, self.act_pred, align='center', alpha=0.5)
 
         try:
-            self.ax.set_xticks(pos)
-            self.ax.set_xticklabels(ACTIONS)
+            self.act_ax.set_xticks(pos)
+            self.act_ax.set_xticklabels(ACTIONS)
         except Exception as e:
             print(e)
-        self.ax.set_ylabel('Confidence')
-        self.ax.set_ylim([0, 1])
-        self.ax.set_title('Current Action Prediction')
+        self.act_ax.set_ylabel('Confidence')
+        self.act_ax.set_ylim([0, 1])
+        self.act_ax.set_title('Current Action Prediction')
 
         plt.pause(0.00001)
         if not QUIT:
@@ -491,7 +433,7 @@ class GUI:
 
         self.root.grid_columnconfigure(0, weight=1)
         for i in range(len(self.users)):
-            self.root.grid_columnconfigure(i+1, weight=1)
+            self.root.grid_columnconfigure(i+1, weight=1, uniform=1)
 
         self.root.grid_rowconfigure(0, weight=1)
 
@@ -565,7 +507,7 @@ class GUI:
         self.handover_active = False
         self.handover_label = Tk.Label(master=self.sys_frame, bg="grey", text="Handover Active",
                                    padx=10, pady=3, borderwidth=2, relief="ridge")
-        self.handover_label.grid(row=5, column=0, sticky="nsew")
+        self.handover_label.grid(row=5, column=0, columnspan=2, sticky="nsew")
 
         # Timing Predictions Graph
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.sys_frame)
@@ -578,9 +520,9 @@ class GUI:
 
         # User Feedback Text
         self.usr_feedback_text = "Please wait, system starting"
-        self.usr_feedback = Tk.Text(master=self.sys_frame, height=2, font=("Courier", 14), wrap='word', width=20)
+        self.usr_feedback = Tk.Text(master=self.sys_frame, font=("Courier", 14), wrap='word', height=10, width=20)
         self.usr_feedback.tag_configure("feedback_tag_center", justify='center')
-        self.usr_feedback.grid(row=7, column=0, sticky="nsew")
+        self.usr_feedback.grid(row=7, column=0, columnspan=2, sticky="nsew")
         self.usr_feedback.insert(Tk.INSERT, self.usr_feedback_text)
 
         # New User button
@@ -592,8 +534,8 @@ class GUI:
         self.quit_button.grid(row=8, column=1, sticky="nsew")
 
         # Adjust spacing of objects
-        self.sys_frame.grid_columnconfigure(0, weight=1)
-        self.sys_frame.grid_columnconfigure(1, weight=1)
+        self.sys_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.sys_frame.grid_columnconfigure(1, weight=1, uniform=1)
 
         self.sys_frame.grid_rowconfigure(0, weight=0)
         self.sys_frame.grid_rowconfigure(1, weight=0)
@@ -680,11 +622,13 @@ class GUI:
                             self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 't_left'] = round(row.time_left, 2)
                     except Exception as e:
                         print(e)
+                        print("gui 649")
 
                 for _, user in enumerate(self.users):
                     user.tasks.delete(*user.tasks.get_children())
-                    for index, row in user.task_data.iterrows():
-                        user.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
+                    if user.task_data is not None:
+                        for index, row in user.task_data.iterrows():
+                            user.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
 
                     try:
                         act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['next_r_action_no'].values[0]
@@ -700,8 +644,8 @@ class GUI:
             # Update user info and status
             for user in self.users:
                 user.update_shimmer_text()
-                user.user_deets.delete("1.0", Tk.END)
-                user.user_deets.insert(Tk.INSERT, user.details_text)
+                # user.user_deets.delete("1.0", Tk.END)
+                # user.user_deets.insert(Tk.INSERT, user.details_text)
                 # try:
                 #     user.canvas.draw_idle()
                 # except:
@@ -740,6 +684,7 @@ class GUI:
             diag_obj.publish(0, "Running")
         except Exception as e:
             print(e)
+            print("gui 701")
             diag_obj.publish(2, f"Error: {e}")
 
         # update every 0.5 s
@@ -750,7 +695,10 @@ class GUI:
         for user in self.users:
             if data.UserId == user.id:
                 if user.name != data.UserName:
-                    print(f"ERROR: users list name {self.users[data.UserId].name} does not match current_action msg name {data.UserName}")
+                    try:
+                        print(f"ERROR: users list name {self.users[data.UserId-1].name} does not match current_action msg name {data.UserName}")
+                    except IndexError as e:
+                        print(f"ERROR with {self.users}, {data.UserId}, {data.UserName}")
                 else:
                     if data.Header.frame_id[-8:] == '_actions':
                         user.act_pred = data.ActionProbs
@@ -834,7 +782,12 @@ def run_gui():
     diag_obj.publish(1, "Starting")
 
     gui = GUI(cmd_publisher)
-    signal.signal(signal.SIGINT, gui._quit)
+
+    def handler(signum, frame):
+        print('Signal handler called with signal', signum)
+        gui._quit()
+
+    signal.signal(signal.SIGINT, handler)
     rospy.Subscriber('CurrentAction', current_action, gui.update_actions)
     rospy.Subscriber('SystemStatus', diagnostics, gui.update_sys_stat)
     rospy.Subscriber('RobotStatus', String, gui.update_robot_stat)

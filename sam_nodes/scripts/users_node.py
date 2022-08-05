@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.7
 
 import argparse
-import datetime
+from datetime import datetime
 import os
 import threading
 import time
@@ -17,7 +17,7 @@ from pub_classes import diag_class
 from user import User
 from std_msgs.msg import String
 from vision_recognition.qrcode_recognition import read_QR
-from sam_custom_messages.msg import current_action, diagnostics, hand_pos, skeleton, threeIMUs
+from sam_custom_messages.msg import current_action, diagnostics, skeleton, threeIMUs
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
@@ -25,26 +25,13 @@ os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboratio
 parser = argparse.ArgumentParser(
     description='Node to control data flow between users and rest of system')
 
-# parser.add_argument('--user_names', '-N',
-#                     nargs='*',
-#                     help='Set name of user, default: unknown',
-#                     default='l',
-#                     type=lambda s: [str(item) for item in s.split(',')])
-# parser.add_argument('--task_type', '-T',
-#                     help='Task for users to perform, options: assemble_complex_box (default)',
-#                     choices=TASKS,
-#                     default=DEFAULT_TASK)
 parser.add_argument('--test',
                     help='Test mode without sensors',
                     choices=[True, False],
                     default=False)
-# parser.add_argument('--inclAdjParam',
-#                     help='include user/task adjustment parameters for lstm model',
-#                     choices=[True, False],
-#                     default=False)
 
 args = parser.parse_known_args()[0]
-print(f"Users node settings: {args.task_type}")
+print(f"Test mode: {args.test}")
 database_stat = 1
 shimmer_stat = 1
 kinect_stat = 1
@@ -57,7 +44,11 @@ stop = False
 def perform_id_check(users, usr_fdbck_pub, frame_id):
     usr_fdbck_pub.publish("Face camera for ID check")
     i = [idx for idx, user in enumerate(users) if int(id_check) == user.id][0]
-    success, name = read_QR()
+    if args.test:
+        success = True
+        name = "Test"
+    else:
+        success, name = read_QR()
 
     if success:
         try:
@@ -73,8 +64,9 @@ def perform_id_check(users, usr_fdbck_pub, frame_id):
             time.sleep(1)
             usr_fdbck_pub.publish("Gesture forwards to start task")
         except Exception as e:
+            print(e)
             success = False
-    else:
+    if not success:
         usr_fdbck_pub.publish("ID check failed :(, I'll try again")
         time.sleep(1)
     return success
@@ -88,7 +80,7 @@ def setup_user(users, frame_id, name=None):
     users.append(User(name, id, frame_id, args.test))
 
     db = database()
-    time = datetime.datetime.utcnow()
+    time = datetime.utcnow()
     sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {id};"""
     db.gen_cmd(sql_cmd)
     sql_cmd = f"""DELETE FROM users WHERE user_id = {id};"""
@@ -118,20 +110,20 @@ def imu_data_callback(data, users):
     i = [idx for idx, user in enumerate(users) if data.UserId == user.id]
     if i:
         i = i[0]
-        if users[i].name != data.UserName:
-            print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
-        else:
-            positions = ['Hand', 'Wrist', 'Arm']
-            sen_type = ['linear', 'angular']
-            axes = ['x', 'y', 'z']
-            msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
-            data_list = []
-            for p in positions:
-                for t in sen_type:
-                    for a in axes:
-                        data_list.append(getattr(getattr(getattr(data, p), t), a))
-            assert len(data_list) == 18, "IMU data received is wrong length"
-            users[i].perception.add_imu_data(data_list, msg_time)
+        # if users[i].name != data.UserName:
+        #     print(f"ERROR: users list name {users[i].name} does not match threeIMUs msg name {data.UserName}")
+        # else:
+        positions = ['Hand', 'Wrist', 'Arm']
+        sen_type = ['linear', 'angular']
+        axes = ['x', 'y', 'z']
+        msg_time = datetime.utcfromtimestamp(data.Header.stamp.secs)
+        data_list = []
+        for p in positions:
+            for t in sen_type:
+                for a in axes:
+                    data_list.append(getattr(getattr(getattr(data, p), t), a))
+        assert len(data_list) == 18, "IMU data received is wrong length"
+        users[i].perception.add_imu_data(data_list, msg_time)
 
 
 def skeleton_callback(data, users):
@@ -139,20 +131,20 @@ def skeleton_callback(data, users):
     i = [idx for idx, user in enumerate(users) if data.UserId == user.id]
     if i:
         i = i[0]
-        if users[i].name != data.UserName:
-            print(f"ERROR: users list name {users[i].name} does not match skeleton msg name {data.UserName}")
-        else:
-            for frame in SKELETON_FRAMES:
-                pose = getattr(data, frame)
-                skeleton_data.append(pose.position.x)
-                skeleton_data.append(pose.position.y)
-                skeleton_data.append(pose.position.z)
-                skeleton_data.append(pose.orientation.x)
-                skeleton_data.append(pose.orientation.y)
-                skeleton_data.append(pose.orientation.z)
-                skeleton_data.append(pose.orientation.w)
-            msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)
-            users[i].perception.add_skel_data(skeleton_data, msg_time)
+        # if users[i].name != data.UserName:
+        #     print(f"ERROR: users list name {users[i].name} does not match skeleton msg name {data.UserName}")
+        # else:
+        for frame in SKELETON_FRAMES:
+            pose = getattr(data, frame)
+            skeleton_data.append(pose.position.x)
+            skeleton_data.append(pose.position.y)
+            skeleton_data.append(pose.position.z)
+            skeleton_data.append(pose.orientation.x)
+            skeleton_data.append(pose.orientation.y)
+            skeleton_data.append(pose.orientation.z)
+            skeleton_data.append(pose.orientation.w)
+        msg_time = datetime.utcfromtimestamp(data.Header.stamp.secs)
+        users[i].perception.add_skel_data(skeleton_data, msg_time)
 
 
 def current_action_callback(data, users):
@@ -162,7 +154,7 @@ def current_action_callback(data, users):
         if users[i].name != data.UserName:
             print(f"ERROR: users list name {users[i].name} does not match current_action msg name {data.UserName}")
         else:
-            msg_time = datetime.datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
+            msg_time = datetime.utcfromtimestamp(data.Header.stamp.secs)#to_sec())
 
             # check if actions or gestures output
             if data.Header.frame_id[-8:] == '_actions':
@@ -191,7 +183,7 @@ def sys_stat_callback(data, users):
             rospy.signal_shutdown('gui shutdown')
     elif users:
         for i, _ in enumerate(users):
-            if data.Header.frame_id == f'shimmerBase {users[i].name} {users[i].id} node':
+            if data.Header.frame_id == 'shimmerBase_node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
             elif data.Header.frame_id == 'fakeIMUpub_node':
                 users[i].shimmer_ready = data.DiagnosticStatus.level
@@ -333,6 +325,7 @@ def users_test_node():
     diag_obj.publish(0, "Running")
     time.sleep(3)
     usr_fdbck_pub.publish("Wave to start system")
+    id_check = 1
     while not rospy.is_shutdown():
         # rospy.loginfo(f"{frame_id} active")
         for user in users:

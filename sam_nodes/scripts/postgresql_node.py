@@ -193,6 +193,7 @@ def save_tables(db, tables_to_save='all', file_path=None, verbose=True):
         except Exception as e:
             if verbose:
                 print(e)
+                print("postgresql 196")
             raise
 
 

@@ -1,3 +1,3 @@
 user_id,user_name,task_name,last_completed_action_no,next_r_action_no,robot_start_t
-1,l,assemble_chair,18,18,00:00:00
-0,robot,stack_tower,4,5,00:00:26
+0,robot,stack_tower,2,3,00:00:25
+1,James,assemble_complex_box,27,27,00:00:00

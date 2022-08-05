@@ -2,6 +2,7 @@
 
 import csv
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 import numpy as np
 import matplotlib.pyplot as plt
 from pub_classes import act_class
@@ -9,9 +10,9 @@ from process_skel_data import process_skel_data
 from tensorflow.keras.models import load_model
 from global_data import GESTURES
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 plt.ion()
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
 if len(gpus) > 0:

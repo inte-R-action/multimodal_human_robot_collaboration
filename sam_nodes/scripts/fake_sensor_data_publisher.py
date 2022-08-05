@@ -35,13 +35,14 @@ def sys_cmd_callback(msg):
 def fakeSensorsmain():
     print("-----Here we go-----")
     frame_id = 'fakeSensorspub_node'
+    u_name = 'Test'
     rospy.init_node(frame_id, anonymous=True)
-    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name='j', queue=10)
-    skel_diag_obj = diag_class(frame_id='skeleton_viewer', user_id=1, user_name='j', queue=10)
+    diag_obj = diag_class(frame_id=frame_id, user_id=1, user_name=u_name, queue=10)
+    skel_diag_obj = diag_class(frame_id='skeleton_viewer', user_id=1, user_name=u_name, queue=10)
     rospy.Subscriber('SystemStatus', diagnostics, sys_stat_callback)
     rospy.Subscriber("ProcessCommands", String, sys_cmd_callback)
 
-    imu_obj = threeIMUs_class(frame_id=frame_id, user_id=1, user_name='j', queue=10)
+    imu_obj = threeIMUs_class(frame_id=frame_id, user_id=1, user_name=u_name, queue=10)
     imu_data = [0]*18
     joints_publisher = rospy.Publisher('SkeletonJoints', skeleton, queue_size = 1)
 
@@ -50,7 +51,7 @@ def fakeSensorsmain():
     joints_msg.Header.seq = 0
     joints_msg.Header.frame_id = frame_id
     joints_msg.UserId = 1
-    joints_msg.UserName = 'j'
+    joints_msg.UserName = u_name
 
     diag_level = 1  # 0:ok, 1:warning, 2:error, 3:stale
 
@@ -58,7 +59,7 @@ def fakeSensorsmain():
     prev = None
     prev_t = time.time()
     with open('imu_skeleton_data_user_j_take_3.csv', newline='') as csvfile:
-        csvreader = csv.reader(csvfile, delimiter=';')
+        csvreader = csv.reader(csvfile, delimiter=',')
         next(csvreader)
 
         while (not start_trial) and (not rospy.is_shutdown()):
