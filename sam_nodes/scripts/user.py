@@ -1,18 +1,9 @@
 #!/usr/bin/env python3.7
 
-import numpy as np
-import rospy
-from std_msgs.msg import String, Int8, Float64
-import cv2
-import time
 from datetime import datetime, date
-import matplotlib.pyplot as plt
+import numpy as np
 from postgresql.database_funcs import database
-from pub_classes import capability_class
-import pandas as pd
-from vision_recognition.count_screws_table import screw_counter
-import argparse
-from global_data import COMPLEX_BOX_ACTIONS
+from global_data import ACTIONS_NULL
 from user_perception_module import perception_module
 from user_reasoning_module import reasoning_module
 
@@ -26,7 +17,7 @@ class User:
         self.frame_id = f"{frame_id}_{self.name}"
         self.task_data = None
         self.task = None
-        self.ACTION_CATEGORIES = None
+        self.ACTION_CATEGORIES = ACTIONS_NULL
         self.col_names = None
         self.db = database()
         self.shimmer_ready = 1
@@ -34,13 +25,25 @@ class User:
         self._har_state_hist = None
         self._final_state_hist = None
 
-        if not self.test:
-            self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
+        #if not self.test:
+        self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
         self.task_reasoning = reasoning_module(self.name, self.id, self.frame_id)
 
+    def update_user_details(self, frame_id=None, name=None, Id=None, task=None):
+        if name:
+            self.name = name
+            self.frame_id = f"{frame_id}_{self.name}"
+            self.perception.update_user_details(name=name, frame_id=self.frame_id)
+            self.task_reasoning.update_user_details(name=name, frame_id=self.frame_id)
+        if Id:
+            self.id = Id
+            self.perception.update_user_details(Id=self.id)
+            self.task_reasoning.update_user_details(Id=self.id)
+        if task:
+            self.update_task(task)
+    
     def update_task(self, task):
         self.task = task
-        self.ACTION_CATEGORIES = COMPLEX_BOX_ACTIONS
 
         self._har_pred_hist = np.array([0, 0, 0, 0, datetime.min])  # class confs, t
         self._har_state_hist = [np.array([0, 1, datetime.min], ndmin=2) for _ in range(len(self.ACTION_CATEGORIES)-1)]  # [class, conf, t]*num_classes
@@ -75,11 +78,8 @@ class User:
                     if int(self._final_state_hist[a][-1, 0]) != 0:
                         start_t = self._final_state_hist[a][-1, 2]
                         end_t = self._final_state_hist[a][-1, 3]
-                        dur = end_t - start_t
                         action_name = self.ACTION_CATEGORIES[int(self._final_state_hist[a][-1, 0])]
-                        self.db.insert_data_list("Episodes",
-                        ["date", "start_t", "end_t", "duration", "user_id", "hand", "task_name", "action_name", "action_no"],
-                        [(date.today(), start_t, end_t, dur, self.id, "R", self.task, action_name, 0)])
+                        self.task_reasoning.pub_episode(start_t, end_t, action_name)
 
                 # Update state history objects
                 new_start_t = self._har_pred_hist[-1, -1]

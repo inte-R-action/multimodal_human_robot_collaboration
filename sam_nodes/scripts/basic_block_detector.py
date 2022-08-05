@@ -1,40 +1,42 @@
 #!/usr/bin/env python3.7
 # Must be run from scripts folder
 # Import Statements
-import pyrealsense2 as rs
-import numpy as np
-import traceback
+
+from math import cos, radians, sin
+import imutils
+import matplotlib.pyplot as plt
+from geometry_msgs.msg import Pose
+from vision_recognition.rs_cam import rs_cam
 import argparse
-import sys, os
+import sys
 import time
+import traceback
 import cv2
 import matplotlib
-matplotlib.use( 'tkagg' )
-import matplotlib.pyplot as plt
-from vision_recognition.blob_detector import detect_blobs
-from vision_recognition.rs_cam import rs_cam
-import imutils
-from sam_custom_messages.msg import object_state
-from geometry_msgs.msg import Pose 
-from math import sin, cos, radians
-from collections import OrderedDict
-# from scipy.spatial import distance as dist
+import numpy as np
+import pyrealsense2 as rs
+matplotlib.use('tkagg')
+
 
 try:
-    from pub_classes import diag_class, obj_class
     import rospy
-    test=False
+    from pub_classes import diag_class, obj_class
+    test = False
 except ModuleNotFoundError:
-    print(f"rospy module not found, proceeding in test mode")
+    print("rospy module not found, proceeding in test mode")
     test = True
     # Hacky way of avoiding errors
+    
     class ROS():
         def is_shutdown(self):
             return False
     rospy = ROS()
 
+
 def nothing(x):
     pass
+
+
 class block_detector:
     # https://www.pyimagesearch.com/2016/02/08/opencv-shape-detection/
     # https://www.pyimagesearch.com/2016/02/15/determining-object-color-with-opencv/
@@ -124,7 +126,6 @@ class block_detector:
 
             hsv_arr = np.asarray(hsv_image)[:, :, 0]
             mask_im = np.ma.MaskedArray(hsv_arr, mask=mask)
-            
             mean = int(mask_im.mean())
 
             for colour in self.colours:
@@ -132,7 +133,7 @@ class block_detector:
                     if (colour == "red_1") or (colour == "red_2"):
                         colour = "red"
                     return colour, mean
-                    
+
         except Exception as e:
             print(e)
 
@@ -169,10 +170,10 @@ class block_detector:
             try:
                 # compute the center of the contour, then detect the name of the
                 # shape using only the contour
-                #M = cv2.moments(c)
-                #cX = int((M["m10"] / M["m00"]) * ratio)
-                #cY = int((M["m01"] / M["m00"]) * ratio)
-                
+                # M = cv2.moments(c)
+                # cX = int((M["m10"] / M["m00"]) * ratio)
+                # cY = int((M["m01"] / M["m00"]) * ratio)
+
                 # Filter out small artefacts
                 area = cv2.contourArea(c)
                 if area > 90:
@@ -190,11 +191,11 @@ class block_detector:
                         c = c.astype("float")
                         c *= ratio
                         c = c.astype("int")
-                    
+
                         cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-    
+
                         image = cv2.circle(image, (x,y), radius=0, color=(0, 255, 0), thickness=5)
-                    
+
                         cv2.putText(image, colour+": "+str(mean)+" area: "+str(area), (x+50, y+100), cv2.FONT_HERSHEY_SIMPLEX,
                             0.5, (255, 255, 255), 2)
 
@@ -211,11 +212,12 @@ class block_detector:
                 # # show the output image
                 # cv2.namedWindow('detector viewer', cv2.WINDOW_AUTOSIZE)
                 # cv2.imshow("detector viewer", image)
-                #cv2.waitKey(0)
+                # cv2.waitKey(0)
             except ZeroDivisionError:
                 pass
             except Exception as e:
-            	print(e)
+                print(e)
+
 
 def realsense_run():
     # ROS node setup
@@ -272,7 +274,7 @@ def realsense_run():
             # Convert to HSV format and color threshold
             hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
             mask = cv2.inRange(hsv, lower, upper)
-            result = cv2.bitwise_and(image, image, mask=mask)
+            # result = cv2.bitwise_and(image, image, mask=mask)
 
             # Print if there is a change in HSV value
             if((phMin != hMin) | (psMin != sMin) | (pvMin != vMin) | (phMax != hMax) | (psMax != sMax) | (pvMax != vMax) ):
@@ -302,24 +304,23 @@ def realsense_run():
 
             if (time.time()-diag_timer) > 1:
                 if not test:
-                    diag_obj.publish(0, f"Running")
+                    diag_obj.publish(0, "Running")
                 diag_timer = time.time()
 
         except TypeError as e:
             time.sleep(1)
             if not test:
-                diag_obj.publish(2, f"TypeError")
+                diag_obj.publish(2, "TypeError")
         except Exception as e:
             print("**Get Image Error**")
             if not test:
                 diag_obj.publish(2, f"Realsense image error: {e}")
             traceback.print_exc(file=sys.stdout)
             break
-        
 
         if args.disp:
             disp_im = np.hstack((color_image, depth_colormap))
-            
+
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
             key = cv2.waitKey(1)
@@ -327,7 +328,7 @@ def realsense_run():
             if key & 0xFF == ord('q') or key == 27:
                 cv2.destroyAllWindows()
                 break
-            
+
         if not test:
             rate.sleep()
         else:
@@ -356,9 +357,8 @@ if __name__ == '__main__':
                     action="store_true")
     parser.add_argument('--img_size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
-    
-    args = parser.parse_known_args()[0]
 
+    args = parser.parse_known_args()[0]
     cam = rs_cam(args.disp)
 
     try:

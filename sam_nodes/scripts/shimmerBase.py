@@ -6,42 +6,12 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import time
-from sklearn import preprocessing
-import bluetooth
-from serial.tools import list_ports
 import threading
-import glob
-import signal
 import subprocess
 import rospy
-from std_msgs.msg import Int8, Float64
-import socket
-import io
-import shlex
-from imu_classifier import imu_classifier
 from diagnostic_msgs.msg import KeyValue
-from pub_classes import diag_class, act_class, threeIMUs_class
-import csv
-import tkinter
-from global_data import COMPLEX_BOX_ACTIONS
+from pub_classes import diag_class, threeIMUs_class
 
-def get_pwd():
-    out = b''
-    while out == b'':
-        root = tkinter.Tk() # dialog needs a root window, or will create an "ugly" one for you
-        root.withdraw() # hide the root window
-        password = tkinter.simpledialog.askstring("Password", "Enter password:", show='*', parent=root)#.encode('utf-8')
-        root.destroy() # clean up after yourself!
-
-        cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        var = subprocess.Popen(['sudo', '-k', '-S', '-l'], stdin=cmd1.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, error = var.communicate()
-
-    return password
-
-# password = get_pwd()
-
-#cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
@@ -58,7 +28,7 @@ parser.add_argument('--disp', '-V',
                     action="store_true")
 parser.add_argument('--user_name', '-N',
                     help='Set name of user, default: unknown',
-                    default='l',
+                    default='unknown',
                     action="store_true")
 parser.add_argument('--user_id', '-I',
                     help='Set id of user, default: None',
@@ -66,10 +36,10 @@ parser.add_argument('--user_id', '-I',
                     action="store_true")
 
 args = parser.parse_known_args()[0]
-frame_id = f'shimmerBase {args.user_name} {args.user_id} node'
+frame_id = 'shimmerBase_node'
 
 # Shimmer sensor connection params
-serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm2']
+serialports = ['/dev/rfcomm3', '/dev/rfcomm4', '/dev/rfcomm5']
 POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
@@ -88,9 +58,11 @@ passkey = "1234"  # passkey of shimmers
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+
 def shutdown_imu():
     global quit_IMU
     quit_IMU = True
+
 
 def plot_func(plotdata):
     if not quit_IMU:
@@ -127,10 +99,6 @@ def plot_func(plotdata):
                         axs[i, j].set_title(f"{POSITIONS[i]} Sensor Gyroscope")
 
         plt.pause(0.0001)
-
-def scale_data(new_data):
-    new_data = (new_data-means)/scales
-    return new_data
 
 
 class shimmer():
@@ -283,51 +251,6 @@ class shimmer():
         calib_data = np.transpose(Ri @ Ki @ (np.transpose(data) - offset))
         return np.reshape(np.nan_to_num(calib_data), (-1))
 
-    def bt_connection(self):
-        count = 1
-        self._status = 5 # connecting
-        while self._connect_error & (not quit_IMU) & (count <= 3):
-            print(f"Trying to connect {self._location}, attempt {count}/3")
-            target_address = None
-            try:
-                print(f"Finding Devices for {self._location}...")
-                nearby_devices = bluetooth.discover_devices()
-                for bdaddr in nearby_devices:
-                    if self._ID == bdaddr[-8:]:
-                        target_address = bdaddr
-                        break
-            except bluetooth.btcommon.BluetoothError as e:
-                print(f"Discover Devices error: {e}")
-
-            if target_address is not None:
-                print(f"found {self._location} bluetooth device with address {target_address}")
-
-                # Start a new "bluetooth-agent" process where XXXX is the passkey
-                #subprocess.call(f"bluetooth-agent {passkey}", shell=True)
-
-                try:
-                    cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-                    self._connection = subprocess.Popen(f"sudo -S rfcomm connect {self._port} {target_address} 1", shell=True, stdin=cmd1.stdout, stdout=subprocess.PIPE)
-                    time.sleep(2)
-                    self._connect_error = False
-                    return True
-
-                except Exception as e:
-                    self._connect_error = True
-                    self._connected = False
-                    print(f"Exception in connecting {self._location}: {e}")
-                    exc_type, exc_obj, exc_tb = sys.exc_info()
-                    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-                    print(exc_type, fname, exc_tb.tb_lineno)
-
-            else:
-                print(f"could not find {self._location} bluetooth device nearby")
-                self._connect_error = True
-                self._connected = False
-            count = count + 1
-
-        return False
-
     def checkbattery(self):
         batt_last = self._batt_perc
         if self._batt < 3.2:
@@ -387,11 +310,6 @@ class shimmer():
             print(f"{self._location} sensor battery at {self._batt_perc}%")
 
     def start(self):
-        # Start thread for shimmer connection
-        # connect_threads[num] = threading.Thread(target=shimmers[num].bt_connection, args=(num,))
-        # connect_threads[num].start()
-
-        # if self.bt_connection():
         count = 0
         while count <= 3:
             self._connect_error = False
@@ -402,9 +320,6 @@ class shimmer():
                 count += 1
                 print(f"Failed to initialise {self._location} sensor, attempt {count}/3")
                 return False
-        # else:
-        #     print(f"Failed to connect {self._location} sensor")
-        #     return False
 
     def getdata(self):
         framesize = 18  # 1byte packet type + 3byte timestamp + 3x2byte Analog Accel + 2byte Battery + 3x2byte Gyro
@@ -466,16 +381,8 @@ class shimmer():
             print(f"{self._location} close down sensor error: {e}")
             pass
 
-        #Kill bluetooth connection
-        # try:
-        #     #self._connection.release()
-        #     #self._connection.kill()
-        #     os.kill(self._connection.pid, 1)
-        # except Exception as e:
-        #     print(f"{self._location} connection not killed: {e}")
-        #     pass
-
         return True
+
 
 def shimmer_thread(num):
     print(f"Setting up Sensor {num + 1}/{numsensors}")
@@ -511,13 +418,10 @@ def shimmer_thread(num):
                 print(f"{shimmers[num]._location} sensor failed to start successfully, retrying")
                 shimmers[num]._shutdown = shimmers[num].shutdown()
 
-    # quit_IMU condition
-    #shutdown = shimmers[num].shutdown()
-
 
 def IMUsensorsMain():
     print("-----Here we go-----")
-    rospy.init_node(f'shimmerBase_{args.user_name}_{args.user_id}', anonymous=True)
+    rospy.init_node(frame_id, anonymous=True)
     rate = rospy.Rate(50)  # Message publication rate, Hz => should be 50
     
     keyvalues = [KeyValue(key = f'Shimmer {POSITIONS[0]} {SHIM_IDs[0]}', value = IMU_MSGS[2]),
@@ -584,14 +488,6 @@ def IMUsensorsMain():
 
 
 if __name__ == "__main__":
-    #subprocess.call("sudo service bluetooth restart")
-    ###cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    ###subprocess.call("sudo -S rfcomm release all", shell=True, stdin=cmd1.stdout)#, stdout=subprocess.PIPE)
-    # kill any rfcomm connections currently active
-    ###cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    ###subprocess.call("sudo -S killall rfcomm", shell=True, stdin=cmd1.stdout, stdout=subprocess.PIPE)
-    # kill any "bluetooth-agent" process that is already running
-    #subprocess.call("kill -9 `pidof bluetooth-agent`", shell=True)
     rospy.on_shutdown(shutdown_imu)
     try:
         IMUsensorsMain()
@@ -610,9 +506,6 @@ if __name__ == "__main__":
         if args.disp:
             plt.show()
         quit_IMU = True
-        ###cmd1 = subprocess.Popen(['echo', password], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        ###subprocess.call("sudo -S rfcomm release all", shell=True, stdin=cmd1.stdout, stdout=subprocess.PIPE)
-        ###del cmd1, password
         ready = np.zeros((len(shim_threads)))  # Bool array for if shimmers are setup and streaming
         alive = np.zeros((len(shim_threads)))  # Bool array for if shimmer thread are active
         conn = np.zeros((len(shim_threads)))  # Bool array for if connections are successful

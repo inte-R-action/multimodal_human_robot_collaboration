@@ -1,11 +1,11 @@
 #!/usr/bin/env python3.7
 
-import numpy as np
-from global_data import JOINTS_U, JOINT_LINKS, PCA_COMPS
-import matplotlib.pyplot as plt
 from math import acos
 import pickle
 import os
+import numpy as np
+from global_data import JOINTS_U, JOINT_LINKS, PCA_COMPS
+import matplotlib.pyplot as plt
 
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
@@ -14,6 +14,7 @@ NUM_LINKS = len(JOINT_LINKS[0])
 infile = open('./models_parameters/pca_winlen3_transitionsTrue_1v1_inclAllNull', 'rb')
 pca = pickle.load(infile)
 infile.close()
+
 
 def scale_skeleton_data(skeleton_seq, plot):
     # Get positions relative to center joint

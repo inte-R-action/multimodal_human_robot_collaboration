@@ -62,6 +62,7 @@ class database():
             print(f"Close database error: {e}") 
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            print("database funcs 65")
             raise
         finally:
             if self.conn is not None:
@@ -150,6 +151,7 @@ class database():
             print(f"Successfully created {name} table")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            print("database funcs 154")
             raise
         finally:
             self.disconnect()
@@ -203,6 +205,7 @@ class database():
             self.conn.commit()
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            print("database funcs 208")
             raise
         finally:
             self.disconnect()
@@ -242,6 +245,7 @@ class database():
             print(f"Successfully removed table {name}")
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            print("database funcs 248")
             raise
         finally:
             self.disconnect()
@@ -270,6 +274,7 @@ class database():
 
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
+            print("database funcs 277")
             raise
         finally:
             self.disconnect()

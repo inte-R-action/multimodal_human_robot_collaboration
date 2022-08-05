@@ -145,19 +145,19 @@ def main(args):
     global image
     disp = True
     frame_id = 'skeleton_viewer'
+    user_id = 1
     rospy.init_node(frame_id, anonymous=True)
 
     image_info_sub = rospy.Subscriber("/camera/rgb/camera_info", CameraInfo, image_info_cb)
     joints_publisher = rospy.Publisher('SkeletonJoints', skeleton, queue_size = 1)
-    diag_obj = diag_class(frame_id=frame_id, user_id=0, user_name="N/A", queue=1)
+    diag_obj = diag_class(frame_id=frame_id, user_id=user_id, user_name="N/A", queue=1)
 
-    user_id = 1
     joints_msg = skeleton()
     joints_msg.Header.stamp = rospy.get_rostime()
     joints_msg.Header.seq = 0
     joints_msg.Header.frame_id = frame_id
     joints_msg.UserId = user_id
-    joints_msg.UserName = 'l'
+    joints_msg.UserName = 'unknown'
 
     # Init the Kinect object
     kin = Kinect(user_id)

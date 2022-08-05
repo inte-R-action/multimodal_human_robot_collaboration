@@ -1,13 +1,14 @@
 #!/usr/bin/env python3.7
 
-import numpy as np
+import os
 import time
-import pandas as pd
-from postgresql.database_funcs import database
 from datetime import date, datetime
 from statistics import StatisticsError, mean, stdev
-import os
-from global_data import num_chair_actions, num_box_actions, ACTIONS
+import numpy as np
+import pandas as pd
+from global_data import ACTIONS, num_box_actions, num_chair_actions
+from postgresql.database_funcs import database
+
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 db = database()
@@ -178,6 +179,7 @@ def update_matedata_tables(actions_meta_data, users_meta_data, tasks_meta_data, 
 
 
 def enter_dreaming_phase():
+    return
     print("Entering dreaming phase")
     # Fake shutdown timer
     t = time.time()

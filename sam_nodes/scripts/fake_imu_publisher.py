@@ -1,15 +1,12 @@
 #!/usr/bin/env python3.7
 
-import sys, struct, serial, os
-import numpy as np
-import argparse
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-import time
-import rospy
-from std_msgs.msg import Int8, Float64, String
-from pub_classes import diag_class, act_class
 import csv
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+import rospy
+from matplotlib.animation import FuncAnimation
+from pub_classes import act_class, diag_class
 from sam_custom_messages.msg import diagnostics
 
 
@@ -34,11 +31,11 @@ def fakeIMUmain():
     prediction = np.zeros(4)
 
     print("Starting main loop")
-    
-    diag_level = 1 # 0:ok, 1:warning, 2:error, 3:stale
-    
+
+    diag_level = 1  # 0:ok, 1:warning, 2:error, 3:stale
+
     rate = rospy.Rate(2)  # Message publication rate, Hz => should be 2
-    with open ('fake_imu_data.csv', newline='') as csvfile:
+    with open('fake_imu_data.csv', newline='') as csvfile:
         csvreader = csv.reader(csvfile, delimiter=',')
         next(csvreader)
         for row in csvreader:
@@ -58,7 +55,7 @@ def fakeIMUmain():
                     diag_level = 1 # warning
 
                 diag_obj.publish(diag_level, diag_msg)
-                #print(f"Action: {class_pred} Probs: {prediction}")
+                # print(f"Action: {class_pred} Probs: {prediction}")
                 rate.sleep()
 
 

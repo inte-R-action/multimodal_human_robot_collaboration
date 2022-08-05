@@ -1,21 +1,20 @@
 #!/usr/bin/env python3.7
 # Should be run from multimodal_human_robot_collaboration folder
 
-from fileinput import filename
-import sys, os
-import rospy
 import argparse
+import os
+import sys
 import traceback
-from postgresql.database_funcs import database
-from pub_classes import diag_class
+from os.path import join
+from statistics import mean
+import pandas as pd
+import rospy
 # from sam_nodes.scripts.robot_controller import sys_stat_callback
 from sam_custom_messages.msg import diagnostics
 from global_data import ACTIONS, TASKS
-from os import listdir
-from os.path import isfile, join
-import csv
-import pandas as pd
-from statistics import mean
+from postgresql.database_funcs import database
+from pub_classes import diag_class
+
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
 
@@ -194,11 +193,12 @@ def save_tables(db, tables_to_save='all', file_path=None, verbose=True):
         except Exception as e:
             if verbose:
                 print(e)
+                print("postgresql 196")
             raise
 
 
 def shutdown(db):
-    #always save tables to dump on exit
+    #  always save tables to dump on exit
     try:
         save_tables(db, tables_to_save='all', file_path=os.path.dirname(__file__)+'/postgresql/dump', verbose=False)
     except Exception as e:

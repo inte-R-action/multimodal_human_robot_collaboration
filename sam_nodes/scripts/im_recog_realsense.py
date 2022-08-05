@@ -1,38 +1,41 @@
 #!/usr/bin/env python3.7
 # Must be run from scripts folder
-# Import Statements
-import pyrealsense2 as rs
-import numpy as np
-import traceback
-import argparse
-import sys, os
-import time
-import cv2
-from vision_recognition.detect import classifier
-import torch
+
 import matplotlib
 matplotlib.use( 'tkagg' )
 import matplotlib.pyplot as plt
-from vision_recognition.finger_count import skinmask, getcnthull
-from vision_recognition.shape_detector import rectangle_detector
+import argparse
+import os
+import sys
+import time
+import traceback
+import cv2
+import numpy as np
+import torch
+from vision_recognition.detect import classifier
 from vision_recognition.blob_detector import detect_blobs
+from vision_recognition.finger_count import getcnthull, skinmask
 from vision_recognition.rs_cam import rs_cam
+from vision_recognition.shape_detector import rectangle_detector
 
 try:
-    from pub_classes import diag_class, obj_class
     import rospy
-    test=False
+    from pub_classes import diag_class, obj_class
+    test = False
 except ModuleNotFoundError:
-    print(f"rospy module not found, proceeding in test mode")
+    print("rospy module not found, proceeding in test mode")
     test = True
     # Hacky way of avoiding errors
+
     class ROS():
         def is_shutdown(self):
             return False
+
     rospy = ROS()
 
 os.chdir(os.path.expanduser("~/catkin_ws/src/multimodal_human_robot_collaboration/"))
-sys.path.insert(0, "./sam_nodes/scripts/vision_recognition") # Need to add path to "models" parent dir for pickler
+sys.path.insert(0, "./sam_nodes/scripts/vision_recognition")  # Need to add path to "models" parent dir for pickler
+
 
 def realsense_run():
     # ROS node setup
@@ -42,7 +45,7 @@ def realsense_run():
         rospy.init_node(frame_id, anonymous=True)
         diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
         rate = rospy.Rate(10)
-    
+
     if args.classify:
         try:
             frames = cam.pipeline.wait_for_frames()
@@ -54,7 +57,7 @@ def realsense_run():
             im_classifier = classifier(args.comp_device, args.weights, args.img_size, color_image, args.conf_thres, args.iou_thres)
             if not test:
                 obj_obj = obj_class(frame_id=frame_id, names=im_classifier.names, queue=1)
-        
+
         except Exception as e:
             print("**Classifier Load Error**")
             traceback.print_exc(file=sys.stdout)
@@ -86,7 +89,7 @@ def realsense_run():
                         contours, hull = getcnthull(mask_img)
                         if cv2.contourArea(contours) > 1500:
                             det = torch.cat((det, torch.tensor([[0, 0, 0, 0, 1, 10, 0]])))
-                            #cv2.drawContours(img, [contours], -1, (255,255,0), 2)
+                            # cv2.drawContours(img, [contours], -1, (255,255,0), 2)
                             cv2.drawContours(color_image, [hull], -1, (0, 255, 255), 2)
                     except Exception as e:
                         print("hand mask error: ", e)
@@ -118,20 +121,20 @@ def realsense_run():
                         diag_obj.publish(2, f"load classifier error: {e}")
 
             # Remove background - Set pixels further than clipping_distance to grey
-            #grey_color = 153
-            #depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
-            #bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
-            #image = scale(bg_removed)
+            # grey_color = 153
+            # depth_image_3d = np.dstack((depth_image,depth_image,depth_image)) #depth image is 1 channel, color is 3 channels
+            # bg_removed = np.where((depth_image_3d > clipping_distance) | (depth_image_3d <= 0), grey_color, color_image)
+            # image = scale(bg_removed)
 
-            if  (time.time()-diag_timer) > 1:
+            if (time.time()-diag_timer) > 1:
                 if not test:
-                    diag_obj.publish(0, f"Running")
+                    diag_obj.publish(0, "Running")
                 diag_timer = time.time()
 
         except TypeError as e:
             time.sleep(1)
             if not test:
-                diag_obj.publish(2, f"TypeError")
+                diag_obj.publish(2, "TypeError")
         except Exception as e:
             print("**Get Image Error**")
             if not test:
@@ -139,16 +142,15 @@ def realsense_run():
             traceback.print_exc(file=sys.stdout)
             break
 
-        #im_screw_states, tally = im_screw_detect.detect_screws(image, args.disp)
-        #im_screw_states = im_screw_states.tolist()
-        
+        # im_screw_states, tally = im_screw_detect.detect_screws(image, args.disp)
+        # im_screw_states = im_screw_states.tolist()
 
         if args.disp:
             if args.depth:
                 disp_im = np.hstack((color_image, depth_colormap))
             else:
                 disp_im = color_image
-            
+
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
             key = cv2.waitKey(1)
@@ -156,16 +158,16 @@ def realsense_run():
             if key & 0xFF == ord('q') or key == 27:
                 cv2.destroyAllWindows()
                 break
-            
+
         if not test:
             rate.sleep()
         else:
-            #time.sleep(1)
+            # time.sleep(1)
             pass
 
 
-## Argument parsing
 if __name__ == "__main__":
+    # Argument parsing
     parser = argparse.ArgumentParser(
         description='Run realsense vision recognition ROS node')
     parser.add_argument('--disp', '-V',
@@ -194,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument('--conf_thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou_thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--test', default=test, help='Test mode for visual recognition without ROS')
-    
+
     args = parser.parse_known_args()[0]
 
     cam = rs_cam(args.disp)
