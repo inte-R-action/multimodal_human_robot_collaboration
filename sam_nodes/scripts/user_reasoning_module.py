@@ -1,13 +1,14 @@
 #!/usr/bin/env python3.7
 
 import os
+import queue
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 from datetime import datetime, date
 import csv
 import numpy as np
 import pandas as pd
 import rospy
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, Float32MultiArray
 from postgresql.database_funcs import database
 from tensorflow.keras.models import load_model
 from tensorflow.keras.models import Sequential
@@ -33,7 +34,7 @@ class reasoning_module:
         self.task = None
         self.models = []
         self.model_inputs = None
-        self.actions_id_list = []
+        self.actions_info_list = []
         self.means = None
         self.scales = None
         self.human_row_idxs = []
@@ -43,12 +44,15 @@ class reasoning_module:
         self.handover_action = False
         self.task_started = False
         self.user_state = "initialising"
+        self.tool_statuses = {"screw_in": None, "allen_in": None, "hammer": None}
 
         self.current_gesture = np.array([0, datetime.min, datetime.min]) # class, tStart, tEnd
         self.cmd_publisher = rospy.Publisher('ProcessCommands', String, queue_size=10)
         self.usr_fdbck_pub = rospy.Publisher('UserFeedback', String, queue_size=10)
         self.handover_active_pub = rospy.Publisher('HandoverActive', Bool, queue_size=10)
+        self.action_input_pub = rospy.Publisher('ActionProbInputs', Float32MultiArray, queue_size=10)
         self.robot_stat_sub = rospy.Subscriber("RobotStatus", String, self.robot_stat_callback)
+        self.tool_stat_sub = rospy.Subscriber("ToolStatus", String, self.tool_stat_callback, queue=10)
         self.db = database()
 
     def update_user_details(self, name=None, Id=None, frame_id=None):
@@ -75,7 +79,8 @@ class reasoning_module:
         tasks_data = tasks_data.loc[tasks_data['task_name'] == self.task]
 
         self.model_inputs = []
-        for _, row in self.task_data.iterrows():
+        prev_r_action = None
+        for r, row in self.task_data.iterrows():
             if row['user_type'] == 'human':
                 if not self.test:
                     if self.inclAdjParam:
@@ -102,12 +107,19 @@ class reasoning_module:
                         new_inputs[2] = users_data[row['action_name']].values[0]  # time adjust for user
                         new_inputs[3] = tasks_data[row['action_name']].values[0]  # time adjustment for task
                     self.model_inputs.append(new_inputs)
-                    self.actions_id_list.append(ACTIONS.index(row['action_name']))  # Action of focus
+                    # self.actions_info_list.append([ACTIONS.index(row['action_name']), r, prev_r_action])  # Action of focus, row no in task_data, prev robot action
+                    self.actions_info_list.append({"action_idx": ACTIONS.index(row['action_name']),
+                                                   "action_type": row['action_name'],
+                                                   "task_data_row": r,
+                                                   "prev_r_action": prev_r_action})  # Action of focus, row no in task_data, prev robot action
                     # self.output_override.append(0)
 
                 else:
                     self.models.append("fake model")
                 # self.human_row_idxs.append(index)
+
+            elif row['user_type'] == 'robot':
+                prev_r_action = r
 
         self.model_inputs = np.array(self.model_inputs)
 
@@ -122,30 +134,77 @@ class reasoning_module:
     def normalise_input_data(self, input_data):
         return (input_data-self.means)/self.scales
 
+    def action_probability_reasoning(self, action_probs, model_no, episodes):
+        # Find if required robot actions completed
+        if self.task_data.iloc[self.actions_info_list[model_no]["prev_r_action"], self.task_data.columns.get_loc("action_name")] in episodes.action_name.values:
+            robot_actions_complete = True
+            weights = [1, 1, 1]  # HAR, tool, screw
+
+            # Find HAR probability
+            try:
+                har_prob = action_probs[self.actions_info_list[model_no]["action_idx"]]
+            except Exception as e:
+                print("har prob error")
+                print(e)
+                weights[0] = 0
+                har_prob = 0
+
+            # Find tool in use probability
+            try:
+                tool_prob = self.tool_statuses[self.actions_info_list[model_no]["action_type"]]
+            except Exception as e:
+                print("tool prob error")
+                print(e)
+                weights[1] = 0
+                har_prob = 0
+
+            # Find screw count probability
+            try:
+                screw_prob = har_prob
+            except Exception as e:
+                print("screw prob error")
+                print(e)
+                weights[2] = 0
+                har_prob = 0
+
+            # Find final probability
+            action_probability = np.average([har_prob, tool_prob, screw_prob], weights=weights)
+
+        else:
+            # Prerequisite robot actions not complete
+            robot_actions_complete = False
+            action_probability = 0
+
+        return action_probability
+
     def predict_action_statuses(self, action_probs):
         time = 0
         started = 1
         done = 1
-        for i in range(len(self.models)):
+        # Read episodic, prob to zero if not done.
+        col_names, actions_list = self.db.query_table('Episodes', 'all')
+        episodes = pd.DataFrame(actions_list, columns=col_names)
+        for model_no, _ in enumerate(self.models):
             if not self.test:
                 # Check if override button has been used on action
-                if not self.output_override[i]:
-                    self.model_inputs[i, 0] = action_probs[self.actions_id_list[i]]  # Action prediction
-                    self.model_inputs[i, -3:] = [time, started, done] # Previous action status
+                if not self.output_override[model_no]:
+                    self.model_inputs[model_no, 0] = self.action_probability_reasoning(action_probs, model_no, episodes)
+                    self.model_inputs[model_no, -3:] = [time, started, done]  # Previous action status
 
-                    input_data = self.normalise_input_data(self.model_inputs[i, :])
+                    input_data = self.normalise_input_data(self.model_inputs[model_no, :])
                     input_data = np.nan_to_num(np.array(input_data, ndmin=3, dtype=np.float))
-                    time, started, done = self.models[i](input_data, training=False)[0, 0, :].numpy()
+                    time, started, done = self.models[model_no](input_data, training=False)[0, 0, :].numpy()
                 else:
                     time, started, done = [0, 1, 1]
             else:
                 [time, started, done] = [datetime.now().time(), 0, 0]
 
-            self.task_data.loc[self.human_row_idxs[i], 'started'] = started
-            self.task_data.loc[self.human_row_idxs[i], 'done'] = done
-            self.task_data.loc[self.human_row_idxs[i], 'time_left'] = time*100
+            self.task_data.loc[self.human_row_idxs[model_no], 'started'] = started
+            self.task_data.loc[self.human_row_idxs[model_no], 'done'] = done
+            self.task_data.loc[self.human_row_idxs[model_no], 'time_left'] = time*100
 
         self.publish_to_database()
+        self.action_input_pub.publish(Float32MultiArray(data=self.model_inputs[:, 0]))
 
     def publish_to_database(self):
         # Update user current action in sql table
@@ -291,3 +350,13 @@ class reasoning_module:
             self.handover_action = True
         else:
             self.handover_action = False
+
+    def tool_stat_callback(self, msg):
+        if msg.data[0:-3] == "screw":
+            self.tool_statuses["screwdriver"] = int(msg.data[-1])
+        elif msg.data[0:-3] == "allen":
+            self.tool_statuses["allenkey"] = int(msg.data[-1])
+        elif msg.data[0:-3] == "hammer":
+            self.tool_statuses["hammer"] = int(msg.data[-1])
+        else:
+            print(f"Unrecognised tool message: {msg.data}")

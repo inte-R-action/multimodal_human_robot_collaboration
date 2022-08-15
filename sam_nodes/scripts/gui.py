@@ -19,7 +19,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 from PIL import Image, ImageTk
 from sam_custom_messages.msg import current_action, diagnostics
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, Float32MultiArray
 from global_data import USER_PARAMETERS, ACTIONS, GESTURES, inclAdjParam
 from postgresql.database_funcs import database
 from pub_classes import diag_class
@@ -64,6 +64,7 @@ class user_frame:
         self.root = root
         self.act_pred = np.ones(4)
         self.ges_pred = np.ones(len(GESTURES))
+        self.act_input_probs = None
         self.task_name = None
         self.task_data = None
         self.status = "unknown"
@@ -81,12 +82,16 @@ class user_frame:
         self.ges_fig = Figure()
         self.ges_ax = self.ges_fig.subplots(1, 1)
 
+        self.act_input_fig = Figure()
+        self.act_input_ax = self.act_input_fig.subplots(1, 1)
+
         self.db = database()
 
         self.create_user_frame()
 
         self.update_action_plot()
         self.update_gesture_plot()
+        self.update_act_inputs_plot()
 
     def create_user_frame(self):
         self.user_frame = Tk.Frame(master=self.root, bg="red")
@@ -117,7 +122,7 @@ class user_frame:
         self.buttons_frame.grid_columnconfigure(1, weight=1, uniform=1)
         self.buttons_frame.grid_columnconfigure(2, weight=1, uniform=1)
         self.buttons_frame.grid_rowconfigure(0, weight=1)
-        
+
         self.user_frame.grid_columnconfigure(0, weight=1, uniform=1)
         self.user_frame.grid_columnconfigure(1, weight=1, uniform=1)
         self.user_frame.grid_rowconfigure(0, weight=1)
@@ -140,10 +145,13 @@ class user_frame:
         self.update_lstm_params_txt()
 
         # Tasks List
+        self.task_frame = Tk.Frame(master=self.user_deets_frame, bg="red")
+        self.task_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+
         self.col_names = ["action_no","action_id","action_name","default_time","user_type","prev_dependent","started","done","t_left"]
 
-        self.tasks = ttk.Treeview(self.user_deets_frame, show=["headings"], height=1, displaycolumns="#all")
-        self.tasks.grid(row=1, column=0, columnspan=2, sticky='nsew')
+        self.tasks = ttk.Treeview(self.task_frame, show=["headings"], height=1, displaycolumns="#all")
+        self.tasks.grid(row=0, column=0, sticky='nsew')
         self.tasks["columns"] = self.col_names
 
         for i in self.col_names:
@@ -152,6 +160,17 @@ class user_frame:
 
         if self.task_name is not None:
             self.load_task_data()
+
+        # Graph area for current action predictions
+        # A tk.DrawingArea.
+        self.act_input_canvas = FigureCanvasTkAgg(self.act_input_fig, master=self.task_frame)
+        self.act_input_canvas.draw()
+        self.act_input_canvas.get_tk_widget().grid(row=0, column=1, sticky="nsew")
+
+        # Adjust spacing of objects
+        self.task_frame.grid_columnconfigure(0, weight=1)
+        self.task_frame.grid_columnconfigure(1, weight=1)
+        self.task_frame.grid_rowconfigure(0, weight=0)
 
         # Adjust spacing of objects
         self.user_deets_frame.grid_columnconfigure(0, weight=1)
@@ -269,6 +288,8 @@ class user_frame:
         self.task_data["t_left"] = 0
         self.col_names.extend(("started", "done", "t_left"))
 
+        self.act_input_probs = np.ones(self.task_data.shape[0])
+
     def update_action_plot(self):
         self.act_ax.cla()
         _ = self.act_ax.bar(pos, self.act_pred, align='center', alpha=0.5)
@@ -303,6 +324,18 @@ class user_frame:
         plt.pause(0.00001)
         if not QUIT:
             self.ges_canvas.draw_idle()
+
+    def update_act_inputs_plot(self):
+        self.act_input_ax.cla()
+        pos = np.arange(self.task_data.shape[0])
+        _ = self.act_input_ax.barh(pos, self.act_input_probs, align='center', alpha=0.5)
+
+        self.act_input_ax.set_xlim([0, 1])
+        self.act_input_ax.set_title('Action Prob Inputs')
+
+        plt.pause(0.00001)
+        if not QUIT:
+            self.act_input_canvas.draw_idle()
 
     def update_user_information(self, name):
         self.name = name
@@ -423,9 +456,6 @@ class GUI:
         self.root.resizable(True, True)
         self.cmd_publisher = cmd_publisher
 
-        self.fig = Figure()
-        self.axs = np.reshape(self.fig.subplots(1, 1), (-1, 1))
-
         self.create_system_frame()
 
         self.users = []
@@ -509,14 +539,22 @@ class GUI:
                                    padx=10, pady=3, borderwidth=2, relief="ridge")
         self.handover_label.grid(row=5, column=0, columnspan=2, sticky="nsew")
 
-        # Timing Predictions Graph
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.sys_frame)
-        self.canvas.draw()
-        try:
-            self.canvas.get_tk_widget().grid(row=6, column=0, columnspan=2,
-                                            sticky="nsew")
-        except AttributeError:
-            pass
+        # Tool Stats Indicators
+        self.tool_statuses = {"screw_in": None, "allen_in": None, "hammer": None}
+        self.tool_stats = Tk.Frame(master=self.sys_frame)
+        self.tool_stats.grid(row=6, column=0, columnspan=2, sticky="nsew")
+        self.screwdriver_ind = Tk.Label(master=self.tool_stats, bg="grey", text="Screwdriver",
+                                   padx=10, pady=3, borderwidth=2, relief="ridge")
+        self.screwdriver_ind.grid(row=0, column=0, sticky="nsew")
+        self.allen_ind = Tk.Label(master=self.tool_stats, bg="grey", text="Allen Key",
+                                   padx=10, pady=3, borderwidth=2, relief="ridge")
+        self.allen_ind.grid(row=0, column=1, sticky="nsew")
+        self.hammer_ind = Tk.Label(master=self.tool_stats, bg="grey", text="Hammer",
+                                   padx=10, pady=3, borderwidth=2, relief="ridge")
+        self.hammer_ind.grid(row=0, column=2, sticky="nsew")
+        # Adjust spacing of objects
+        self.tool_stats.grid_columnconfigure((0, 1, 2), weight=1)
+        self.tool_stats.grid_rowconfigure(0, weight=1)
 
         # User Feedback Text
         self.usr_feedback_text = "Please wait, system starting"
@@ -543,7 +581,7 @@ class GUI:
         self.sys_frame.grid_rowconfigure(3, weight=0)
         self.sys_frame.grid_rowconfigure(4, weight=1)
         self.sys_frame.grid_rowconfigure(5, weight=0)
-        self.sys_frame.grid_rowconfigure(6, weight=1)
+        self.sys_frame.grid_rowconfigure(6, weight=0)
         self.sys_frame.grid_rowconfigure(7, weight=1)
         self.sys_frame.grid_rowconfigure(8, weight=0)
 
@@ -560,7 +598,7 @@ class GUI:
             user = eval(user)
             self.users.append(user_frame(len(self.users)+1, user[0], user[1], self.root, self.cmd_publisher))
             self.fig.clf()
-            self.axs = np.reshape(self.fig.subplots(len(self.users)+1, 1, sharex='col'), (-1,1))  # subplot for each user plus robot
+            self.axs = np.reshape(self.fig.subplots(len(self.users)+1, 1, sharex='col'), (-1, 1))  # subplot for each user plus robot
 
     def load_robot_actions_data(self):
         self.col_names, actions_list = self.db.query_table('robot_action_timings', 'all')
@@ -639,7 +677,7 @@ class GUI:
                         pass
 
                 # Update future timings plot
-                self.update_timings_plot(predictions_data)
+                # self.update_timings_plot(predictions_data)
 
             # Update user info and status
             for user in self.users:
@@ -661,6 +699,7 @@ class GUI:
             self.robot_move.delete("1.0", Tk.END)
             self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
+            # Update handover active indicator
             if self.robot_stat_text == "Robot status: waiting_for_handover":
                 if self.handover_active:
                     self.handover_label.config(bg='green')
@@ -668,6 +707,23 @@ class GUI:
                     self.handover_label.config(bg='yellow')
             else:
                 self.handover_label.config(bg='red')
+
+            # Update tools in use indicators
+            try:
+                if self.tool_statuses["screwdriver"]:
+                    self.screwdriver_ind.config(bg='green')
+                else:
+                    self.screwdriver_ind.config(bg='red')
+                if self.tool_statuses["allenkey"]:
+                    self.allen_ind.config(bg='green')
+                else:
+                    self.allen_ind.config(bg='red')
+                if self.tool_statuses["hammer"]:
+                    self.hammer_ind.config(bg='green')
+                else:
+                    self.hammer_ind.config(bg='red')
+            except Exception as e:
+                print(f"GUI tool ind error: {e}")
 
             # Update user feedback text
             self.usr_feedback.delete("1.0", Tk.END)
@@ -733,43 +789,59 @@ class GUI:
     def update_handover_active(self, data):
         self.handover_active = data.data
 
-    def update_timings_plot(self, predictions_data):
-        active_users = self.users
-        [ax[0].cla() for ax in self.axs]
+    # def update_timings_plot(self, predictions_data):
+    #     active_users = self.users
+    #     [ax[0].cla() for ax in self.axs]
 
-        for u in range(self.axs.shape[0]-1):
-            time_predictions = predictions_data.loc[predictions_data["user_id"]==active_users[u].id]["time_left"]
-            for t in time_predictions:
-                self.axs[u, 0].axvline(x=t)
-            try:
-                self.axs[u, 0].get_yaxis().set_ticks([])
-            except Exception:
-                pass
-            self.axs[u, 0].set_ylabel(f"User: {u}")
+    #     for u in range(self.axs.shape[0]-1):
+    #         time_predictions = predictions_data.loc[predictions_data["user_id"]==active_users[u].id]["time_left"]
+    #         for t in time_predictions:
+    #             self.axs[u, 0].axvline(x=t)
+    #         try:
+    #             self.axs[u, 0].get_yaxis().set_ticks([])
+    #         except Exception:
+    #             pass
+    #         self.axs[u, 0].set_ylabel(f"User: {u}")
 
-        # Plot robot solo action times
-        try:
-            time_predictions = self.robot_tasks_data.loc[self.robot_tasks_data["user_name"]=="robot"]["robot_start_t"].values[0]
-            self.axs[-1, 0].axvline(x=time_predictions)
-        except (KeyError, IndexError) as e:
-            # print("robot solo action time error")
-            pass
-        try:
-            self.axs[-1, 0].get_yaxis().set_ticks([])
-        except Exception:
-            pass
-        self.axs[-1, 0].set_ylabel("Robot Solo")
+    #     # Plot robot solo action times
+    #     try:
+    #         time_predictions = self.robot_tasks_data.loc[self.robot_tasks_data["user_name"]=="robot"]["robot_start_t"].values[0]
+    #         self.axs[-1, 0].axvline(x=time_predictions)
+    #     except (KeyError, IndexError) as e:
+    #         # print("robot solo action time error")
+    #         pass
+    #     try:
+    #         self.axs[-1, 0].get_yaxis().set_ticks([])
+    #     except Exception:
+    #         pass
+    #     self.axs[-1, 0].set_ylabel("Robot Solo")
 
-        self.fig.text(0.5, 0.02, 'Time into future, s', ha='center')
-        self.fig.suptitle('Future Timing Predictions')
+    #     self.fig.text(0.5, 0.02, 'Time into future, s', ha='center')
+    #     self.fig.suptitle('Future Timing Predictions')
 
-        plt.pause(0.00001)
+    #     plt.pause(0.00001)
 
     def update_usr_feedback(self, data):
         if data.data != self.usr_feedback_text:
             self.usr_feedback_text = data.data
             if data.data[0:5] == "Hello":
                 self.users[0].update_user_information(data.data[6:-1])
+
+    def tool_stat_callback(self, msg):
+        if msg.data[0:-3] == "screw":
+            self.tool_statuses["screwdriver"] = int(msg.data[-1])
+        elif msg.data[0:-3] == "allen":
+            self.tool_statuses["allenkey"] = int(msg.data[-1])
+        elif msg.data[0:-3] == "hammer":
+            self.tool_statuses["hammer"] = int(msg.data[-1])
+        else:
+            print(f"Unrecognised tool message: {msg.data}")
+
+    def act_input_probs_callback(self, msg):
+        for user in self.users:
+            user.act_input_probs = msg.data
+            user.update_act_inputs_plot()
+
 
 
 def run_gui():
@@ -794,6 +866,8 @@ def run_gui():
     rospy.Subscriber('RobotMove', String, gui.update_robot_move)
     rospy.Subscriber('UserFeedback', String, gui.update_usr_feedback)
     rospy.Subscriber('HandoverActive', Bool, gui.update_handover_active)
+    rospy.Subscriber('ToolStatus', String, gui.tool_stat_callback)
+    rospy.Subscriber('ActionProbInputs', Float32MultiArray, gui.act_input_probs_callback)
 
     gui.update_gui(diag_obj)
     Tk.mainloop()
