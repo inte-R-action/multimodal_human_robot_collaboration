@@ -9,15 +9,13 @@ bool hammer_value;
 bool allen_value;
 bool screw_value;
 
-String hammer_msg;
-String allen_msg;
-String screw_msg;
+char msg_data[15];
 
 ros::NodeHandle node_handle;
 
 std_msgs::String sensor_msg;
 
-ros::Publisher sensor_publisher("ToolStatus", &sensor_msg, 10);
+ros::Publisher sensor_publisher("ToolStatus", &sensor_msg);
 
 void setup()
 {
@@ -25,8 +23,6 @@ void setup()
   pinMode(HAMMER_PIN, INPUT_PULLUP);
   pinMode(ALLEN_PIN, INPUT_PULLUP);
   pinMode(SCREW_PIN, INPUT_PULLUP);
-
-  Serial.begin(9600);
   
   node_handle.initNode();
   node_handle.advertise(sensor_publisher);
@@ -34,13 +30,9 @@ void setup()
 
 void loop()
 { 
-  hammer_value = !digitalRead(HAMMER_PIN);
-  allen_value = !digitalRead(ALLEN_PIN);
-  screw_value = !digitalRead(SCREW_PIN);
-
-  hammer_msg = "hammer_" + String(hammer_value);
-  allen_msg = "allen_" + String(allen_value);
-  screw_msg = "screw_" + String(screw_value);
+  hammer_value = digitalRead(HAMMER_PIN);
+  allen_value = digitalRead(ALLEN_PIN);
+  screw_value = digitalRead(SCREW_PIN);
 
   if (( hammer_value ) || ( allen_value ) || ( screw_value )){
     digitalWrite(LED_BUILTIN, HIGH); 
@@ -48,17 +40,16 @@ void loop()
     digitalWrite(LED_BUILTIN, LOW);
   }
 
-  Serial.print( hammer_msg );
-  Serial.print( "  " );
-  Serial.print( allen_msg );
-  Serial.print( "  " );
-  Serial.println( screw_msg );
-
-  sensor_msg.data = hammer_msg;
+  sprintf(msg_data,"hammer_%i",hammer_value);
+  sensor_msg.data = msg_data;
   sensor_publisher.publish( &sensor_msg );
-  sensor_msg.data = allen_msg;
+ 
+  sprintf(msg_data,"allenkey_%i",allen_value);
+  sensor_msg.data = msg_data;
   sensor_publisher.publish( &sensor_msg );
-  sensor_msg.data = screw_msg;
+ 
+  sprintf(msg_data,"screwdriver_%i",screw_value);
+  sensor_msg.data = msg_data;
   sensor_publisher.publish( &sensor_msg );
   
   node_handle.spinOnce();

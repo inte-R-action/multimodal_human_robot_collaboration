@@ -12,6 +12,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir) 
 from pub_classes import screw_count_class
 
+
 class screw_counter():
     def __init__(self, frame_id, u_id, u_name, type='raw_count'):
         if type=='raw_count':
@@ -77,4 +78,3 @@ def run():
 
 if __name__ == '__main__':
     run()
-    

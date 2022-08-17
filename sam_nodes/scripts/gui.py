@@ -19,7 +19,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 from PIL import Image, ImageTk
 from sam_custom_messages.msg import current_action, diagnostics
-from std_msgs.msg import String, Bool, Float32MultiArray
+from std_msgs.msg import String, Bool
 from global_data import USER_PARAMETERS, ACTIONS, GESTURES, inclAdjParam
 from postgresql.database_funcs import database
 from pub_classes import diag_class
@@ -99,9 +99,11 @@ class user_frame:
 
         self.create_user_details_frame()
         self.create_shimmer_frame()
+        self.create_task_details_frame()
+        self.create_actions_plots()
 
         self.buttons_frame = Tk.Frame(master=self.user_frame, bg="red")
-        self.buttons_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        self.buttons_frame.grid(row=3, column=0, columnspan=2, sticky="nsew")
 
         # Remove User button
         self.remove_user_button = Tk.Button(
@@ -125,32 +127,40 @@ class user_frame:
 
         self.user_frame.grid_columnconfigure(0, weight=1, uniform=1)
         self.user_frame.grid_columnconfigure(1, weight=1, uniform=1)
-        self.user_frame.grid_rowconfigure(0, weight=1)
-        self.user_frame.grid_rowconfigure(1, weight=0)
+        self.user_frame.grid_rowconfigure(0, weight=0)
+        self.user_frame.grid_rowconfigure(1, weight=1)
+        self.user_frame.grid_rowconfigure(2, weight=1)
+        self.user_frame.grid_rowconfigure(3, weight=0)
 
     def create_user_details_frame(self):
-        self.user_deets_frame = Tk.Frame(master=self.user_frame, bg="red")
+        self.user_deets_frame = Tk.Frame(master=self.user_frame, bg="red", height=4)
         self.user_deets_frame.grid(row=0, column=0, sticky="nsew")
 
         # User Details
-        self.user_deets = Tk.Text(master=self.user_deets_frame, height=5, width=1, font=('', 10))
+        self.user_deets = Tk.Text(master=self.user_deets_frame, width=1, height=4, font=('', 10))
         # self.user_deets.tag_configure("center", justify='center')
         self.user_deets.grid(row=0, column=0, sticky="nsew")
         self.update_user_deets()
 
         # LSTM network parameters
-        self.lstm_params_txt = Tk.Text(master=self.user_deets_frame, height=5, width=1, font=('', 10))
+        self.lstm_params_txt = Tk.Text(master=self.user_deets_frame, width=1, height=4, font=('', 10))
         self.lstm_params_txt.tag_configure("right", justify='right')
         self.lstm_params_txt.grid(row=0, column=1, sticky="nsew")
         self.update_lstm_params_txt()
 
+        # Adjust spacing of objects
+        self.user_deets_frame.grid_columnconfigure(0, weight=1)
+        self.user_deets_frame.grid_columnconfigure(1, weight=1)
+        self.user_deets_frame.grid_rowconfigure(0, weight=0)
+
+    def create_task_details_frame(self):
         # Tasks List
-        self.task_frame = Tk.Frame(master=self.user_deets_frame, bg="red")
+        self.task_frame = Tk.Frame(master=self.user_frame, bg="red")
         self.task_frame.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
         self.col_names = ["action_no","action_id","action_name","default_time","user_type","prev_dependent","started","done","t_left"]
 
-        self.tasks = ttk.Treeview(self.task_frame, show=["headings"], height=1, displaycolumns="#all")
+        self.tasks = ttk.Treeview(self.task_frame, show=["headings"], height=38, displaycolumns="#all")
         self.tasks.grid(row=0, column=0, sticky='nsew')
         self.tasks["columns"] = self.col_names
 
@@ -162,58 +172,46 @@ class user_frame:
             self.load_task_data()
 
         # Graph area for current action predictions
-        # A tk.DrawingArea.
         self.act_input_canvas = FigureCanvasTkAgg(self.act_input_fig, master=self.task_frame)
         self.act_input_canvas.draw()
         self.act_input_canvas.get_tk_widget().grid(row=0, column=1, sticky="nsew")
 
         # Adjust spacing of objects
-        self.task_frame.grid_columnconfigure(0, weight=1)
-        self.task_frame.grid_columnconfigure(1, weight=1)
-        self.task_frame.grid_rowconfigure(0, weight=0)
-
-        # Adjust spacing of objects
-        self.user_deets_frame.grid_columnconfigure(0, weight=1)
-        self.user_deets_frame.grid_columnconfigure(1, weight=1)
-
-        self.user_deets_frame.grid_rowconfigure(0, weight=0)
-        self.user_deets_frame.grid_rowconfigure(1, weight=1)
+        self.task_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.task_frame.grid_columnconfigure(1, weight=1, uniform=1)
+        self.task_frame.grid_rowconfigure(0, weight=1)
 
     def create_shimmer_frame(self):
         # Shimmer status indicators
-        self.shimmer_frame = Tk.Frame(master=self.user_frame, height=5, bg="red")
+        self.shimmer_frame = Tk.Frame(master=self.user_frame, bg="red", height=4)
         self.shimmer_frame.grid(row=0, column=1, sticky="nsew")
         for i in range(0, 3):
-            self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=5/3, width=2, font=('', 10))
+            self.shimmer[i] = Tk.Text(master=self.shimmer_frame, height=4, width=2, font=('', 10))
             self.shimmer[i].tag_configure("center", justify='center')
-            self.shimmer[i].grid(row=i, column=0, sticky="nsew")
-            text = "Unknown shimmer\n" \
-                   "Unknown\n"
+            self.shimmer[i].grid(row=0, column=i, sticky="nsew")
+            text = "\nUnknown shimmer\n" \
+                   "Unknown"
             self.shimmer_info.append([text, 'Unknown'])
 
         self.update_shimmer_text()
 
-        self.create_actions_plots()
-
-        self.shimmer_frame.grid_columnconfigure(0, weight=1)
-        self.shimmer_frame.grid_rowconfigure(0, weight=0, uniform=1)
-        self.shimmer_frame.grid_rowconfigure(1, weight=0, uniform=1)
-        self.shimmer_frame.grid_rowconfigure(2, weight=0, uniform=1)
-        self.shimmer_frame.grid_rowconfigure(3, weight=1)
-        self.shimmer_frame.grid_rowconfigure(4, weight=1)
+        self.shimmer_frame.grid_rowconfigure(0, weight=0)
+        self.shimmer_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.shimmer_frame.grid_columnconfigure(1, weight=1, uniform=1)
+        self.shimmer_frame.grid_columnconfigure(2, weight=1, uniform=1)
 
     def create_actions_plots(self):
         # Graph area for current action predictions
         # A tk.DrawingArea.
-        self.act_canvas = FigureCanvasTkAgg(self.act_fig, master=self.shimmer_frame)
+        self.act_canvas = FigureCanvasTkAgg(self.act_fig, master=self.user_frame)
         self.act_canvas.draw()
-        self.act_canvas.get_tk_widget().grid(row=3, column=0, sticky="nsew")
+        self.act_canvas.get_tk_widget().grid(row=2, column=0, sticky="nsew")
 
         # Graph area for current gesture predictions
         # A tk.DrawingArea.
-        self.ges_canvas = FigureCanvasTkAgg(self.ges_fig, master=self.shimmer_frame)
+        self.ges_canvas = FigureCanvasTkAgg(self.ges_fig, master=self.user_frame)
         self.ges_canvas.draw()
-        self.ges_canvas.get_tk_widget().grid(row=4, column=0, sticky="nsew")
+        self.ges_canvas.get_tk_widget().grid(row=2, column=1, sticky="nsew")
 
     def remove_user(self):
         self.user_frame.quit()     # stops mainloop
@@ -261,7 +259,7 @@ class user_frame:
             user_params = ["N/A"]*len(ACTIONS)
             task_params = ["N/A"]*len(ACTIONS)
 
-        text = "LSTM Params       \n" \
+        text = "LSTM Params:                        " \
                "User|Task \n"
         text = text+''.join([f"{action}:  {user_params[a]} |  {task_params[a]} \n" for a, action in enumerate(ACTIONS)])
 
@@ -288,7 +286,8 @@ class user_frame:
         self.task_data["t_left"] = 0
         self.col_names.extend(("started", "done", "t_left"))
 
-        self.act_input_probs = np.ones(self.task_data.shape[0])
+        self.act_input_probs = np.zeros(self.task_data.shape[0])
+        self.update_act_inputs_plot()
 
     def update_action_plot(self):
         self.act_ax.cla()
@@ -327,11 +326,22 @@ class user_frame:
 
     def update_act_inputs_plot(self):
         self.act_input_ax.cla()
-        pos = np.arange(self.task_data.shape[0])
-        _ = self.act_input_ax.barh(pos, self.act_input_probs, align='center', alpha=0.5)
+        data_height = 30
+        if self.task_data is not None:
+            pos = np.arange(data_height)
+            display_data = np.zeros(data_height)
+            display_data[0:self.act_input_probs.shape[0]] = self.act_input_probs
+            _ = self.act_input_ax.barh(pos, display_data, align='center', alpha=0.5, height=0.8)
+            self.act_input_ax.invert_yaxis()
+        else:
+            pos = np.arange(data_height)
+            data = pos
+            _ = self.act_input_ax.barh(pos, data, align='center', alpha=0.5, height=0.8, tick_label=None)
+            self.act_input_ax.invert_yaxis()
 
         self.act_input_ax.set_xlim([0, 1])
-        self.act_input_ax.set_title('Action Prob Inputs')
+        self.act_input_ax.set_ylim([data_height, -0.5])
+        self.act_input_ax.set_title('Action Prob Inputs', fontsize=10)
 
         plt.pause(0.00001)
         if not QUIT:
@@ -540,7 +550,7 @@ class GUI:
         self.handover_label.grid(row=5, column=0, columnspan=2, sticky="nsew")
 
         # Tool Stats Indicators
-        self.tool_statuses = {"screw_in": None, "allen_in": None, "hammer": None}
+        self.tool_statuses = {"screwdriver": None, "allenkey": None, "hammer": None}
         self.tool_stats = Tk.Frame(master=self.sys_frame)
         self.tool_stats.grid(row=6, column=0, columnspan=2, sticky="nsew")
         self.screwdriver_ind = Tk.Label(master=self.tool_stats, bg="grey", text="Screwdriver",
@@ -658,6 +668,7 @@ class GUI:
                             self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'started'] = round(row.started, 2)
                             self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'done'] = round(row.done, 2)
                             self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 't_left'] = round(row.time_left, 2)
+                            self.users[user_i].act_input_probs[row.action_no] = row.act_input_prob
                     except Exception as e:
                         print(e)
                         print("gui 649")
@@ -671,10 +682,14 @@ class GUI:
                     try:
                         act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['next_r_action_no'].values[0]
                         user.tasks.tag_configure(act_no, background='yellow')
+                        self.users[user_i].act_input_probs[act_no] = 0.5
                         act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['last_completed_action_no'].values[0]
                         user.tasks.tag_configure(act_no, background='green')
+                        self.users[user_i].act_input_probs[act_no] = 1
                     except Exception:
                         pass
+
+                    user.update_act_inputs_plot()
 
                 # Update future timings plot
                 # self.update_timings_plot(predictions_data)
@@ -710,15 +725,23 @@ class GUI:
 
             # Update tools in use indicators
             try:
-                if self.tool_statuses["screwdriver"]:
+                if self.tool_statuses["screwdriver"] is None:
+                    self.screwdriver_ind.config(bg='blue')
+                elif self.tool_statuses["screwdriver"]:
                     self.screwdriver_ind.config(bg='green')
                 else:
                     self.screwdriver_ind.config(bg='red')
-                if self.tool_statuses["allenkey"]:
+
+                if self.tool_statuses["allenkey"] is None:
+                    self.allen_ind.config(bg='blue')
+                elif self.tool_statuses["allenkey"]:
                     self.allen_ind.config(bg='green')
                 else:
                     self.allen_ind.config(bg='red')
-                if self.tool_statuses["hammer"]:
+
+                if self.tool_statuses["hammer"] is None:
+                    self.hammer_ind.config(bg='blue')
+                elif self.tool_statuses["hammer"]:
                     self.hammer_ind.config(bg='green')
                 else:
                     self.hammer_ind.config(bg='red')
@@ -828,20 +851,14 @@ class GUI:
                 self.users[0].update_user_information(data.data[6:-1])
 
     def tool_stat_callback(self, msg):
-        if msg.data[0:-3] == "screw":
+        if msg.data[0:-2] == "screwdriver":
             self.tool_statuses["screwdriver"] = int(msg.data[-1])
-        elif msg.data[0:-3] == "allen":
+        elif msg.data[0:-2] == "allenkey":
             self.tool_statuses["allenkey"] = int(msg.data[-1])
-        elif msg.data[0:-3] == "hammer":
+        elif msg.data[0:-2] == "hammer":
             self.tool_statuses["hammer"] = int(msg.data[-1])
         else:
-            print(f"Unrecognised tool message: {msg.data}")
-
-    def act_input_probs_callback(self, msg):
-        for user in self.users:
-            user.act_input_probs = msg.data
-            user.update_act_inputs_plot()
-
+            print(f"GUI unrecognised tool message: {msg.data}")
 
 
 def run_gui():
@@ -867,7 +884,6 @@ def run_gui():
     rospy.Subscriber('UserFeedback', String, gui.update_usr_feedback)
     rospy.Subscriber('HandoverActive', Bool, gui.update_handover_active)
     rospy.Subscriber('ToolStatus', String, gui.tool_stat_callback)
-    rospy.Subscriber('ActionProbInputs', Float32MultiArray, gui.act_input_probs_callback)
 
     gui.update_gui(diag_obj)
     Tk.mainloop()

@@ -2,3 +2,4 @@ database.ini
 user_trial_data_recording/
 robot_blockstacking_demo/.vscode/browse.vc.db
 **/__pycache__
+sam_nodes/scripts/tool_sensor_arduino/libraries

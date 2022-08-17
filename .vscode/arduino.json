@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:uno",
+    "sketch": "sam_nodes/scripts/tool_sensor_arduino/tool_sensor_arduino.ino",
+    "port": "/dev/ttyACM0"
+}

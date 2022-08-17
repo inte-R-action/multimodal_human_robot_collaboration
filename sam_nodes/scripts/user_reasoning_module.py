@@ -8,7 +8,7 @@ import csv
 import numpy as np
 import pandas as pd
 import rospy
-from std_msgs.msg import String, Bool, Float32MultiArray
+from std_msgs.msg import String, Bool
 from postgresql.database_funcs import database
 from tensorflow.keras.models import load_model
 from tensorflow.keras.models import Sequential
@@ -50,9 +50,8 @@ class reasoning_module:
         self.cmd_publisher = rospy.Publisher('ProcessCommands', String, queue_size=10)
         self.usr_fdbck_pub = rospy.Publisher('UserFeedback', String, queue_size=10)
         self.handover_active_pub = rospy.Publisher('HandoverActive', Bool, queue_size=10)
-        self.action_input_pub = rospy.Publisher('ActionProbInputs', Float32MultiArray, queue_size=10)
         self.robot_stat_sub = rospy.Subscriber("RobotStatus", String, self.robot_stat_callback)
-        self.tool_stat_sub = rospy.Subscriber("ToolStatus", String, self.tool_stat_callback, queue=10)
+        self.tool_stat_sub = rospy.Subscriber("ToolStatus", String, self.tool_stat_callback)
         self.db = database()
 
     def update_user_details(self, name=None, Id=None, frame_id=None):
@@ -137,7 +136,6 @@ class reasoning_module:
     def action_probability_reasoning(self, action_probs, model_no, episodes):
         # Find if required robot actions completed
         if self.task_data.iloc[self.actions_info_list[model_no]["prev_r_action"], self.task_data.columns.get_loc("action_name")] in episodes.action_name.values:
-            robot_actions_complete = True
             weights = [1, 1, 1]  # HAR, tool, screw
 
             # Find HAR probability
@@ -156,7 +154,7 @@ class reasoning_module:
                 print("tool prob error")
                 print(e)
                 weights[1] = 0
-                har_prob = 0
+                tool_prob = 0
 
             # Find screw count probability
             try:
@@ -165,14 +163,13 @@ class reasoning_module:
                 print("screw prob error")
                 print(e)
                 weights[2] = 0
-                har_prob = 0
+                screw_prob = 0
 
             # Find final probability
             action_probability = np.average([har_prob, tool_prob, screw_prob], weights=weights)
 
         else:
             # Prerequisite robot actions not complete
-            robot_actions_complete = False
             action_probability = 0
 
         return action_probability
@@ -204,7 +201,6 @@ class reasoning_module:
             self.task_data.loc[self.human_row_idxs[model_no], 'time_left'] = time*100
 
         self.publish_to_database()
-        self.action_input_pub.publish(Float32MultiArray(data=self.model_inputs[:, 0]))
 
     def publish_to_database(self):
         # Update user current action in sql table
@@ -225,7 +221,8 @@ class reasoning_module:
             {int(self.task_data.loc[self.human_row_idxs[i], 'action_no'])},
             '{self.task_data.loc[self.human_row_idxs[i], 'started']}',
             '{self.task_data.loc[self.human_row_idxs[i], 'done']}',
-            '{self.task_data.loc[self.human_row_idxs[i], 'time_left']}')"""
+            '{self.task_data.loc[self.human_row_idxs[i], 'time_left']}',
+            '{self.model_inputs[i, 0]}')"""
         sql_cmd += ";"
         self.db.gen_cmd(sql_cmd)
 
@@ -352,11 +349,11 @@ class reasoning_module:
             self.handover_action = False
 
     def tool_stat_callback(self, msg):
-        if msg.data[0:-3] == "screw":
-            self.tool_statuses["screwdriver"] = int(msg.data[-1])
-        elif msg.data[0:-3] == "allen":
-            self.tool_statuses["allenkey"] = int(msg.data[-1])
-        elif msg.data[0:-3] == "hammer":
+        if msg.data[0:-2] == "screwdriver":
+            self.tool_statuses["screw_in"] = int(msg.data[-1])
+        elif msg.data[0:-2] == "allenkey":
+            self.tool_statuses["allen_in"] = int(msg.data[-1])
+        elif msg.data[0:-2] == "hammer":
             self.tool_statuses["hammer"] = int(msg.data[-1])
         else:
-            print(f"Unrecognised tool message: {msg.data}")
+            print(f"User unrecognised tool message: {msg.data}")
