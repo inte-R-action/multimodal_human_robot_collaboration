@@ -543,16 +543,23 @@ class GUI:
             self.tasks.insert("", index=index, values=list(
                 row), tags=(row['user_id'],))
 
+        # Screw counter
+        self.screw_counts = [None, None]
+        self.screw_count_txt = Tk.Text(master=self.sys_frame, height=4, width=2, font=('', 12))
+        self.screw_count_txt.tag_configure("center", justify='center')
+        self.screw_count_txt.grid(row=5, column=0, columnspan=2, sticky="nsew")
+        self.update_screw_count_txt()
+
         # Handover active indicator
         self.handover_active = False
         self.handover_label = Tk.Label(master=self.sys_frame, bg="grey", text="Handover Active",
                                    padx=10, pady=3, borderwidth=2, relief="ridge")
-        self.handover_label.grid(row=5, column=0, columnspan=2, sticky="nsew")
+        self.handover_label.grid(row=6, column=0, columnspan=2, sticky="nsew")
 
         # Tool Stats Indicators
         self.tool_statuses = {"screwdriver": None, "allenkey": None, "hammer": None}
         self.tool_stats = Tk.Frame(master=self.sys_frame)
-        self.tool_stats.grid(row=6, column=0, columnspan=2, sticky="nsew")
+        self.tool_stats.grid(row=7, column=0, columnspan=2, sticky="nsew")
         self.screwdriver_ind = Tk.Label(master=self.tool_stats, bg="grey", text="Screwdriver",
                                    padx=10, pady=3, borderwidth=2, relief="ridge")
         self.screwdriver_ind.grid(row=0, column=0, sticky="nsew")
@@ -570,16 +577,16 @@ class GUI:
         self.usr_feedback_text = "Please wait, system starting"
         self.usr_feedback = Tk.Text(master=self.sys_frame, font=("Courier", 14), wrap='word', height=10, width=20)
         self.usr_feedback.tag_configure("feedback_tag_center", justify='center')
-        self.usr_feedback.grid(row=7, column=0, columnspan=2, sticky="nsew")
+        self.usr_feedback.grid(row=8, column=0, columnspan=2, sticky="nsew")
         self.usr_feedback.insert(Tk.INSERT, self.usr_feedback_text)
 
         # New User button
         self.new_user_button = Tk.Button(master=self.sys_frame, text="New User", command=self._new_user, bg="green", padx=50, pady=20)
-        self.new_user_button.grid(row=8, column=0, sticky="nsew")
+        self.new_user_button.grid(row=9, column=0, sticky="nsew")
 
         # Quit button
         self.quit_button = Tk.Button(master=self.sys_frame, text="Quit", command=self._quit, bg="red", padx=50, pady=20)
-        self.quit_button.grid(row=8, column=1, sticky="nsew")
+        self.quit_button.grid(row=9, column=1, sticky="nsew")
 
         # Adjust spacing of objects
         self.sys_frame.grid_columnconfigure(0, weight=1, uniform=1)
@@ -590,10 +597,11 @@ class GUI:
         self.sys_frame.grid_rowconfigure(2, weight=0)
         self.sys_frame.grid_rowconfigure(3, weight=0)
         self.sys_frame.grid_rowconfigure(4, weight=1)
-        self.sys_frame.grid_rowconfigure(5, weight=0)
+        self.sys_frame.grid_rowconfigure(5, weight=1)
         self.sys_frame.grid_rowconfigure(6, weight=0)
-        self.sys_frame.grid_rowconfigure(7, weight=1)
-        self.sys_frame.grid_rowconfigure(8, weight=0)
+        self.sys_frame.grid_rowconfigure(7, weight=0)
+        self.sys_frame.grid_rowconfigure(8, weight=1)
+        self.sys_frame.grid_rowconfigure(9, weight=0)
 
     def _quit(self):
         self.cmd_publisher.publish('stop')
@@ -713,6 +721,9 @@ class GUI:
             # Update robot move cmd text
             self.robot_move.delete("1.0", Tk.END)
             self.robot_move.insert(Tk.INSERT, self.robot_move_text)
+
+            # Update screw count text
+            self.update_screw_count_txt()
 
             # Update handover active indicator
             if self.robot_stat_text == "Robot status: waiting_for_handover":
@@ -859,6 +870,22 @@ class GUI:
             self.tool_statuses["hammer"] = int(msg.data[-1])
         else:
             print(f"GUI unrecognised tool message: {msg.data}")
+
+    def update_screw_count_txt(self):
+        text = f"\nScrew Counts\n" \
+               f"Last: {self.screw_counts[1]}     Now: {self.screw_counts[0]}\n" \
+
+        self.screw_count_txt.delete("1.0", Tk.END)
+        self.screw_count_txt.insert(Tk.INSERT, text)
+        self.screw_count_txt.tag_add("center", "1.0", "end")
+
+    def update_screw_count(self, data):
+        for user in self.users:
+            if data.UserId == user.id:
+                if user.name != data.UserName:
+                    print(f"ERROR: users list name {user.name} does not match screw_count msg name {data.UserName}")
+                else:
+                    user.screw_counts = [data.ScrewCount, data.LastScrewCount]
 
 
 def run_gui():

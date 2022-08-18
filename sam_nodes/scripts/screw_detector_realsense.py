@@ -9,13 +9,12 @@ import traceback
 import cv2
 import numpy as np
 from std_msgs.msg import Int8
-from vision_recognition.blob_detector import detect_blobs
 from vision_recognition.rs_cam import rs_cam
 #import matplotlib
 #matplotlib.use( 'tkagg' )
 #import matplotlib.pyplot as plt
 # from vision_recognition.finger_count import skinmask, getcnthull
-from vision_recognition.shape_detector import rectangle_detector
+from vision_recognition.shape_detector import rectangle_detector, detect_blobs
 
 
 try:
@@ -44,7 +43,7 @@ def realsense_run():
 
     if not test:
         rospy.init_node(frame_id, anonymous=True)
-        diag_obj = diag_class(frame_id=frame_id, user_id=args.user_id, user_name=args.user_name, queue=1)
+        diag_obj = diag_class(frame_id=frame_id, queue=1)
         screw_publisher = rospy.Publisher('RawScrewCount', Int8, queue_size=1)
         rate = rospy.Rate(10)
 
@@ -53,32 +52,30 @@ def realsense_run():
         try:
             # Get frameset of color and depth
             frames = cam.pipeline.wait_for_frames()
+            color_image_raw = cam.colour_frames(frames)
 
-            if args.depth:
-                color_image_raw, depth_colormap, depth_image = cam.depth_frames(frames)
-            else:
-                color_image_raw = cam.colour_frames(frames)
+            try:
+                # Greyscale and threshold image
+                imgGry = cv2.cvtColor(color_image_raw, cv2.COLOR_BGR2GRAY)
+                _, thrash = cv2.threshold(imgGry, 120 , 255, cv2.CHAIN_APPROX_NONE)#cv2.THRESH_BINARY)
 
-            if args.classify:
-                try:
-                    approx, thrash = rectangle_detector(color_image_raw)
-                    try:
-                        key_points = detect_blobs(thrash)
-                        im_with_keypoints = cv2.drawKeypoints(color_image_raw, key_points, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-                    except Exception as e:
-                        print("blob error: ", e)
+                # Detect bounding rectangle of screw area
+                rectangle = rectangle_detector(thrash)
+                # Detect blobs (screws)
+                key_points = detect_blobs(thrash)
+                im_with_keypoints = cv2.drawKeypoints(color_image_raw, key_points, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
-                    if approx is not None:
-                        cv2.drawContours(im_with_keypoints, [approx], 0, (0, 255, 0), 5)
-                        if not test:
-                            screw_publisher.publish(len(key_points))
+                if rectangle is not None:
+                    cv2.drawContours(im_with_keypoints, [rectangle], 0, (0, 255, 0), 5)
+                    if not test:
+                        screw_publisher.publish(len(key_points)) # Publish number screws
 
-                except Exception as e:
-                    print("rectangle error: ", e)
+            except Exception as e:
+                print("Image processing error: ", e)
 
             if (time.time()-diag_timer) > 1:
                 if not test:
-                    diag_obj.publish(0, f"Running")
+                    diag_obj.publish(0, "Running")
                 diag_timer = time.time()
 
         except TypeError as e:
@@ -93,10 +90,7 @@ def realsense_run():
             break
 
         if args.disp:
-            if args.depth:
-                disp_im = np.hstack((im_with_keypoints, depth_colormap))
-            else:
-                disp_im = im_with_keypoints  # color_image
+            disp_im = im_with_keypoints  # color_image
 
             cv2.namedWindow('Realsense viewer', cv2.WINDOW_AUTOSIZE)
             cv2.imshow('Realsense viewer', disp_im)
@@ -121,29 +115,13 @@ if __name__ == "__main__":
                         help='Enable displaying of camera image',
                         default=True,
                         action="store")
-    parser.add_argument('--depth', '-D',
-                        help='Depth active',
-                        default=False,
-                        action="store_true")
-    parser.add_argument('--user_name', '-N',
-                    help='Set name of user, default: unknown',
-                    default='unknown',
-                    action="store_true")
-    parser.add_argument('--user_id', '-I',
-                    help='Set id of user, default: 1',
-                    default=1,
-                    action="store_true")
-    parser.add_argument('--classify', '-C',
-                    help='Classify image',
-                    default=True,
-                    action="store_true")
-    parser.add_argument('--test', 
-                    default=test, 
+    parser.add_argument('--test',
+                    default=test,
                     help='Test mode for visual recognition without ROS')
-    
+
     args = parser.parse_known_args()[0]
 
-    cam = rs_cam(args.depth)
+    cam = rs_cam(False)
 
     try:
         realsense_run()

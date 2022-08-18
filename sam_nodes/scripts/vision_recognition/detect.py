@@ -22,6 +22,7 @@ import matplotlib
 matplotlib.use( 'tkagg' )
 import matplotlib.pyplot as plt
 
+
 class classifier():
     def __init__(self, comp_device, weights, imgsz, img, conf_thres, iou_thres):
         #img = tf.make_ndarray(img)

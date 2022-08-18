@@ -273,7 +273,7 @@ class screw_count_class:
             self.screw_msg.Header.seq = 0
         else:
             self.screw_msg.Header.seq += 1
-        
+
         self.screw_msg.ScrewCount = count_now
         self.screw_msg.LastScrewCount = count_last
         self.screw_msg.Header.stamp = rospy.get_rostime()
