@@ -18,12 +18,13 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from PIL import Image, ImageTk
-from sam_custom_messages.msg import current_action, diagnostics
+from sam_custom_messages.msg import current_action, diagnostics, fastener_count
 from std_msgs.msg import String, Bool
 from global_data import USER_PARAMETERS, ACTIONS, GESTURES, inclAdjParam
 from postgresql.database_funcs import database
 from pub_classes import diag_class
 from system_dreaming_phase import enter_dreaming_phase
+from fastener_tracker import FastenerTracker
 
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
@@ -543,12 +544,8 @@ class GUI:
             self.tasks.insert("", index=index, values=list(
                 row), tags=(row['user_id'],))
 
-        # Screw counter
-        self.screw_counts = [None, None]
-        self.screw_count_txt = Tk.Text(master=self.sys_frame, height=4, width=2, font=('', 12))
-        self.screw_count_txt.tag_configure("center", justify='center')
-        self.screw_count_txt.grid(row=5, column=0, columnspan=2, sticky="nsew")
-        self.update_screw_count_txt()
+        # Fastener counter
+        self.setup_fastenercounter()
 
         # Handover active indicator
         self.handover_active = False
@@ -602,6 +599,45 @@ class GUI:
         self.sys_frame.grid_rowconfigure(7, weight=0)
         self.sys_frame.grid_rowconfigure(8, weight=1)
         self.sys_frame.grid_rowconfigure(9, weight=0)
+
+    def setup_fastenercounter(self):
+        self.fastener_frame = Tk.Frame(master=self.sys_frame, bg="dodger blue")
+        self.fastener_frame.grid(row=5, column=0, columnspan=2, sticky="nsew")
+
+        self.fastener_counts = [None, None]
+        self.fastener_count_txt = Tk.Text(master=self.fastener_frame, height=4, width=2, font=('', 12))
+        self.fastener_count_txt.tag_configure("center", justify='center')
+        self.fastener_count_txt.grid(row=0, column=0, columnspan=3, sticky="nsew")
+
+        self.fastener_probs = {"screw_in": None,
+                               "allen_in": None,
+                               "hammer": None}
+
+        col_names, actions_list = self.db.query_table('actions', 'all')
+        actions_data = pd.DataFrame(actions_list, columns=col_names)
+        for action in self.fastener_probs.keys():
+            act_dur = actions_data.query('action_name' == action)['default_time'].total_seconds()
+            self.fastener_probs[action] = FastenerTracker(act_dur)
+
+        self.screw_prob_txt = Tk.Text(master=self.fastener_frame, height=1, width=1, font=('', 10))
+        self.screw_prob_txt.tag_configure("center", justify='center')
+        self.screw_prob_txt.grid(row=1, column=0, sticky="nsew")
+
+        self.allen_prob_txt = Tk.Text(master=self.fastener_frame, height=1, width=1, font=('', 10))
+        self.allen_prob_txt.tag_configure("center", justify='center')
+        self.allen_prob_txt.grid(row=1, column=1, sticky="nsew")
+
+        self.hammer_prob_txt = Tk.Text(master=self.fastener_frame, height=1, width=1, font=('', 10))
+        self.hammer_prob_txt.tag_configure("center", justify='center')
+        self.hammer_prob_txt.grid(row=1, column=2, sticky="nsew")
+
+        # Adjust spacing of objects
+        self.sys_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.sys_frame.grid_columnconfigure(1, weight=1, uniform=1)
+        self.sys_frame.grid_columnconfigure(2, weight=1, uniform=1)
+        self.sys_frame.grid_rowconfigure(0, weight=0)
+
+        self.update_fastener_count_txt()
 
     def _quit(self):
         self.cmd_publisher.publish('stop')
@@ -722,8 +758,8 @@ class GUI:
             self.robot_move.delete("1.0", Tk.END)
             self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
-            # Update screw count text
-            self.update_screw_count_txt()
+            # Update fastener count text
+            self.update_fastener_count_txt()
 
             # Update handover active indicator
             if self.robot_stat_text == "Robot status: waiting_for_handover":
@@ -871,21 +907,38 @@ class GUI:
         else:
             print(f"GUI unrecognised tool message: {msg.data}")
 
-    def update_screw_count_txt(self):
-        text = f"\nScrew Counts\n" \
-               f"Last: {self.screw_counts[1]}     Now: {self.screw_counts[0]}\n" \
+    def update_fastener_count_txt(self):
+        text = f"\nFastener Counts\n" \
+               f"Last: {self.fastener_counts[1]}     Now: {self.fastener_counts[0]}\n" \
 
-        self.screw_count_txt.delete("1.0", Tk.END)
-        self.screw_count_txt.insert(Tk.INSERT, text)
-        self.screw_count_txt.tag_add("center", "1.0", "end")
+        self.fastener_count_txt.delete("1.0", Tk.END)
+        self.fastener_count_txt.insert(Tk.INSERT, text)
+        self.fastener_count_txt.tag_add("center", "1.0", "end")
 
-    def update_screw_count(self, data):
+        prob = self.fastener_probs['screw_in'].get_probability()
+        self.screw_prob_txt.delete("1.0", Tk.END)
+        self.screw_prob_txt.insert(Tk.INSERT, f"Screw: {prob}")
+        self.screw_prob_txt.tag_add("center", "1.0", "end")
+
+        prob = self.fastener_probs['allen_in'].get_probability()
+        self.allen_prob_txt.delete("1.0", Tk.END)
+        self.allen_prob_txt.insert(Tk.INSERT, f"Allen: {prob}")
+        self.allen_prob_txt.tag_add("center", "1.0", "end")
+
+        prob = self.fastener_probs['hammer'].get_probability()
+        self.hammer_prob_txt.delete("1.0", Tk.END)
+        self.hammer_prob_txt.insert(Tk.INSERT, f"Hammer: {prob}")
+        self.hammer_prob_txt.tag_add("center", "1.0", "end")
+
+    def update_fastener_count(self, data):
         for user in self.users:
             if data.UserId == user.id:
-                if user.name != data.UserName:
-                    print(f"ERROR: users list name {user.name} does not match screw_count msg name {data.UserName}")
-                else:
-                    user.screw_counts = [data.ScrewCount, data.LastScrewCount]
+                # if user.name != data.UserName:
+                #     print(f"ERROR: users list name {user.name} does not match fastener_count msg name {data.UserName}")
+                # else:
+                user.fastener_counts = [data.FastenerCount, data.LastFastenerCount]
+                for key in self.fastener_probs.keys():
+                    self.fastener_probs[key].reset_timer()
 
 
 def run_gui():
@@ -911,6 +964,7 @@ def run_gui():
     rospy.Subscriber('UserFeedback', String, gui.update_usr_feedback)
     rospy.Subscriber('HandoverActive', Bool, gui.update_handover_active)
     rospy.Subscriber('ToolStatus', String, gui.tool_stat_callback)
+    rospy.Subscriber("FastenerCounts", fastener_count, gui.update_fastener_count)
 
     gui.update_gui(diag_obj)
     Tk.mainloop()

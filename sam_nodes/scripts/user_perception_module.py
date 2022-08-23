@@ -11,6 +11,7 @@ from tensorflow.keras.models import load_model
 from global_data import GESTURES
 import tensorflow as tf
 import tensorflow_addons as tfa
+from vision_recognition.count_fasteners_table import fastener_counter
 
 
 plt.ion()
@@ -55,6 +56,8 @@ class perception_module:
         self.act_obj = act_class(frame_id=self.frame_id, class_count=4, user_id=self.id, user_name=self.name, queue=10)
         self.ges_obj = act_class(frame_id=self.frame_id+'_gestures', class_count=len(GESTURES), user_id=self.id, user_name=self.name, queue=10)
 
+        self.fastener_counter = fastener_counter(self.frame_id, self.id, self.name)
+
     def update_user_details(self, name=None, Id=None, frame_id=None):
         if name:
             self.name = name
@@ -84,6 +87,8 @@ class perception_module:
 
         self.predict_actions(predict_data)
         self.predict_gestures(predict_data)
+
+        self.sr
 
     def predict_actions(self, predict_data):
         self.screw_pred = self.screw_classifier.predict(predict_data)[0][0]

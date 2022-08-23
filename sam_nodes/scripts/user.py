@@ -41,7 +41,7 @@ class User:
             self.task_reasoning.update_user_details(Id=self.id)
         if task:
             self.update_task(task)
-    
+
     def update_task(self, task):
         self.task = task
 

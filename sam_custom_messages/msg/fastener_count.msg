@@ -1,4 +1,4 @@
-## Message containing current and last screw counts
+## Message containing current and last fastener counts
 #
 ## std_msgs/Header.msg
 # sequence ID: consecutively increasing ID 
@@ -18,8 +18,8 @@ int8 UserId
 ## Name of user (robot or human)
 string UserName
 #
-## Current number of screws
-int8 ScrewCount
+## Current number of fasteners
+int8 FastenerCount
 #
-## Last number of screws
-int8 LastScrewCount
+## Last number of fasteners
+int8 LastFastenerCount
