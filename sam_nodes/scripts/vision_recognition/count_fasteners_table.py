@@ -18,7 +18,7 @@ sys.path.insert(0, parent_dir)
 class fastener_counter():
     def __init__(self, frame_id, u_id, u_name):  #, type='raw_count'):
         # if type == 'raw_count':
-        rospy.Subscriber('RawScrewCount', Int8, self.raw_count_callback)
+        rospy.Subscriber('RawFastenerCount', Int8, self.raw_count_callback)
         # elif type == 'obj_msg_count':
             # rospy.Subscriber('ObjectStates', object_state, self.obj_msg_count_callback)
 

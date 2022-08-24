@@ -35,18 +35,18 @@ class screw_counter():
 
             print(f"{side[-1]} {screw_count}")
             self.publisher.publish(f"{side[-1]} {screw_count}")
-        
+
 
 def run():
     # ROS node setup
     rospy.init_node(f'screw_counter', anonymous=True)
     frame_id = 'screw_counter'
 
-    counter = screw_counter()    
+    counter = screw_counter()
 
     rate = rospy.Rate(1) # 1hz
     while not rospy.is_shutdown():
-        print(f'Screw counter running')
+        print('Screw counter running')
         rate.sleep()
 
 if __name__ == '__main__':

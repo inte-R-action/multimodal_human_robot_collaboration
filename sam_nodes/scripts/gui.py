@@ -616,26 +616,27 @@ class GUI:
         col_names, actions_list = self.db.query_table('actions', 'all')
         actions_data = pd.DataFrame(actions_list, columns=col_names)
         for action in self.fastener_probs.keys():
-            act_dur = actions_data.query('action_name' == action)['default_time'].total_seconds()
+            act_dur = actions_data.loc[actions_data['action_name'] == action, 'std_dur_s'].iloc[0].total_seconds()
             self.fastener_probs[action] = FastenerTracker(act_dur)
 
-        self.screw_prob_txt = Tk.Text(master=self.fastener_frame, height=1, width=1, font=('', 10))
+        self.screw_prob_txt = Tk.Text(master=self.fastener_frame, height=2, width=1, font=('', 10))
         self.screw_prob_txt.tag_configure("center", justify='center')
         self.screw_prob_txt.grid(row=1, column=0, sticky="nsew")
 
-        self.allen_prob_txt = Tk.Text(master=self.fastener_frame, height=1, width=1, font=('', 10))
+        self.allen_prob_txt = Tk.Text(master=self.fastener_frame, height=2, width=1, font=('', 10))
         self.allen_prob_txt.tag_configure("center", justify='center')
         self.allen_prob_txt.grid(row=1, column=1, sticky="nsew")
 
-        self.hammer_prob_txt = Tk.Text(master=self.fastener_frame, height=1, width=1, font=('', 10))
+        self.hammer_prob_txt = Tk.Text(master=self.fastener_frame, height=2, width=1, font=('', 10))
         self.hammer_prob_txt.tag_configure("center", justify='center')
         self.hammer_prob_txt.grid(row=1, column=2, sticky="nsew")
 
         # Adjust spacing of objects
-        self.sys_frame.grid_columnconfigure(0, weight=1, uniform=1)
-        self.sys_frame.grid_columnconfigure(1, weight=1, uniform=1)
-        self.sys_frame.grid_columnconfigure(2, weight=1, uniform=1)
-        self.sys_frame.grid_rowconfigure(0, weight=0)
+        self.fastener_frame.grid_columnconfigure(0, weight=1, uniform=1)
+        self.fastener_frame.grid_columnconfigure(1, weight=1, uniform=1)
+        self.fastener_frame.grid_columnconfigure(2, weight=1, uniform=1)
+        self.fastener_frame.grid_rowconfigure(0, weight=1)
+        self.fastener_frame.grid_rowconfigure(1, weight=1)
 
         self.update_fastener_count_txt()
 
@@ -709,10 +710,11 @@ class GUI:
                         user_i = [idx for idx, user in enumerate(self.users) if user.id == user_id]
                         if len(user_i) != 0:
                             user_i = user_i[0]
-                            self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'started'] = round(row.started, 2)
-                            self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'done'] = round(row.done, 2)
-                            self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 't_left'] = round(row.time_left, 2)
-                            self.users[user_i].act_input_probs[row.action_no] = row.act_input_prob
+                            if self.users[user_i].task_data is not None:
+                                self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'started'] = round(row.started, 2)
+                                self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 'done'] = round(row.done, 2)
+                                self.users[user_i].task_data.loc[self.users[user_i].task_data['action_no'] == row.action_no, 't_left'] = round(row.time_left, 2)
+                                self.users[user_i].act_input_probs[row.action_no] = row.act_input_prob
                     except Exception as e:
                         print(e)
                         print("gui 649")
@@ -820,18 +822,18 @@ class GUI:
     def update_actions(self, data):
         for user in self.users:
             if data.UserId == user.id:
-                if user.name != data.UserName:
-                    try:
-                        print(f"ERROR: users list name {self.users[data.UserId-1].name} does not match current_action msg name {data.UserName}")
-                    except IndexError as e:
-                        print(f"ERROR with {self.users}, {data.UserId}, {data.UserName}")
-                else:
-                    if data.Header.frame_id[-8:] == '_actions':
-                        user.act_pred = data.ActionProbs
-                        user.update_action_plot()
-                    elif data.Header.frame_id[-9:] == '_gestures':
-                        user.ges_pred = data.ActionProbs
-                        user.update_gesture_plot()
+                # if user.name != data.UserName:
+                #     try:
+                #         print(f"ERROR: users list name {self.users[data.UserId-1].name} does not match current_action msg name {data.UserName}")
+                #     except IndexError as e:
+                #         print(f"ERROR with {self.users}, {data.UserId}, {data.UserName}")
+                # else:
+                if data.Header.frame_id[-8:] == '_actions':
+                    user.act_pred = data.ActionProbs
+                    user.update_action_plot()
+                elif data.Header.frame_id[-9:] == '_gestures':
+                    user.ges_pred = data.ActionProbs
+                    user.update_gesture_plot()
 
     def update_sys_stat(self, data):
         try:
@@ -917,28 +919,28 @@ class GUI:
 
         prob = self.fastener_probs['screw_in'].get_probability()
         self.screw_prob_txt.delete("1.0", Tk.END)
-        self.screw_prob_txt.insert(Tk.INSERT, f"Screw: {prob}")
+        self.screw_prob_txt.insert(Tk.INSERT, f"Screw: {round(prob, 2)}")
         self.screw_prob_txt.tag_add("center", "1.0", "end")
 
         prob = self.fastener_probs['allen_in'].get_probability()
         self.allen_prob_txt.delete("1.0", Tk.END)
-        self.allen_prob_txt.insert(Tk.INSERT, f"Allen: {prob}")
+        self.allen_prob_txt.insert(Tk.INSERT, f"Allen: {round(prob, 2)}")
         self.allen_prob_txt.tag_add("center", "1.0", "end")
 
         prob = self.fastener_probs['hammer'].get_probability()
         self.hammer_prob_txt.delete("1.0", Tk.END)
-        self.hammer_prob_txt.insert(Tk.INSERT, f"Hammer: {prob}")
+        self.hammer_prob_txt.insert(Tk.INSERT, f"Hammer: {round(prob, 2)}")
         self.hammer_prob_txt.tag_add("center", "1.0", "end")
 
     def update_fastener_count(self, data):
-        for user in self.users:
-            if data.UserId == user.id:
-                # if user.name != data.UserName:
-                #     print(f"ERROR: users list name {user.name} does not match fastener_count msg name {data.UserName}")
-                # else:
-                user.fastener_counts = [data.FastenerCount, data.LastFastenerCount]
-                for key in self.fastener_probs.keys():
-                    self.fastener_probs[key].reset_timer()
+        # if data.UserId == user.id:
+            # if user.name != data.UserName:
+            #     print(f"ERROR: users list name {user.name} does not match fastener_count msg name {data.UserName}")
+            # else:
+        self.fastener_counts = [data.FastenerCount, data.LastFastenerCount]
+        if data.FastenerCount < data.LastFastenerCount:
+            for key in self.fastener_probs.keys():
+                self.fastener_probs[key].reset_timer()
 
 
 def run_gui():

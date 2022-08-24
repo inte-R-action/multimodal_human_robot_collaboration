@@ -144,42 +144,46 @@ class reasoning_module:
     def action_probability_reasoning(self, action_probs, model_no, episodes):
         action_type = self.actions_info_list[model_no]["action_type"]
         # Find if required robot actions completed
-        if self.task_data.iloc[self.actions_info_list[model_no]["prev_r_action"], self.task_data.columns.get_loc("action_name")] in episodes.action_name.values:
-            weights = [1, 1, 1]  # HAR, tool, fastener
+        # if self.task_data.iloc[self.actions_info_list[model_no]["prev_r_action"], self.task_data.columns.get_loc("action_name")] in episodes.action_name.values:
+        weights = [1, 1, 1]  # HAR, tool, fastener
 
-            # Find HAR probability
-            try:
-                har_prob = action_probs[self.actions_info_list[model_no]["action_idx"]]
-            except Exception as e:
-                print("har prob error")
-                print(e)
+        # Find HAR probability
+        try:
+            har_prob = action_probs[self.actions_info_list[model_no]["action_idx"]]
+            if har_prob == None:
                 weights[0] = 0
                 har_prob = 0
+        except Exception as e:
+            weights[0] = 0
+            har_prob = 0
 
-            # Find tool in use probability
-            try:
-                tool_prob = self.tool_statuses[action_type]
-            except Exception as e:
-                print("tool prob error")
-                print(e)
+        # Find tool in use probability
+        try:
+            tool_prob = self.tool_statuses[action_type]
+            if tool_prob == None:
                 weights[1] = 0
                 tool_prob = 0
+        except Exception as e:
+            weights[1] = 0
+            tool_prob = 0
 
-            # Find fastener count probability
-            try:
-                fastener_prob = self.fastener_probs[action_type].get_probability()
-            except Exception as e:
-                print("fastener prob error")
-                print(e)
+        # Find fastener count probability
+        try:
+            fastener_prob = self.fastener_probs[action_type].get_probability()
+            if fastener_prob == None:
                 weights[2] = 0
                 fastener_prob = 0
+        except Exception as e:
+            weights[2] = 0
+            fastener_prob = 0
 
-            # Find final probability
-            action_probability = np.average([har_prob, tool_prob, fastener_prob], weights=weights)
+        # Find final probability
+        action_probability = np.average([har_prob, tool_prob, fastener_prob], weights=weights)
+        print([action_type, har_prob, tool_prob, fastener_prob, action_probability])
 
-        else:
-            # Prerequisite robot actions not complete
-            action_probability = 0
+        # else:
+        #     # Prerequisite robot actions not complete
+        #     action_probability = 0
 
         return action_probability
 
@@ -257,7 +261,7 @@ class reasoning_module:
         col_names, actions_list = self.db.query_table('actions', 'all')
         actions_data = pd.DataFrame(actions_list, columns=col_names)
         for action in self.fastener_probs.keys():
-            act_dur = actions_data.query('action_name' == action)['default_time'].total_seconds()
+            act_dur = actions_data.loc[actions_data['action_name'] == action, 'std_dur_s'].iloc[0].total_seconds()
             self.fastener_probs[action] = FastenerTracker(act_dur)
 
     def next_action_override(self):

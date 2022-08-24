@@ -88,8 +88,6 @@ class perception_module:
         self.predict_actions(predict_data)
         self.predict_gestures(predict_data)
 
-        self.sr
-
     def predict_actions(self, predict_data):
         self.screw_pred = self.screw_classifier.predict(predict_data)[0][0]
         self.allen_pred = self.allen_classifier.predict(predict_data)[0][0]
