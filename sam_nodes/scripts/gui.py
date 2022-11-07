@@ -29,8 +29,6 @@ from fastener_tracker import FastenerTracker
 os.chdir(os.path.expanduser(
     "~/catkin_ws/src/multimodal_human_robot_collaboration/sam_nodes/scripts"))
 
-pos = np.arange(len(ACTIONS))
-
 plt.ion()
 
 QUIT = False
@@ -72,6 +70,7 @@ class user_frame:
         self.destroy = False
         self.shimmer = [None, None, None]
         self.shimmer_info = []
+        self.robot_comp_actions = set([])
 
         self.cmd_publisher = cmd_publisher
         self.cmd_publisher.publish(f'User:{self.name}')
@@ -292,6 +291,7 @@ class user_frame:
 
     def update_action_plot(self):
         self.act_ax.cla()
+        pos = np.arange(len(ACTIONS))
         _ = self.act_ax.bar(pos, self.act_pred, align='center', alpha=0.5)
 
         try:
@@ -332,12 +332,12 @@ class user_frame:
             pos = np.arange(data_height)
             display_data = np.zeros(data_height)
             display_data[0:self.act_input_probs.shape[0]] = self.act_input_probs
-            _ = self.act_input_ax.barh(pos, display_data, align='center', alpha=0.5, height=0.8)
+            self.bar_list = self.act_input_ax.barh(pos, display_data, align='center', alpha=0.5, height=0.8)
             self.act_input_ax.invert_yaxis()
         else:
             pos = np.arange(data_height)
             data = pos
-            _ = self.act_input_ax.barh(pos, data, align='center', alpha=0.5, height=0.8, tick_label=None)
+            self.bar_list = self.act_input_ax.barh(pos, data, align='center', alpha=0.5, height=0.8, tick_label=None)
             self.act_input_ax.invert_yaxis()
 
         self.act_input_ax.set_xlim([0, 1])
@@ -499,7 +499,9 @@ class GUI:
                            ['skeleton_viewer', None],
                            ['robot_control_node', None],
                            ['hri_static_demo', None],
-                           ['rq_gripper_2F140', None]]
+                           ['rq_gripper_2F140', None],
+                           ['tool_sensor', None],
+                           ['Realsense_node', None]]
         i = 0
         for node in self.nodes_list:
             node[1] = node_indicator(node[0], self.node_stats, i)
@@ -507,7 +509,7 @@ class GUI:
 
         # Adjust spacing of objects
         self.node_stats.grid_columnconfigure((0, 1), weight=1)
-        self.node_stats.grid_rowconfigure((0, 1, 2), weight=1)
+        self.node_stats.grid_rowconfigure((0, 1, 2, 3), weight=1)
 
         # Robot Status Text
         self.robot_stat_text = "Robot status: unknown"
@@ -726,16 +728,25 @@ class GUI:
                             user.tasks.insert("", index=index, values=list(row), tags=(row['action_no'],))
 
                     try:
-                        act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['next_r_action_no'].values[0]
-                        user.tasks.tag_configure(act_no, background='yellow')
-                        self.users[user_i].act_input_probs[act_no] = 0.5
-                        act_no = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['last_completed_action_no'].values[0]
-                        user.tasks.tag_configure(act_no, background='green')
-                        self.users[user_i].act_input_probs[act_no] = 1
-                    except Exception:
+                        act_no_next = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['next_r_action_no'].values[0]
+                        user.tasks.tag_configure(act_no_next, background='yellow')
+                        user.act_input_probs[act_no_next] = 0.5
+                        act_no_done = self.robot_tasks_data[self.robot_tasks_data['user_id'] == user.id]['last_completed_action_no'].values[0]
+                        user.tasks.tag_configure(act_no_done, background='green')
+                        user.act_input_probs[act_no_done] = 1
+                    except Exception as e:
                         pass
 
                     user.update_act_inputs_plot()
+                    
+                    try:
+                        if act_no_next is not None:
+                            user.bar_list[act_no_next].set_color('yellow')
+                        if act_no_done is not None:
+                            user.robot_comp_actions.add(act_no_done)
+                        [user.bar_list[done_bar].set_color('green') for done_bar in user.robot_comp_actions]
+                    except Exception as e:
+                        pass
 
                 # Update future timings plot
                 # self.update_timings_plot(predictions_data)
@@ -844,10 +855,10 @@ class GUI:
             pass
 
         for user in self.users:
-            if data.Header.frame_id == f'shimmerBase {user.name} {user.id} node':
+            if data.Header.frame_id[0:11] == f'shimmerBase':
                 i = 0
                 for keyval in data.DiagnosticStatus.values[:-1]:
-                    text = f"{keyval.key}\n" \
+                    text = f"\n{keyval.key}\n" \
                             f"{keyval.value}\n"
                     user.shimmer_info[i] = [text, keyval.value]
                     i += 1
@@ -900,14 +911,23 @@ class GUI:
                 self.users[0].update_user_information(data.data[6:-1])
 
     def tool_stat_callback(self, msg):
-        if msg.data[0:-2] == "screwdriver":
-            self.tool_statuses["screwdriver"] = int(msg.data[-1])
-        elif msg.data[0:-2] == "allenkey":
-            self.tool_statuses["allenkey"] = int(msg.data[-1])
-        elif msg.data[0:-2] == "hammer":
-            self.tool_statuses["hammer"] = int(msg.data[-1])
-        else:
-            print(f"GUI unrecognised tool message: {msg.data}")
+        try:
+            i = [idx for idx, sublist in enumerate(self.nodes_list) if 'tool_sensor' in sublist[0]][0]
+            self.nodes_list[i][1].status = 0
+            self.nodes_list[i][1].update_time = time.time()
+        
+            if msg.data[0:-2] == "screwdriver":
+                self.tool_statuses["screwdriver"] = int(msg.data[-1])
+            elif msg.data[0:-2] == "allenkey":
+                self.tool_statuses["allenkey"] = int(msg.data[-1])
+            elif msg.data[0:-2] == "hammer":
+                self.tool_statuses["hammer"] = int(msg.data[-1])
+            else:
+                self.nodes_list[i][1].status = 2
+                print(f"GUI unrecognised tool message: {msg.data}")
+        
+        except IndexError:
+            pass
 
     def update_fastener_count_txt(self):
         text = f"\nFastener Counts\n" \

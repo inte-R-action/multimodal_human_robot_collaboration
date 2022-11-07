@@ -7,12 +7,13 @@ import time
 from decimal import ROUND_HALF_UP, Decimal
 from statistics import mean
 import rospy
-from pub_classes import fastener_count_class
-from std_msgs.msg import Int8
-from sam_custom_messages.msg import object_state
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
+from pub_classes import fastener_count_class
+from std_msgs.msg import Int8
+from sam_custom_messages.msg import object_state
+
 
 
 class fastener_counter():
@@ -74,9 +75,10 @@ def run():
 
     counter = fastener_counter(frame_id, 1, 'unknown')
 
-    rate = rospy.Rate(0.1)  # 1hz
+    rate = rospy.Rate(5)  # 1hz
     while not rospy.is_shutdown():
-        counter.next_fastener()
+        #counter.next_fastener()
+        print(counter.fastener_ave)
         rate.sleep()
 
 

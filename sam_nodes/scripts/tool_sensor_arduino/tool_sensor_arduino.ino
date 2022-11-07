@@ -1,9 +1,9 @@
 #include <ros.h>
 #include <std_msgs/String.h>
 
-#define HAMMER_PIN 5
+#define HAMMER_PIN 7
 #define ALLEN_PIN 6
-#define SCREW_PIN 7
+#define SCREW_PIN 5
 
 bool hammer_value;
 bool allen_value;

@@ -1,1 +1,13 @@
 episode_id,date,start_t,end_t,duration,user_id,hand,task_name,action_name,action_no
+1,2022-11-07,17:45:15,17:45:15,00:00:00,1,R,assemble_complex_box,Wave,0
+2,2022-11-07,17:45:27,17:45:29,00:00:02,1,R,assemble_complex_box,Forward,0
+3,2022-11-07,17:45:28.527041,17:45:47.131262,00:00:18.604221,0,-,assemble_complex_box,bring_side_1,0
+4,2022-11-07,17:45:31,17:45:48,00:00:17,1,R,assemble_complex_box,hammer,0
+5,2022-11-07,17:45:47.23474,17:45:52.386895,00:00:05.152155,0,-,,home,
+6,2022-11-07,17:45:54,17:45:59,00:00:05,1,R,assemble_complex_box,hammer,0
+7,2022-11-07,17:45:58,17:46:04,00:00:06,1,R,assemble_complex_box,screw_in,0
+8,2022-11-07,17:46:06,17:46:08,00:00:02,1,R,assemble_complex_box,hammer,0
+9,2022-11-07,17:46:08,17:46:11,00:00:03,1,R,assemble_complex_box,screw_in,0
+10,2022-11-07,17:45:52.484514,17:46:14.546164,00:00:22.06165,0,-,assemble_complex_box,bring_side_2,3
+11,2022-11-07,17:46:14.631027,17:46:19.777781,00:00:05.146754,0,-,,home,
+12,2022-11-07,17:46:13,17:46:23,00:00:10,1,R,assemble_complex_box,hammer,0

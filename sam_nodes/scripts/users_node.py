@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--test',
                     help='Test mode without sensors',
                     choices=[True, False],
-                    default=True)
+                    default=False)
 
 args = parser.parse_known_args()[0]
 print(f"Test mode: {args.test}")

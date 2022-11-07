@@ -1,7 +1,7 @@
 <launch>
 
   <!-- By default, we are not in debug mode -->
-  <arg name="test_mode" default="true" />
+  <arg name="test_mode" default="false" />
   <arg name="gui" default="true" />
 
   <arg if="$(arg test_mode)" name="im_recog" default="true" />
@@ -30,7 +30,7 @@
   </group>
 
   <group if="$(arg im_recog)">
-    <node name="screw_detector_realsense" pkg="sam_nodes" type="fastener_detector_realsense.py" respawn="false" output="screen">
+    <node name="fastener_detector_realsense" pkg="sam_nodes" type="fastener_detector_realsense.py" respawn="false" output="screen">
     </node>
   </group>
 

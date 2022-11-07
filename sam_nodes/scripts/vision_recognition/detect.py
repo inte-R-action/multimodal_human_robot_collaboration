@@ -1,5 +1,5 @@
 # Adapted from https://github.com/ultralytics/yolov3#pretrained-checkpoints
-#!/usr/bin/env python3
+#!/usr/bin/env python3.7
 import argparse
 import time
 from pathlib import Path
@@ -79,7 +79,7 @@ class classifier():
         if not self.rect:
             print('WARNING: Different stream shapes detected. For optimal performance supply similarly-shaped streams.')
 
-    def detect(self, img, depth_image=None, depth_histogram=False):
+    def detect(self, img, classes=None, depth_image=None, depth_histogram=False):
         im0s = [img.copy()]
         #if cv2.waitKey(1) == ord('q'):  # q to quit
         #    cv2.destroyAllWindows()
@@ -106,7 +106,11 @@ class classifier():
         pred = self.model(img, augment=None)[0]#opt.augment)
 
         # Apply NMS
-        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=None, agnostic=None)
+        if classes is not None:
+            class_idxs = [self.names.index(obj_class) for obj_class in classes]
+        else:
+            class_idxs = None
+        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres, classes=class_idxs, agnostic=None)
         t2 = time_synchronized()
 
         # Apply Classifier
