@@ -39,7 +39,7 @@ args = parser.parse_known_args()[0]
 frame_id = 'shimmerBase_node'
 
 # Shimmer sensor connection params
-serialports = ['/dev/rfcomm0', '/dev/rfcomm1', '/dev/rfcomm2']
+serialports = ['/dev/rfcomm21', '/dev/rfcomm22', '/dev/rfcomm23']
 POSITIONS = ['Hand', 'Wrist', 'Arm']
 SHIM_IDs = ['F2:AF:44', 'F2:B6:ED', 'F2:C7:80']
 numsensors = len(serialports)
@@ -148,7 +148,7 @@ class shimmer():
 
     def initiate(self):
         while (not self._connected) & (not self._connect_error) & (not quit_IMU):
-            time.sleep(5)
+            rospy.sleep(5)
             try:
                 self._serial = serial.Serial(self._port, 115200, timeout=5)
                 self._serial.flushInput()
@@ -441,7 +441,7 @@ def IMUsensorsMain():
     conn = np.zeros((len(shim_threads)))  # Bool array for if connections are successful
     s_down = np.zeros((len(shim_threads)))  # Bool array for if sensors are shutdown
     battery_levels = np.zeros((len(shim_threads)))
-    time.sleep(1)
+    rospy.sleep(1)
 
     print("Starting main loop")
     status = [2, 2, 2, 2] # [unknown, unknown, unknown, setting up]
@@ -501,7 +501,7 @@ if __name__ == "__main__":
             threads_alive = False
             for s in shim_threads:
                 threads_alive = threads_alive | shim_threads[s].is_alive()
-            time.sleep(0.01)
+            rospy.sleep(0.01)
 
         if args.disp:
             plt.show()

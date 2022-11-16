@@ -12,7 +12,7 @@ import rospy
 import tf
 import sys
 import cv2
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from image_geometry import PinholeCameraModel
@@ -64,20 +64,20 @@ def cmd_callback(msg):
     global recording, user, task, cmd, file
     if msg.data != cmd:
 	    cmd = msg.data
-	    if cmd == 'start':
-	        print("video recording starting")
-	        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-	        file = f"hrc_output_{time.time()}_user_{user}_take_{task}_{timestamp}.avi"
-	        recording = True
-	    elif cmd == 'stop':
-	        recording = False
-	        print("video recording stopping")
+	    # if cmd == 'start':
+	    #     print("video recording starting")
+	    #     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+	    #     file = f"hrc_output_{time.time()}_user_{user}_take_{task}_{timestamp}.avi"
+	    #     recording = True
+	    # elif cmd == 'stop':
+	    #     recording = False
+	    #     print("video recording stopping")
 	    # elif cmd == 'Discard':
 	    #     data = []
 	    #     print("Data discarded")
 	    # elif cmd == 'Save':
 	    #     save_data()
-	    elif 'User' in cmd:
+	    if 'User' in cmd:
 	        user = cmd.split("User:", 1)[1]
 	        print(f"video new user: {user}")
 	    elif 'Task' in cmd:
@@ -86,6 +86,17 @@ def cmd_callback(msg):
 	    elif cmd == 'Quit':
 	    	rospy.signal_shutdown('video quit cmd received')
 
+def rec_callback(msg):
+    global recording, file
+    if msg.data == 'toggle_recording':
+        recording = not recording
+        if recording:
+            print("video recording starting")
+            timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            file = f"hrc_output_{time.time()}_user_{user}_take_{task}_{timestamp}.avi"
+        else:
+            print("video recording stopping")
+
 
 def main(args):
     global kin_image, file
@@ -93,6 +104,8 @@ def main(args):
 
     image_info_sub = rospy.Subscriber("/camera/rgb/camera_info", CameraInfo, image_info_cb)
     rospy.Subscriber('ProcessCommands', String, cmd_callback)
+    rospy.Subscriber('rec_command', String, rec_callback)
+    recording_pub = rospy.Publisher('recording_status', Bool, queue_size=10)
 
     if test_mode:
         cap= cv2.VideoCapture(0)
@@ -104,7 +117,7 @@ def main(args):
 
         cam_model = PinholeCameraModel()
         while (not camera_info) and (not rospy.is_shutdown()):
-            time.sleep(1)
+            rospy.sleep(1)
             print("video recorder waiting for camera info")
 
         cam_model.fromCameraInfo(camera_info)
@@ -154,6 +167,8 @@ def main(args):
 
             if cv2.waitKey(1) & 0xFF == 27:
                 break
+
+            recording_pub.publish(Bool(recording))
 
             rate.sleep()
 

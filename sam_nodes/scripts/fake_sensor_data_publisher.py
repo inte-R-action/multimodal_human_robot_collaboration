@@ -65,7 +65,7 @@ def fakeSensorsmain():
         while (not start_trial) and (not rospy.is_shutdown()):
             diag_obj.publish(0, "Waiting for trial to start")
             skel_diag_obj.publish(0, "Waiting for trial to start")
-            time.sleep(0.1)
+            rospy.sleep(0.1)
 
         print("Fake sensor publisher starting")
         for row in csvreader:

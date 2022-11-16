@@ -171,6 +171,13 @@ def load_tables(db):
                 # Update times and action ids from actions table
                 sql = f"UPDATE {name} SET action_id = actions.action_id, default_time = actions.std_dur_s FROM actions WHERE actions.action_name = {name}.action_name"
                 db.gen_cmd(sql)
+                if name == 'assemble_chair':
+                    sql = f"UPDATE {name} SET default_time = actions.std_dur_s FROM actions WHERE actions.action_name = CONCAT({name}.action_name, '_chair')"
+                elif name == 'assemble_complex_box':
+                    sql = f"UPDATE {name} SET default_time = actions.std_dur_s FROM actions WHERE actions.action_name = CONCAT({name}.action_name, '_box')"
+                db.gen_cmd(sql)
+                # sql = f"UPDATE {name} SET action_id = actions.action_id FROM actions WHERE actions.action_name = {name}.action_name"
+                #db.gen_cmd(sql)
 
             update_meta_data(db)
 

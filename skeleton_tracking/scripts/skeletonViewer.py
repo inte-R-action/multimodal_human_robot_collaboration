@@ -166,7 +166,7 @@ def main(args):
 
     cam_model = PinholeCameraModel()
     while (not camera_info) and (not rospy.is_shutdown()):
-        time.sleep(1)
+        rospy.sleep(1)
         diag_obj.publish(1, "Waiting for camera info")
         print("waiting for camera info")
 

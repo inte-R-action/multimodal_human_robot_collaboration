@@ -250,11 +250,14 @@ class database():
         finally:
             self.disconnect()
 
-    def query_table(self, name, rows='all'):
+    def query_table(self, name, rows='all', order_by=None):
         """Query rows from table
         name=str(table name), rows='all', 'one', int"""
 
-        sql = f"SELECT * FROM {name}"
+        if order_by is not None:
+            sql = f"SELECT * FROM {name} ORDER BY {order_by} ASC"
+        else:
+            sql = f"SELECT * FROM {name}"
         output = None
         try:
             self.connect()

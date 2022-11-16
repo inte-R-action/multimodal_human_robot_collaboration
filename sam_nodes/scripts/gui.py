@@ -46,11 +46,11 @@ def send_shutdown_signal(diag_obj):
 
         if not x.is_alive():
             diag_obj.publish(1, "SHUTDOWN")
-            time.sleep(5)
+            rospy.sleep(5)
 
-        time.sleep(0.01)
+        rospy.sleep(0.01)
 
-    time.sleep(1)
+    rospy.sleep(1)
     shutdown_window.shutdown()
     rospy.signal_shutdown('Quit Button')
 
@@ -277,7 +277,7 @@ class user_frame:
         self.user_deets.insert(Tk.INSERT, text)
 
     def load_task_data(self):
-        self.col_names, actions_list = self.db.query_table(self.task_name, 'all')
+        self.col_names, actions_list = self.db.query_table(self.task_name, 'all', order_by='action_no')
         self.task_data = pd.DataFrame(actions_list, columns=self.col_names)
         for row in self.task_data.itertuples():
             self.task_data.at[row.Index, 'default_time'] = round(row.default_time.total_seconds(), 2)
@@ -466,6 +466,9 @@ class GUI:
         self.root.wm_title("HRC Interaction System")
         self.root.resizable(True, True)
         self.cmd_publisher = cmd_publisher
+        self.rec_publisher = rospy.Publisher('rec_command', String, queue_size=10)
+        self.rec_state = None
+        rospy.Subscriber('recording_status', Bool, self.rec_callback)
 
         self.create_system_frame()
 
@@ -489,11 +492,11 @@ class GUI:
         render = ImageTk.PhotoImage(image=resized)
         self.img = Tk.Label(master=self.sys_frame, image=render)
         self.img.image = render
-        self.img.grid(row=0, column=0, columnspan=2)
+        self.img.grid(row=0, column=0, columnspan=3)
 
         # Nodes Stats Indicators
         self.node_stats = Tk.Frame(master=self.sys_frame)
-        self.node_stats.grid(row=1, column=0, columnspan=2, sticky="nsew")
+        self.node_stats.grid(row=1, column=0, columnspan=3, sticky="nsew")
         self.nodes_list = [['Database_node', None],
                            ['users_node', None],
                            ['skeleton_viewer', None],
@@ -514,20 +517,20 @@ class GUI:
         # Robot Status Text
         self.robot_stat_text = "Robot status: unknown"
         self.robot_stats = Tk.Text(master=self.sys_frame, height=2)
-        self.robot_stats.grid(row=2, column=0, columnspan=2, sticky="nsew")
+        self.robot_stats.grid(row=2, column=0, columnspan=3, sticky="nsew")
         self.robot_stats.insert(Tk.INSERT, self.robot_stat_text)
 
         # Robot Move Command Text
         self.robot_move_text = "Robot Move Cmd: unknown"
         self.robot_move = Tk.Text(master=self.sys_frame, height=2)
-        self.robot_move.grid(row=3, column=0, columnspan=2, sticky="nsew")
+        self.robot_move.grid(row=3, column=0, columnspan=3, sticky="nsew")
         self.robot_move.insert(Tk.INSERT, self.robot_move_text)
 
         # Tasks List
         self.load_robot_actions_data()
         self.tasks = ttk.Treeview(self.sys_frame, show=[
                                   "headings"], height=18, displaycolumns="#all")
-        self.tasks.grid(row=4, column=0, columnspan=2, sticky="nsew")
+        self.tasks.grid(row=4, column=0, columnspan=3, sticky="nsew")
         self.tasks["columns"] = self.col_names
 
         for i in self.col_names:
@@ -553,12 +556,12 @@ class GUI:
         self.handover_active = False
         self.handover_label = Tk.Label(master=self.sys_frame, bg="grey", text="Handover Active",
                                    padx=10, pady=3, borderwidth=2, relief="ridge")
-        self.handover_label.grid(row=6, column=0, columnspan=2, sticky="nsew")
+        self.handover_label.grid(row=6, column=0, columnspan=3, sticky="nsew")
 
         # Tool Stats Indicators
         self.tool_statuses = {"screwdriver": None, "allenkey": None, "hammer": None}
         self.tool_stats = Tk.Frame(master=self.sys_frame)
-        self.tool_stats.grid(row=7, column=0, columnspan=2, sticky="nsew")
+        self.tool_stats.grid(row=7, column=0, columnspan=3, sticky="nsew")
         self.screwdriver_ind = Tk.Label(master=self.tool_stats, bg="grey", text="Screwdriver",
                                    padx=10, pady=3, borderwidth=2, relief="ridge")
         self.screwdriver_ind.grid(row=0, column=0, sticky="nsew")
@@ -576,7 +579,7 @@ class GUI:
         self.usr_feedback_text = "Please wait, system starting"
         self.usr_feedback = Tk.Text(master=self.sys_frame, font=("Courier", 14), wrap='word', height=10, width=20)
         self.usr_feedback.tag_configure("feedback_tag_center", justify='center')
-        self.usr_feedback.grid(row=8, column=0, columnspan=2, sticky="nsew")
+        self.usr_feedback.grid(row=8, column=0, columnspan=3, sticky="nsew")
         self.usr_feedback.insert(Tk.INSERT, self.usr_feedback_text)
 
         # New User button
@@ -587,9 +590,14 @@ class GUI:
         self.quit_button = Tk.Button(master=self.sys_frame, text="Quit", command=self._quit, bg="red", padx=50, pady=20)
         self.quit_button.grid(row=9, column=1, sticky="nsew")
 
+        # Start recording button
+        self.recording_button = Tk.Button(master=self.sys_frame, text="Recording", command=self._recording, bg="blue", padx=50, pady=20)
+        self.recording_button.grid(row=9, column=2, sticky="nsew")
+
         # Adjust spacing of objects
         self.sys_frame.grid_columnconfigure(0, weight=1, uniform=1)
         self.sys_frame.grid_columnconfigure(1, weight=1, uniform=1)
+        self.sys_frame.grid_columnconfigure(2, weight=1, uniform=1)
 
         self.sys_frame.grid_rowconfigure(0, weight=0)
         self.sys_frame.grid_rowconfigure(1, weight=0)
@@ -604,7 +612,7 @@ class GUI:
 
     def setup_fastenercounter(self):
         self.fastener_frame = Tk.Frame(master=self.sys_frame, bg="dodger blue")
-        self.fastener_frame.grid(row=5, column=0, columnspan=2, sticky="nsew")
+        self.fastener_frame.grid(row=5, column=0, columnspan=3, sticky="nsew")
 
         self.fastener_counts = [None, None]
         self.fastener_count_txt = Tk.Text(master=self.fastener_frame, height=4, width=2, font=('', 12))
@@ -648,6 +656,9 @@ class GUI:
         QUIT = True
         self.root.quit()     # stops mainloop
         self.root.destroy()  # this is necessary on Windows to prevent
+    
+    def _recording(self):
+        self.rec_publisher.publish('toggle_recording')
 
     def _new_user(self):
         user = new_user_dialogue(self.root).show()
@@ -704,7 +715,7 @@ class GUI:
                     self.tasks.insert("", index=index, values=list(row), tags=(row['user_id'],))
 
                 # Update future prediction user data tables
-                col_names, predictions_list = self.db.query_table('future_action_predictions', 'all')
+                col_names, predictions_list = self.db.query_table('future_action_predictions', 'all', order_by='user_id')
                 predictions_data = pd.DataFrame(predictions_list, columns=col_names)
                 for row in predictions_data.itertuples():
                     try:
@@ -961,6 +972,17 @@ class GUI:
         if data.FastenerCount < data.LastFastenerCount:
             for key in self.fastener_probs.keys():
                 self.fastener_probs[key].reset_timer()
+    
+    def rec_callback(self, msg):
+        try:
+            if msg.data != self.rec_state:
+                self.rec_state = msg.data
+                if msg.data:
+                    self.recording_button.configure(bg="green")
+                else:
+                    self.recording_button.configure(bg="red")
+        except Exception as e:
+            print(e)
 
 
 def run_gui():

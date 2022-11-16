@@ -61,14 +61,14 @@ def perform_id_check(users, usr_fdbck_pub, frame_id):
             db.insert_data_list("users", ['user_id', 'user_name', 'last_active'], [(users[i].id, name, datetime.now())])
 
             usr_fdbck_pub.publish(f"Hello {name}!")
-            time.sleep(1)
+            rospy.sleep(1)
             usr_fdbck_pub.publish("Gesture forwards to start task")
         except Exception as e:
             print(e)
             success = False
     if not success:
         usr_fdbck_pub.publish("ID check failed :(, I'll try again")
-        time.sleep(1)
+        rospy.sleep(1)
     return success
 
 
@@ -235,14 +235,14 @@ def users_node():
         print(f"Waiting for postgresql node status, currently {database_stat}")
         diag_obj.publish(1, "Waiting for postgresql node")
         usr_fdbck_pub.publish("Waiting for postgresql node")
-        time.sleep(0.5)
+        rospy.sleep(0.5)
 
     # Wait for kinect node to be ready
     while kinect_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for kinect_stat node status, currently {kinect_stat}")
         diag_obj.publish(1, "Waiting for kinect_stat node")
         usr_fdbck_pub.publish("Waiting for kinect node")
-        time.sleep(0.5)
+        rospy.sleep(0.5)
 
     usr_fdbck_pub.publish("Initialising User")
     for _ in range(num_users):
@@ -258,7 +258,7 @@ def users_node():
         print(f"Waiting for shimmer node status, currently {shimmer_stat}")
         diag_obj.publish(1, "Waiting for shimmer node")
         usr_fdbck_pub.publish("Waiting for shimmer node")
-        time.sleep(0.5)
+        rospy.sleep(0.5)
 
     rospy.Subscriber("CurrentAction", current_action, current_action_callback, (users))
     rospy.Subscriber("IMUdata", threeIMUs, imu_data_callback, (users))
@@ -266,7 +266,7 @@ def users_node():
 
     rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     diag_obj.publish(0, "Running")
-    time.sleep(3)
+    rospy.sleep(3)
     usr_fdbck_pub.publish("Wave to start system")
     while not rospy.is_shutdown():
         # rospy.loginfo(f"{frame_id} active")
@@ -307,7 +307,7 @@ def users_test_node():
         print(f"Waiting for postgresql node status, currently {database_stat}")
         diag_obj.publish(1, "Waiting for postgresql node")
         usr_fdbck_pub.publish("Waiting for postgresql node")
-        time.sleep(0.5)
+        rospy.sleep(0.5)
 
     usr_fdbck_pub.publish("Initialising User")
     for _ in range(num_users):
@@ -323,7 +323,7 @@ def users_test_node():
 
     rate = rospy.Rate(2)  # 2hz, update predictions every 0.5 s
     diag_obj.publish(0, "Running")
-    time.sleep(3)
+    rospy.sleep(3)
     usr_fdbck_pub.publish("Wave to start system")
     id_check = 1
     while not rospy.is_shutdown():

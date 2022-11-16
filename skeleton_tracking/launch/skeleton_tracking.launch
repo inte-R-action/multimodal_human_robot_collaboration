@@ -17,10 +17,10 @@
     <node name="skeleton_viewer" pkg="skeleton_tracking" type="skeletonViewer.py" respawn="false" output="screen">
     </node>
   </group>
-<!--
+
   <node name="video_recorder" pkg="skeleton_tracking" type="video_recorder.py" respawn="false" output="screen">
   </node>
-
+<!--
   <node name="disparity_view" pkg="image_view" type="disparity_view" respawn="false" output="screen" args="image:=/camera/depth/disparity">
   </node>
 

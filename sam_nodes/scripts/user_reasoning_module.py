@@ -153,7 +153,7 @@ class reasoning_module:
         prerequistes = req_robo_action & tool
 
         if prerequistes:
-            weights = [1, 1]  # HAR, tool, fastener
+            weights = [1, 1]  # HAR, fastener
 
             # Find HAR probability
             try:
@@ -179,10 +179,10 @@ class reasoning_module:
             try:
                 fastener_prob = self.fastener_probs[action_type].get_probability()
                 if fastener_prob == None:
-                    weights[2] = 0
+                    weights[1] = 0
                     fastener_prob = 0
             except Exception as e:
-                weights[2] = 0
+                weights[1] = 0
                 fastener_prob = 0
 
             # Find final probability
@@ -252,7 +252,7 @@ class reasoning_module:
 
     def update_task(self, task):
         self.task = task
-        col_names, actions_list = self.db.query_table(self.task, 'all')
+        col_names, actions_list = self.db.query_table(self.task, 'all',order_by='action_no')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["started"] = 0
         self.task_data["done"] = 0
@@ -260,7 +260,7 @@ class reasoning_module:
         self.human_row_idxs = self.task_data.index[self.task_data['user_type'] == 'human'].tolist()
         self.output_override = [0]*len(self.human_row_idxs)
 
-        self.fut_act_pred_col_names, _ = self.db.query_table('future_action_predictions',rows=0)
+        self.fut_act_pred_col_names, _ = self.db.query_table('future_action_predictions',rows=0,order_by='user_id')
 
         sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {self.id};"""
         self.db.gen_cmd(sql_cmd)

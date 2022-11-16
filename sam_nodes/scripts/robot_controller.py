@@ -61,7 +61,7 @@ def send_robot_home(predictor, move_obj):
     predictor.done = False
     # Wait for confirmation task has been completed
     while (not predictor.done) and (not rospy.is_shutdown()):
-        time.sleep(0.01)
+        rospy.sleep(0.01)
     # move_obj.publish('')
     return True
 
@@ -97,7 +97,7 @@ class future_predictor():
             user_name = user_predictions["user_name"][0]
             # Get actions list for task user is doing
             task_name = user_predictions["task_name"][0]
-            task_cols, task_actions = self.db.query_table(task_name, 'all')
+            task_cols, task_actions = self.db.query_table(task_name, 'all',order_by='action_no')
             task_data = pd.DataFrame(task_actions, columns=task_cols)
             self.task_overview = task_data
 
@@ -223,7 +223,7 @@ class robot_solo_task():
         self.update_task_data()
 
     def update_task_data(self):
-        task_cols, task_actions = self.db.query_table(self.task_name, 'all')
+        task_cols, task_actions = self.db.query_table(self.task_name, 'all',order_by='action_no')
         self.task_overview = pd.DataFrame(task_actions, columns=task_cols)
 
         self.next_action_id = 0
@@ -270,13 +270,13 @@ def robot_control_node():
     while database_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for postgresql node status, currently {database_stat}")
         diag_obj.publish(1, "Waiting for postgresql node")
-        time.sleep(0.5)
+        rospy.sleep(0.5)
 
     # Wait for users node to be ready
     while user_node_stat != 0 and not rospy.is_shutdown():
         print(f"Waiting for users node status, currently {user_node_stat}")
         diag_obj.publish(1, "Waiting for users node")
-        time.sleep(0.5)
+        rospy.sleep(0.5)
 
     predictor = future_predictor()
     robot_task = robot_solo_task()
@@ -291,7 +291,7 @@ def robot_control_node():
     print("Ready for trial to start")
     while (not start_trial) and (not rospy.is_shutdown()):
         diag_obj.publish(0, "Waiting for trial to start")
-        time.sleep(0.1)
+        rospy.sleep(0.1)
 
     while not rospy.is_shutdown():
         try:
@@ -318,7 +318,7 @@ def robot_control_node():
                     predictor.done = False
                     # Wait for confirmation task has been completed
                     while (not predictor.done) and (not rospy.is_shutdown()):
-                        time.sleep(0.01)
+                        rospy.sleep(0.01)
                     predictor.future_estimates.loc[predictor.future_estimates['user_id']==row['user_id'].values[0], 'done'] = True
                     next_action = False
 
@@ -336,7 +336,7 @@ def robot_control_node():
                     # Wait for confirmation task has been completed
                     while (not predictor.done) and (not rospy.is_shutdown()):
                         robot_task.update_actions_table(datetime.now()-datetime.combine(datetime.now().date(), predictor.robot_start_t))
-                        time.sleep(0.1)
+                        rospy.sleep(0.1)
                     robot_task.update_progress()
 
                 elif not home:

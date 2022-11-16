@@ -308,7 +308,7 @@ def realsense_run():
                 diag_timer = time.time()
 
         except TypeError as e:
-            time.sleep(1)
+            rospy.sleep(1)
             if not test:
                 diag_obj.publish(2, "TypeError")
         except Exception as e:
@@ -332,7 +332,7 @@ def realsense_run():
         if not test:
             rate.sleep()
         else:
-            #time.sleep(1)
+            #rospy.sleep(1)
             pass
 
 
