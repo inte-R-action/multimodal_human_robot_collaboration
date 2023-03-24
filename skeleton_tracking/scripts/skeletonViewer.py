@@ -177,16 +177,20 @@ def main(args):
     font = cv2.FONT_HERSHEY_SIMPLEX
 
     # fontScale
-    fontScale = 1
+    fontScale = 0.7
 
     # Blue color in BGR
     color = (255, 0, 0)
 
     # Line thickness of 2 px
-    thickness = 2
+    thickness = 1
 
     pose_msg = Pose()
     diag_timer = time.time()
+
+    cv2.namedWindow("Image window", cv2.WINDOW_AUTOSIZE) 
+# or cv.namedWindow("window",cv.CV_WINDOW_AUTOSIZE)
+
     rate = rospy.Rate(1)  # 1hz
     while not rospy.is_shutdown():
         try:
@@ -210,11 +214,12 @@ def main(args):
 
             if disp:
                 disp_image = image
+                disp_image_2 = image
                 i = 0
                 for trans, rot in frames:
                     coords = cam_model.project3dToPixel(trans)
                     disp_image = cv2.circle(disp_image, (int(coords[0]), int(
-                        coords[1])), radius=10, color=(0, 0, 255), thickness=-1)
+                        coords[1])), radius=7, color=(0, 0, 255), thickness=-1)
                     disp_image = cv2.putText(disp_image, FRAMES[i], (int(coords[0]), int(coords[1])), font,
                                             fontScale, color, thickness, cv2.LINE_AA)
                     i += 1
