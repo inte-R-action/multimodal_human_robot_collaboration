@@ -21,7 +21,7 @@ def test_robot_control_node():
     task_name = 'assemble_complex_box'
     try:
         db = database()
-        cols, data = db.query_table(task_name, 'all')
+        cols, data = db.query_table(task_name, 'all',order_by='action_no')
         task_data = pd.DataFrame(data, columns=cols)
 
         human_row_idxs = []

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.7
 
 import os
+import queue
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 from datetime import datetime, date
 import csv
@@ -8,12 +9,14 @@ import numpy as np
 import pandas as pd
 import rospy
 from std_msgs.msg import String, Bool
+from sam_custom_messages.msg import fastener_count
 from postgresql.database_funcs import database
 from tensorflow.keras.models import load_model
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Input, TimeDistributed
 import tensorflow as tf
 from global_data import ACTIONS, GESTURES, inclAdjParam
+from fastener_tracker import FastenerTracker
 
 
 gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
@@ -33,7 +36,7 @@ class reasoning_module:
         self.task = None
         self.models = []
         self.model_inputs = None
-        self.actions_id_list = []
+        self.actions_info_list = []
         self.means = None
         self.scales = None
         self.human_row_idxs = []
@@ -43,12 +46,20 @@ class reasoning_module:
         self.handover_action = False
         self.task_started = False
         self.user_state = "initialising"
+        self.tool_statuses = {"screw_in": None,
+                              "allen_in": None,
+                              "hammer": None}
+        self.fastener_probs = {"screw_in": None,
+                               "allen_in": None,
+                               "hammer": None}
 
         self.current_gesture = np.array([0, datetime.min, datetime.min]) # class, tStart, tEnd
         self.cmd_publisher = rospy.Publisher('ProcessCommands', String, queue_size=10)
         self.usr_fdbck_pub = rospy.Publisher('UserFeedback', String, queue_size=10)
         self.handover_active_pub = rospy.Publisher('HandoverActive', Bool, queue_size=10)
         self.robot_stat_sub = rospy.Subscriber("RobotStatus", String, self.robot_stat_callback)
+        self.tool_stat_sub = rospy.Subscriber("ToolStatus", String, self.tool_stat_callback)
+        self.fastener_sub = rospy.Subscriber("FastenerCounts", fastener_count, self.update_fastener_count)
         self.db = database()
 
     def update_user_details(self, name=None, Id=None, frame_id=None):
@@ -75,7 +86,8 @@ class reasoning_module:
         tasks_data = tasks_data.loc[tasks_data['task_name'] == self.task]
 
         self.model_inputs = []
-        for _, row in self.task_data.iterrows():
+        prev_r_action = None
+        for r, row in self.task_data.iterrows():
             if row['user_type'] == 'human':
                 if not self.test:
                     if self.inclAdjParam:
@@ -102,12 +114,19 @@ class reasoning_module:
                         new_inputs[2] = users_data[row['action_name']].values[0]  # time adjust for user
                         new_inputs[3] = tasks_data[row['action_name']].values[0]  # time adjustment for task
                     self.model_inputs.append(new_inputs)
-                    self.actions_id_list.append(ACTIONS.index(row['action_name']))  # Action of focus
+                    # self.actions_info_list.append([ACTIONS.index(row['action_name']), r, prev_r_action])  # Action of focus, row no in task_data, prev robot action
+                    self.actions_info_list.append({"action_idx": ACTIONS.index(row['action_name']),
+                                                   "action_type": row['action_name'],
+                                                   "task_data_row": r,
+                                                   "prev_r_action": prev_r_action})  # Action of focus, row no in task_data, prev robot action
                     # self.output_override.append(0)
 
                 else:
                     self.models.append("fake model")
                 # self.human_row_idxs.append(index)
+
+            elif row['user_type'] == 'robot':
+                prev_r_action = r
 
         self.model_inputs = np.array(self.model_inputs)
 
@@ -122,28 +141,88 @@ class reasoning_module:
     def normalise_input_data(self, input_data):
         return (input_data-self.means)/self.scales
 
+    def action_probability_reasoning(self, action_probs, model_no, episodes):
+        action_type = self.actions_info_list[model_no]["action_type"]
+        # Find if required robot actions completed
+        req_robo_action = self.task_data.iloc[self.actions_info_list[model_no]["prev_r_action"], self.task_data.columns.get_loc("action_name")] in episodes.action_name.values
+        
+        try:
+            tool = self.tool_statuses[action_type]
+        except KeyError:
+            tool = 1
+        prerequistes = req_robo_action & tool
+
+        if prerequistes:
+            weights = [1, 1]  # HAR, fastener
+
+            # Find HAR probability
+            try:
+                har_prob = action_probs[self.actions_info_list[model_no]["action_idx"]]
+                if har_prob == None:
+                    weights[0] = 0
+                    har_prob = 0
+            except Exception as e:
+                weights[0] = 0
+                har_prob = 0
+
+            # Find tool in use probability
+            # try:
+            #     tool_prob = self.tool_statuses[action_type]
+            #     if tool_prob == None:
+            #         weights[1] = 0
+            #         tool_prob = 0
+            # except Exception as e:
+            #     weights[1] = 0
+            #     tool_prob = 0
+
+            # Find fastener count probability
+            try:
+                fastener_prob = self.fastener_probs[action_type].get_probability()
+                if fastener_prob == None:
+                    weights[1] = 0
+                    fastener_prob = 0
+            except Exception as e:
+                weights[1] = 0
+                fastener_prob = 0
+
+            # Find final probability
+            # action_probability = np.average([har_prob, tool_prob, fastener_prob], weights=weights)
+            # print([action_type, har_prob, tool_prob, fastener_prob, action_probability])
+            action_probability = np.average([har_prob, fastener_prob], weights=weights)
+            print([action_type, har_prob, fastener_prob, action_probability])
+
+        else:
+            # Prerequisite robot actions not complete
+            action_probability = 0
+            print([action_type, req_robo_action, tool, action_probability])
+
+        return action_probability
+
     def predict_action_statuses(self, action_probs):
         time = 0
         started = 1
         done = 1
-        for i in range(len(self.models)):
+        # Read episodic, prob to zero if not done.
+        col_names, actions_list = self.db.query_table('Episodes', 'all')
+        episodes = pd.DataFrame(actions_list, columns=col_names)
+        for model_no, _ in enumerate(self.models):
             if not self.test:
                 # Check if override button has been used on action
-                if not self.output_override[i]:
-                    self.model_inputs[i, 0] = action_probs[self.actions_id_list[i]]  # Action prediction
-                    self.model_inputs[i, -3:] = [time, started, done] # Previous action status
+                if not self.output_override[model_no]:
+                    self.model_inputs[model_no, 0] = self.action_probability_reasoning(action_probs, model_no, episodes)
+                    self.model_inputs[model_no, -3:] = [time, started, done]  # Previous action status
 
-                    input_data = self.normalise_input_data(self.model_inputs[i, :])
+                    input_data = self.normalise_input_data(self.model_inputs[model_no, :])
                     input_data = np.nan_to_num(np.array(input_data, ndmin=3, dtype=np.float))
-                    time, started, done = self.models[i](input_data, training=False)[0, 0, :].numpy()
+                    time, started, done = self.models[model_no](input_data, training=False)[0, 0, :].numpy()
                 else:
                     time, started, done = [0, 1, 1]
             else:
                 [time, started, done] = [datetime.now().time(), 0, 0]
 
-            self.task_data.loc[self.human_row_idxs[i], 'started'] = started
-            self.task_data.loc[self.human_row_idxs[i], 'done'] = done
-            self.task_data.loc[self.human_row_idxs[i], 'time_left'] = time*100
+            self.task_data.loc[self.human_row_idxs[model_no], 'started'] = started
+            self.task_data.loc[self.human_row_idxs[model_no], 'done'] = done
+            self.task_data.loc[self.human_row_idxs[model_no], 'time_left'] = time*100
 
         self.publish_to_database()
 
@@ -166,13 +245,14 @@ class reasoning_module:
             {int(self.task_data.loc[self.human_row_idxs[i], 'action_no'])},
             '{self.task_data.loc[self.human_row_idxs[i], 'started']}',
             '{self.task_data.loc[self.human_row_idxs[i], 'done']}',
-            '{self.task_data.loc[self.human_row_idxs[i], 'time_left']}')"""
+            '{self.task_data.loc[self.human_row_idxs[i], 'time_left']}',
+            '{self.model_inputs[i, 0]}')"""
         sql_cmd += ";"
         self.db.gen_cmd(sql_cmd)
 
     def update_task(self, task):
         self.task = task
-        col_names, actions_list = self.db.query_table(self.task, 'all')
+        col_names, actions_list = self.db.query_table(self.task, 'all',order_by='action_no')
         self.task_data = pd.DataFrame(actions_list, columns=col_names)
         self.task_data["started"] = 0
         self.task_data["done"] = 0
@@ -180,12 +260,20 @@ class reasoning_module:
         self.human_row_idxs = self.task_data.index[self.task_data['user_type'] == 'human'].tolist()
         self.output_override = [0]*len(self.human_row_idxs)
 
-        self.fut_act_pred_col_names, _ = self.db.query_table('future_action_predictions',rows=0)
+        self.fut_act_pred_col_names, _ = self.db.query_table('future_action_predictions',rows=0,order_by='user_id')
 
         sql_cmd = f"""DELETE FROM future_action_predictions WHERE user_id = {self.id};"""
         self.db.gen_cmd(sql_cmd)
 
         self.setup_prediction_networks()
+        self.setup_fastener_distribution()
+
+    def setup_fastener_distribution(self):
+        col_names, actions_list = self.db.query_table('actions', 'all')
+        actions_data = pd.DataFrame(actions_list, columns=col_names)
+        for action in self.fastener_probs.keys():
+            act_dur = actions_data.loc[actions_data['action_name'] == action, 'std_dur_s'].iloc[0].total_seconds()
+            self.fastener_probs[action] = FastenerTracker(act_dur)
 
     def next_action_override(self):
         # Get last updated robot actions
@@ -291,3 +379,25 @@ class reasoning_module:
             self.handover_action = True
         else:
             self.handover_action = False
+
+    def tool_stat_callback(self, msg):
+        if msg.data[0:-2] == "screwdriver":
+            self.tool_statuses["screw_in"] = int(msg.data[-1])
+        elif msg.data[0:-2] == "allenkey":
+            self.tool_statuses["allen_in"] = int(msg.data[-1])
+        elif msg.data[0:-2] == "hammer":
+            self.tool_statuses["hammer"] = int(msg.data[-1])
+        else:
+            print(f"User unrecognised tool message: {msg.data}")
+
+    def update_fastener_count(self, data):
+        if data.UserId == self.id:
+            # if user.name != data.UserName:
+                # print(f"ERROR: users list name {user.name} does not match fastener_count msg name {data.UserName}")
+            # else:
+            if data.FastenerCount < data.LastFastenerCount:
+                for key in self.fastener_probs.keys():
+                    try:
+                        self.fastener_probs[key].reset_timer()
+                    except Exception:
+                        pass

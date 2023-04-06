@@ -3,7 +3,7 @@
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Accel, Vector3
-from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability, screw_count, threeIMUs
+from sam_custom_messages.msg import object_state, diagnostics, current_action, robot_move, user_prediction, capability, fastener_count, threeIMUs
 from diagnostic_msgs.msg import KeyValue
 
 
@@ -38,6 +38,7 @@ class diag_class:
 
         self.publisher.publish(self.diag_msg)
 
+
 class obj_class:
     def __init__(self, frame_id, names, queue=1):
         # frame_id=str, names=pytorch classifer output names, queue=int
@@ -68,7 +69,7 @@ class obj_class:
                 self.obj_msg.Header.seq = 0
             else:
                 self.obj_msg.Header.seq += 1
-            
+
             for *xyxy, conf, cls, dist in det:
                 self.obj_msg.Object.Id = 0
                 self.obj_msg.Object.Obj_type = int(cls)
@@ -85,12 +86,12 @@ class obj_class:
                 self.publisher.publish(self.obj_msg)
 
         elif msg_type == "dip":
-            #Digital impage processing method type
+            # Digital impage processing method type
             if self.obj_msg.Header.seq is None:
                 self.obj_msg.Header.seq = 0
             else:
                 self.obj_msg.Header.seq += 1
-            
+
             self.obj_msg.Object.Id = 0
             self.obj_msg.Object.Obj_type = int(det[1])
             self.obj_msg.Object.Info = det[2]
@@ -98,6 +99,7 @@ class obj_class:
             self.obj_msg.Header.stamp = rospy.get_rostime()
 
             self.publisher.publish(self.obj_msg)
+
 
 class act_class:
     def __init__(self, frame_id, class_count, user_id=1, user_name="unknown", queue=1):
@@ -119,20 +121,21 @@ class act_class:
             self.act_msg.Header.seq = 0
         else:
             self.act_msg.Header.seq += 1
-        
+
         self.act_msg.ActionProbs = prediction
         self.act_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.act_msg)
 
+
 class move_class:
     def __init__(self, frame_id, queue=10):
         # frame_id=str, queue=int
         # Current action message definitions
-        #self.move_msg = robot_move()
-        #self.move_msg.Header.stamp = rospy.get_rostime()
-        #self.move_msg.Header.seq = None
-        #self.move_msg.Header.frame_id = frame_id
+        # self.move_msg = robot_move()
+        # self.move_msg.Header.stamp = rospy.get_rostime()
+        # self.move_msg.Header.seq = None
+        # self.move_msg.Header.frame_id = frame_id
 
         self.publisher = rospy.Publisher('RobotMove', String, queue_size=queue)
 
@@ -143,12 +146,13 @@ class move_class:
         # else:
         #     self.move_msg.Header.seq += 1
 
-        #self.move_msg.Command = commands
-        #self.move_msg.Header.stamp = rospy.get_rostime()
+        # self.move_msg.Command = commands
+        # self.move_msg.Header.stamp = rospy.get_rostime()
 
-        #self.msg = command
+        # self.msg = command
 
         self.publisher.publish(command)
+
 
 class future_class:
     def __init__(self, frame_id, user_id=1, queue=1):
@@ -169,11 +173,12 @@ class future_class:
             self.future_msg.Header.seq = 0
         else:
             self.future_msg.Header.seq += 1
-        
+
         self.future_msg.Command = prediction
         self.future_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.future_msg)
+
 
 class capability_class:
     def __init__(self, frame_id, user_id=1, queue=1):
@@ -205,12 +210,13 @@ class capability_class:
             self.capability_msg.Header.seq = 0
         else:
             self.capability_msg.Header.seq += 1
-        
+
         self.capability_msg.Type = cap_type
         self.capability_msg.Info = cap_info
         self.capability_msg.Header.stamp = rospy.get_rostime()
 
         self.publisher.publish(self.capability_msg)
+
 
 class threeIMUs_class:
     def __init__(self, frame_id, user_id=1, user_name='unknown', queue=1):
@@ -225,9 +231,9 @@ class threeIMUs_class:
         self.accel_msg = Accel()
         self.positions = ['Hand', 'Wrist', 'Arm']
 
-        for p in range(len(self.positions)):
-            self.accel_msg.linear = Vector3(0,0,0)
-            self.accel_msg.angular = Vector3(0,0,0)
+        for p, _ in enumerate(self.positions):
+            self.accel_msg.linear = Vector3(0, 0, 0)
+            self.accel_msg.angular = Vector3(0, 0, 0)
             setattr(self.IMUs_msg, self.positions[p], self.accel_msg)
 
         self.publisher = rospy.Publisher('IMUdata', threeIMUs, queue_size=queue)
@@ -244,7 +250,7 @@ class threeIMUs_class:
         else:
             self.IMUs_msg.Header.seq += 1
 
-        for p in range(len(self.positions)):
+        for p, _ in enumerate(self.positions):
             self.accel_msg.linear = Vector3(float(IMU_data[p*6]), float(IMU_data[(p*6)+1]), float(IMU_data[(p*6)+2]))
             self.accel_msg.angular = Vector3(float(IMU_data[(p*6)+3]), float(IMU_data[(p*6)+4]), float(IMU_data[(p*6)+5]))
             setattr(self.IMUs_msg, self.positions[p], self.accel_msg)
@@ -252,30 +258,31 @@ class threeIMUs_class:
         self.IMUs_msg.Header.stamp = rospy.get_rostime()
         self.publisher.publish(self.IMUs_msg)
 
-class screw_count_class:
+
+class fastener_count_class:
     def __init__(self, frame_id, user_id=1, user_name="unknown", queue=1):
         # frame_id=str, user_id=int, user_name=str, queue=int
-        # Screw counts message definitions
-        self.screw_msg = screw_count()
-        self.screw_msg.Header.stamp = rospy.get_rostime()
-        self.screw_msg.Header.seq = None
-        self.screw_msg.Header.frame_id = frame_id
-        self.screw_msg.UserId = user_id
-        self.screw_msg.UserName = user_name
-        self.screw_msg.ScrewCount = 0
-        self.screw_msg.LastScrewCount = 0
+        # Fastener counts message definitions
+        self.fastener_msg = fastener_count()
+        self.fastener_msg.Header.stamp = rospy.get_rostime()
+        self.fastener_msg.Header.seq = None
+        self.fastener_msg.Header.frame_id = frame_id
+        self.fastener_msg.UserId = user_id
+        self.fastener_msg.UserName = user_name
+        self.fastener_msg.FastenerCount = 0
+        self.fastener_msg.LastFastenerCount = 0
 
-        self.publisher = rospy.Publisher('ScrewCounts', screw_count, queue_size=queue)
+        self.publisher = rospy.Publisher('FastenerCounts', fastener_count, queue_size=queue)
 
     def publish(self, count_now, count_last):
         # count_now=int, count_last=int
-        if self.screw_msg.Header.seq is None:
-            self.screw_msg.Header.seq = 0
+        if self.fastener_msg.Header.seq is None:
+            self.fastener_msg.Header.seq = 0
         else:
-            self.screw_msg.Header.seq += 1
-        
-        self.screw_msg.ScrewCount = count_now
-        self.screw_msg.LastScrewCount = count_last
-        self.screw_msg.Header.stamp = rospy.get_rostime()
+            self.fastener_msg.Header.seq += 1
 
-        self.publisher.publish(self.screw_msg)
+        self.fastener_msg.FastenerCount = count_now
+        self.fastener_msg.LastFastenerCount = count_last
+        self.fastener_msg.Header.stamp = rospy.get_rostime()
+
+        self.publisher.publish(self.fastener_msg)

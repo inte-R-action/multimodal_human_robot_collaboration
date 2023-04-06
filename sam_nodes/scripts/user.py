@@ -21,9 +21,9 @@ class User:
         self.col_names = None
         self.db = database()
         self.shimmer_ready = 1
-        self._har_pred_hist = None
-        self._har_state_hist = None
-        self._final_state_hist = None
+        self._har_pred_hist = np.array([0, 0, 0, 0, datetime.min])
+        self._har_state_hist = [np.array([0, 1, datetime.min], ndmin=2) for _ in range(len(self.ACTION_CATEGORIES)-1)]  # [class, conf, t]*num_classes
+        self._final_state_hist = [np.array([0, 1, datetime.min, datetime.min], ndmin=2) for _ in range(len(self.ACTION_CATEGORIES)-1)]  # [class, conf, tStart, tEnd]*num_classes
 
         #if not self.test:
         self.perception = perception_module(self.name, self.id, self.frame_id, self.ACTION_CATEGORIES)
@@ -41,7 +41,7 @@ class User:
             self.task_reasoning.update_user_details(Id=self.id)
         if task:
             self.update_task(task)
-    
+
     def update_task(self, task):
         self.task = task
 

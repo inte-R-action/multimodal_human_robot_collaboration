@@ -184,7 +184,7 @@ def enter_dreaming_phase():
     # Fake shutdown timer
     t = time.time()
     while (time.time()-t) < 3:
-        time.sleep(0.1)
+        rospy.sleep(0.1)
 
     episodic_data = read_episodic_memory()
 

@@ -4,16 +4,17 @@
   <arg name="test_mode" default="false" />
   <arg name="gui" default="true" />
 
-  <arg if="$(arg test_mode)" name="im_recog" default="false" />
+  <arg if="$(arg test_mode)" name="im_recog" default="true" />
   <arg if="$(arg test_mode)" name="postgresql" default="true" />
   <arg if="$(arg test_mode)" name="robot_controller" default="false" />
   <arg if="$(arg test_mode)" name="robot_controller_test" default="false" />
   <arg if="$(arg test_mode)" name="users_node" default="true" />
   <arg if="$(arg test_mode)" name="shimmerBase" default="false" />
   <arg if="$(arg test_mode)" name="fake_imu_node" default="false" />
-  <arg if="$(arg test_mode)" name="fake_sensors_node" default="true" />
+  <arg if="$(arg test_mode)" name="fake_sensors_node" default="false" />
+  <arg if="$(arg test_mode)" name="tool_sensor_node" default="false" />
 
-  <arg unless="$(arg test_mode)" name="im_recog" default="false" />
+  <arg unless="$(arg test_mode)" name="im_recog" default="true" />
   <arg unless="$(arg test_mode)" name="postgresql" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller" default="true" />
   <arg unless="$(arg test_mode)" name="robot_controller_test" default="false" />
@@ -21,6 +22,7 @@
   <arg unless="$(arg test_mode)" name="shimmerBase" default="false" />
   <arg unless="$(arg test_mode)" name="fake_imu_node" default="false" />
   <arg unless="$(arg test_mode)" name="fake_sensors_node" default="false" />
+  <arg unless="$(arg test_mode)" name="tool_sensor_node" default="true" />
 
   <group if="$(arg gui)">
     <node name="gui_node" pkg="sam_nodes" type="gui.py" respawn="false" output="screen" required="true">
@@ -28,8 +30,7 @@
   </group>
 
   <group if="$(arg im_recog)">
-    <!-- <node name="im_recog_realsense" pkg="sam_nodes" type="im_recog_realsense.py" respawn="false" output="screen"> -->
-    <node name="screw_detector_realsense" pkg="sam_nodes" type="screw_detector_realsense.py" respawn="false" output="screen">
+    <node name="fastener_detector_realsense" pkg="sam_nodes" type="fastener_detector_realsense.py" respawn="false" output="screen">
     </node>
   </group>
 
@@ -66,6 +67,11 @@
 
   <group if="$(arg fake_sensors_node)">
     <node name="fake_sensors_node" pkg="sam_nodes" type="fake_sensor_data_publisher.py" respawn="false" output="screen" launch-prefix="bash -c 'sleep $(arg node_start_delay_2); $0 $@' ">
+    </node>
+  </group>
+
+  <group if="$(arg tool_sensor_node)">
+    <node name="tool_sensor_node" pkg="rosserial_python" type="serial_node.py" respawn="false" output="screen" args="/dev/ttyACM0">
     </node>
   </group>
 
